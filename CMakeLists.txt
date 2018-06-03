@@ -10,120 +10,102 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
+option(WITHOUT_GUI "Don't add GUI targets" OFF)
+
 if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
 endif()
 
+if(APPLE)
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    set(A8_TARGET "macOS")
+  elseif(CMAKE_SYSTEM_NAME MATCHES "iOS" OR CMAKE_SYSTEM_NAME MATCHES "iPhone OS")
+    set(A8_TARGET "iOS")
+  else()
+    message(FATAL_ERROR "Target ${CMAKE_SYSTEM_NAME} is not supported.")
+  endif()
+elseif(WIN32)
+  set(A8_TARGET "Windows")
+elseif(WINDOWS_STORE)
+  set(A8_TARGET "UWP")
+elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
+  set(A8_TARGET "Android")
+elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  set(A8_TARGET "Linux")
+elseif(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+  set(A8_TARGET "FreeBSD")
+else()
+  message(FATAL_ERROR "Target ${CMAKE_SYSTEM_NAME} is not supported.")
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin/debug)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin/release)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_SOURCE_DIR}/bin/minsizerel)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR}/bin/optdebug)
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO})
+
 #
 # External libraries
 #
-find_package(spdlog)
-find_package(eigen3)
-if(eigen3_FOUND)
-  set(NANOGUI_EIGEN_INCLUDE_DIR ${eigen3_INCLUDE_DIR})
-endif()
+find_package(spdlog CONFIG)
+find_package(fmt REQUIRED)
+find_package(cpprestsdk REQUIRED)
+find_package(catch2)
 
-find_path(cppwinrt_INCLUDE_DIR winrt/Windows.System.h)
-find_path(nanogui_DIR include/nanogui/nanogui.h HINTS "$ENV{nanogui_DIR}")
-find_path(fpsdk_DIR source/c/fp_cplug.h HINTS "$ENV{fpsdk_DIR}")
-
-#
-# General
-#
-file(GLOB Autumn8_CORE_SOURCES src/core.*.cpp)
-file(GLOB Autumn8_CMD_SOURCES src/cmd.*.cpp)
-file(GLOB Autumn8_GUI_SOURCES src/gui.*.cpp)
-file(GLOB Autumn8_STANDALONE_SOURCES src/standalone.*.cpp)
-file(GLOB Autumn8_FL_SOURCES src/fl.*.cpp)
-
-set(Autumn8_INCLUDE_PRIV $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
-set(Autumn8_INCLUDE_PUB
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+add_library(concurrentqueue INTERFACE IMPORTED)
+target_include_directories(concurrentqueue INTERFACE
+  ${PROJECT_SOURCE_DIR}/contrib/moodycamel/include
 )
 
-if(spdlog_NOTFOUND)
-  message(STATUS "Logging disabled, install spdlog to enable")
-else()
+if(NOT WITHOUT_GUI)
+  find_package(imgui REQUIRED)
+  find_package(bgfx REQUIRED)
+  find_package(NanoVG REQUIRED)
+  find_package(Yoga REQUIRED)
+  find_package(fpsdk)
+
+  set(GUI_TARGETS_OK 1)
+endif() # NOT WITHOUT_GUI
+
+if(spdlog_FOUND)
   set(HAS_SPDLOG 1)
-  list(APPEND Autumn8_INCLUDE_PRIV ${spdlog_INCLUDE_DIR})
+  link_libraries(spdlog::spdlog fmt::fmt)
+else()
+  message("Logging disabled, install spdlog to enable")
 endif()
 
 #
-# Main library
+# Targets
 #
-add_library(Autumn8Core STATIC ${Autumn8_CORE_SOURCES})
-target_include_directories(Autumn8Core PUBLIC
-  $<BUILD_INTERFACE:${Autumn8_INCLUDE_PUB}>
-  $<INSTALL_INTERFACE:include>)
-target_include_directories(Autumn8Core PRIVATE ${Autumn8_INCLUDE_PRIV})
+set(Autumn8_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR}/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+)
+include_directories(${Autumn8_INCLUDE_DIRS})
 
-if(cppwinrt_INCLUDE_DIR_NOTFOUND)
-  message(STATUS "UWP MIDI disabled, install cppwinrt to enable.")
+add_subdirectory(src/core core)
+
+if(GUI_TARGETS_OK)
+  message(STATUS "GUI targets are enabled.")
+  add_subdirectory(src/gfx gfx)
+
+  if(fpsdk_FOUND)
+    message(STATUS "FL Studio plugin target is enabled.")
+    add_subdirectory(src/flplugin flplugin)
+  endif()
 else()
-  set(HAS_CPPWINRT 1)
-  target_sources(Autumn8Core PRIVATE src/midi.uwp.cpp)
-  target_include_directories(Autumn8Core PRIVATE ${cppwinrt_INCLUDE_DIR})
+  message(STATUS "GUI targets are disabled.")
 endif()
-
-#
-# Command line interface
-#
-add_executable(a8 ${Autumn8_CMD_SOURCES})
-target_link_libraries(a8 Autumn8Core)
-target_include_directories(a8 PRIVATE ${Autumn8_INCLUDE_PRIV})
-
-#
-# Standalone GUI
-#
-if(nanogui_DIR_NOTFOUND)
-  message(WARNING "GUI target disabled, set nanogui_DIR to enable.")
-else()
-  set(NANOGUI_BUILD_EXAMPLE OFF CACHE INTERNAL "NanoGUI examples")
-  set(NANOGUI_BUILD_PYTHON OFF CACHE INTERNAL "NanoGUI Python integration")
-  set(NANOGUI_INSTALL OFF CACHE INTERNAL "NanoGUI install")
-
-  add_subdirectory(${nanogui_DIR} ${CMAKE_CURRENT_BINARY_DIR}/nanogui)
-  get_directory_property(nanogui_INCLUDE_DIR DIRECTORY ${nanogui_DIR} INCLUDE_DIRECTORIES)
-
-  add_executable(Autumn8 WIN32 ${Autumn8_STANDALONE_SOURCES} ${Autumn8_GUI_SOURCES})
-  target_include_directories(Autumn8 PRIVATE
-    ${Autumn8_INCLUDE_PRIV}
-    ${Autumn8_INCLUDE_PUB}
-    ${nanogui_INCLUDE_DIR}
-    ${NANOGUI_EXTRA_INCS}
-  )
-  target_compile_definitions(Autumn8 PRIVATE ${NANOGUI_EXTRA_DEFS})
-  target_link_libraries(Autumn8 Autumn8Core nanogui ${NANOGUI_EXTRA_LIBS})
-
-  add_custom_command(TARGET Autumn8 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-      "$<TARGET_FILE:nanogui>"
-      "${CMAKE_CURRENT_BINARY_DIR}"
-    COMMENT "Copying nanogui.dll to main build directory."
-  )
-
-  message(STATUS "Standalone GUI target enabled.")
-
-  #
-  # FL plugin
-  #
-  if(fpsdk_DIR)
-    file(GLOB fpsdk_SOURCES ${fpsdk_DIR}/source/c *.cpp)
-    add_library(Autumn8FL SHARED ${Autumn8_FL_SOURCES} ${Autumn8_GUI_SOURCES} ${fpsdk_SOURCES})
-    target_include_directories(Autumn8FL PRIVATE
-      ${Autumn8_INCLUDE_PRIV}
-      ${fpsdk_DIR}/source/c
-      ${nanogui_INCLUDE_DIR}
-      ${NANOGUI_EXTRA_INCS}
-    )
-    target_compile_definitions(Autumn8FL PRIVATE ${NANOGUI_EXTRA_DEFS})
-    target_link_libraries(Autumn8FL Autumn8Core nanogui ${NANOGUI_EXTRA_LIBS})
-
-    message(STATUS "FL plugin target enabled.")
-  endif() # fpsdk
-endif() # nanogui
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/config.h.in
-  ${CMAKE_BINARY_DIR}/config.h
+  ${CMAKE_BINARY_DIR}/a8config.h
 )
