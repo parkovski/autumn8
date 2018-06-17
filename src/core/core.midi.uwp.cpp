@@ -68,18 +68,18 @@ class UwpMidiManager final : public MidiManager {
       auto id = info.Id();
       auto [it, inserted] = _deviceIdMap.emplace(std::wstring_view(id), index);
       auto name = info.Name();
-      std::wcout << L"\nDevice " << name.operator std::wstring_view() << L":\n";
-      std::wcout << L"  " << info.Properties().Size() << L" properties\n";
+      // std::wcout << L"\nDevice " << name.operator std::wstring_view() << L":\n";
+      // std::wcout << L"  " << info.Properties().Size() << L" properties\n";
       auto foo = info.Properties().First();
       while (foo) {
-        std::wcout << foo.Current().Key().operator std::wstring_view() << L": ";
+        // std::wcout << foo.Current().Key().operator std::wstring_view() << L": ";
         WF::IPropertyValue bob;
         if (foo.Current().Value() && foo.Current().Value().try_as<WF::IPropertyValue>(bob)) {
           if (bob.Type() == WF::PropertyType::String) {
-            std::wcout << bob.GetString().operator std::wstring_view();
+            // std::wcout << bob.GetString().operator std::wstring_view();
           }
         }
-        std::wcout << L"\n";
+        // std::wcout << L"\n";
         ++foo;
       }
       if (inserted) {
@@ -226,7 +226,8 @@ public:
     if (id < 0 || id >= _deviceInfo.size()) {
       return std::string_view();
     }
-    std::lock_guard<std::mutex> lock(_mutex);
+    Sleep(100);
+    //std::lock_guard<std::mutex> lock(_mutex);
     return _deviceInfo[id].name;
   }
 

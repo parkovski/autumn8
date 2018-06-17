@@ -1,11 +1,14 @@
-#pragma once
+#ifndef _a8_midi_h_
+#define _a8_midi_h_
+
+#include "a8/a8.h"
 
 #include <functional>
 #include <string_view>
 
 namespace a8 {
 
-class MidiManager {
+class A8_DLLEXPORT MidiManager {
 public:
   static constexpr int InvalidDeviceId = -1;
 
@@ -23,7 +26,10 @@ public:
   virtual int findNamedDevice(std::string_view name) const = 0;
 };
 
-void uwpMidiInitWinRT();
-MidiManager *newUwpMidiManager();
+A8_DLLEXPORT void uwpMidiInitWinRT();
+A8_DLLEXPORT MidiManager *newUwpMidiManager();
+A8_DLLEXPORT MidiManager *newWinmmMidiManager();
 
 } // namespace a8
+
+#endif // _a8_midi_h_

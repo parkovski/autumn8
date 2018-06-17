@@ -1,6 +1,6 @@
 project(Autumn8Core)
 
-set(SOURCES core.midi.uwp.cpp)
+set(SOURCES core.midi.uwp.cpp core.midi.winmm.cpp)
 
 add_library(core SHARED ${SOURCES})
 set_target_properties(core PROPERTIES OUTPUT_NAME a8core)
