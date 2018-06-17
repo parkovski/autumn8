@@ -16,6 +16,7 @@ option(WITHOUT_GUI "Don't add GUI targets" OFF)
 
 if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
+  add_compile_options(-diagnostics:caret)
 endif()
 
 if(APPLE)
@@ -57,6 +58,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 #
 find_package(spdlog CONFIG)
 find_package(fmt REQUIRED)
+find_package(cereal REQUIRED)
 find_package(cpprestsdk REQUIRED)
 find_package(catch2)
 

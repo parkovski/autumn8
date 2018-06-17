@@ -1,0 +1,394 @@
+#ifndef _a8_gfx_common_h_
+#define _a8_gfx_common_h_
+
+#include <cstdint>
+#include <type_traits>
+
+namespace a8::gfx {
+
+template<typename XY>
+struct xypair_t : public XY {
+  using typename XY::coord;
+
+  constexpr xypair_t() noexcept
+    : XY()
+  {}
+
+  constexpr xypair_t(coord x, coord y) noexcept
+    : XY(x, y)
+  {}
+
+  xypair_t(const xypair_t<XY> &other) = default;
+
+  template<typename ZW, typename = typename XY::convert_from<ZW>>
+  constexpr explicit xypair_t(const ZW &other) noexcept
+    : XY(coord(other.xy_x()), coord(other.xy_y()))
+  {}
+
+  xypair_t<XY> &operator=(const xypair_t<XY> &other) = default;
+
+  constexpr bool operator==(const xypair_t<XY> &other) const noexcept {
+    return xy_x() == other.xy_x() &&
+           xy_y() == other.xy_y();
+  }
+  constexpr bool operator!=(const xypair_t<XY> &other) const noexcept {
+    return !(*this == other);
+  }
+
+  constexpr xypair_t<XY> operator-() {
+    return {-xy_x(), -xy_y()};
+  }
+
+  constexpr xypair_t<XY> &operator+=(const xypair_t<XY> &other) {
+    xy_x() += other.xy_x();
+    xy_y() += other.xy_y();
+    return *this;
+  }
+
+  constexpr friend xypair_t<XY> operator+(
+    xypair_t<XY> self, const xypair_t<XY> &other
+  )
+  {
+    return self += other;
+  }
+
+  constexpr xypair_t<XY> &operator-=(const xypair_t<XY> &other) {
+    xy_x() -= other.xy_x();
+    xy_y() -= other.xy_y();
+    return *this;
+  }
+
+  constexpr friend xypair_t<XY> operator-(
+    xypair_t<XY> self, const xypair_t<XY> &other
+  )
+  {
+    return self -= other;
+  }
+
+  constexpr xypair_t<XY> &operator*=(const xypair_t<XY> &amounts) {
+    xy_x() *= amounts.xy_x();
+    xy_y() *= amounts.xy_y();
+    return *this;
+  }
+
+  constexpr friend xypair_t<XY> operator*(
+    xypair_t<XY> self, const xypair_t<XY> &amounts
+  )
+  {
+    return self *= amounts;
+  }
+
+  constexpr xypair_t<XY> &operator*=(coord amount) {
+    xy_x() *= amount;
+    xy_y() *= amount;
+    return *this;
+  }
+
+  constexpr friend xypair_t<XY> operator*(
+    xypair_t<XY> self, coord amount
+  )
+  {
+    return self *= amount;
+  }
+
+  constexpr friend xypair_t<XY> operator*(
+    coord amount, xypair_t<XY> self
+  )
+  {
+    return self *= amount;
+  }
+
+  constexpr xypair_t<XY> &operator/=(const xypair_t<XY> &amounts) {
+    xy_x() /= amounts.xy_x();
+    xy_y() /= amounts.xy_y();
+    return *this;
+  }
+
+  constexpr friend xypair_t<XY> operator/(
+    xypair_t<XY> self, const xypair_t<XY> &amounts
+  )
+  {
+    return self /= amounts;
+  }
+
+  constexpr xypair_t<XY> &operator/=(coord amount) {
+    xy_x() /= amount;
+    xy_y() /= amount;
+    return *this;
+  }
+
+  constexpr friend xypair_t<XY> operator/(
+    xypair_t<XY> self, coord amount
+  )
+  {
+    return self /= amount;
+  }
+
+  template<typename ZW, typename = typename ZW::convert_from<XY>>
+  constexpr explicit operator ZW() const {
+    return ZW{ typename ZW::coord(xy_x()), typename ZW::coord(xy_y()) };
+  }
+};
+
+template<typename Coord>
+struct basic_point_t {
+  using coord = Coord;
+
+  template<typename Coord2>
+  using convert_from =
+    std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>;
+
+  constexpr basic_point_t() noexcept
+    : x{}, y{}
+  {}
+
+  constexpr basic_point_t(coord x, coord y) noexcept
+    : x{x}, y{y}
+  {}
+
+  coord x;
+  coord y;
+
+  coord &xy_x() { return x; }
+  const coord &xy_x() const { return x; }
+  coord &xy_y() { return y; }
+  const coord &xy_y() const { return y; }
+};
+
+template<typename Coord>
+struct basic_size_t {
+  using coord = Coord;
+
+  template<typename Coord2>
+  using convert_from =
+    std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>;
+
+  constexpr basic_size_t() noexcept
+    : width{}, height{}
+  {}
+
+  constexpr basic_size_t(coord w, coord h) noexcept
+    : width{w}, height{h}
+  {}
+
+  coord width;
+  coord height;
+
+  coord &xy_x() { return width; }
+  const coord &xy_x() const { return width; }
+  coord &xy_y() { return height; }
+  const coord &xy_y() const { return height; }
+};
+
+enum class Anchor {
+  None          = 0,
+  Left          = 0x1,
+  Right         = 0x2,
+  /// Both left and right
+  Horizontal    = 0x3,
+  Top           = 0x4,
+  TopLeft       = 0x5,
+  TopRight      = 0x6,
+  /// Top, left, and right
+  FillTop       = 0x7,
+  Bottom        = 0x8,
+  BottomLeft    = 0x9,
+  BottomRight   = 0xA,
+  /// Bottom, left, and right
+  FillBottom    = 0xB,
+  /// Top and bottom
+  Vertical      = 0xC,
+  /// Top, bottom, and left
+  FillLeft      = 0xD,
+  /// Top, bottom, and right
+  FillRight     = 0xE,
+  /// All edges
+  Expand        = 0xF,
+};
+/// Union: Points in either a1 or a2.
+constexpr Anchor operator|(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>(static_cast<int>(a1) | static_cast<int>(a2));
+}
+/// Union: Same as operator|.
+constexpr Anchor operator+(Anchor a1, Anchor a2) {
+  return a1 | a2;
+}
+/// Intersection: Points occurring in both a1 and a2.
+constexpr Anchor operator&(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>(static_cast<int>(a1) & static_cast<int>(a2));
+}
+/// Set difference: Removes points in a2 from the set a1.
+constexpr Anchor operator-(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>(static_cast<int>(a1) & ~static_cast<int>(a2));
+}
+/// Exclusion: Points in either set but not both.
+constexpr Anchor operator^(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>((static_cast<int>(a1) ^ static_cast<int>(a2)) & 0xF);
+}
+/// Inverse: Changes all points to the opposite state.
+constexpr Anchor operator~(Anchor a) {
+  return static_cast<Anchor>(~static_cast<int>(a));
+}
+/// Reflection: Flips left/right, top/bottom, but when both are set, both remain.
+constexpr Anchor operator-(Anchor a) {
+  const int i = static_cast<int>(a);
+  return static_cast<Anchor>(((i & 0x5) << 1) | ((i & 0xA) >> 1));
+}
+constexpr bool operator!(Anchor a) {
+  return a == Anchor::None;
+}
+
+template<typename Q>
+struct ptpair_t : public Q {
+private:
+  constexpr ptpair_t<Q> adjust(
+    const basic_point_t<typename Q::coord> &point,
+    const basic_size_t<typename Q::coord> &size,
+    Anchor anchor
+  ) noexcept
+  {
+    typename Q::coord x[2];
+    typename Q::coord y[2];
+    if (anchor & Anchor::Left) {
+      x[0] = point.x;
+      x[1] = point.x + size.width;
+    } else if (anchor & Anchor::Right) {
+      x[0] = point.x - size.width;
+      x[1] = point.x;
+    } else {
+      x[0] = point.x - size.width / 2;
+      x[1] = x[0] + size.width;
+    }
+
+    if (anchor & Anchor::Top) {
+      y[0] = point.y;
+      y[1] = point.y + size.height;
+    } else if (anchor & Anchor::Bottom) {
+      y[0] = point.y - size.height;
+      y[1] = point.y;
+    } else {
+      y[0] = point.y - size.height / 2;
+      y[1] = y[0] + size.height;
+    }
+
+    return {x[0], y[0], x[1], y[1]};
+  }
+
+public:
+  using typename Q::coord;
+
+  constexpr ptpair_t() noexcept
+    : Q{}
+  {}
+
+  constexpr ptpair_t(coord x1, coord y1, coord x2, coord y2) noexcept
+    : Q{x1, y1, x2, y2}
+  {}
+
+  constexpr explicit ptpair_t(
+    const basic_point_t<coord> &point,
+    const basic_size_t<coord> &size,
+    Anchor anchor = Anchor::TopLeft
+  ) noexcept
+    : ptpair_t{adjust(point, size, anchor)}
+  {}
+
+  constexpr explicit ptpair_t(
+    const basic_point_t<coord> &pt1,
+    const basic_point_t<coord> &pt2
+  ) noexcept
+    : Q{pt1.x, pt1.y, pt2.x, pt2.y}
+  {}
+
+  //ptpair_t(const ptpair_t<coord> &) = default;
+  //ptpair_t<coord> &operator=(const ptpair_t<coord> &) = default;
+};
+
+template<typename Coord>
+struct basic_rect_t {
+  using coord = Coord;
+
+  template<typename Coord2>
+  using convert_to =
+    std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>, Coord2>;
+
+  coord left;
+  coord top;
+  coord right;
+  coord bottom;
+
+  constexpr basic_rect_t() noexcept
+    : left{}, top{}, right{}, bottom{}
+  {}
+
+  constexpr basic_rect_t(coord left, coord top, coord right, coord bottom) noexcept
+    : left{left}, top{top}, right{right}, bottom{bottom}
+  {}
+
+protected:
+  coord &c1x() { return left; }
+  const coord &c1x() const { return left; }
+  coord &c1y() { return top; }
+  const coord &c1y() const { return top; }
+  coord &c2x() { return right; }
+  const coord &c2x() const { return right; }
+  coord &c2y() { return bottom; }
+  const coord &c2y() const { return bottom; }
+};
+
+template<typename Coord>
+struct basic_line_t {
+  using coord = Coord;
+
+  template<typename Coord2>
+  using convert_from =
+    std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>;
+
+  coord x1;
+  coord y1;
+  coord x2;
+  coord y2;
+
+  constexpr basic_line_t() noexcept
+    : x1{}, y1{}, x2{}, y2{}
+  {}
+
+  constexpr basic_line_t(coord x1, coord y1, coord x2, coord y2) noexcept
+    : x1{x1}, y1{y1}, x2{x2}, y2{y2}
+  {}
+
+protected:
+  coord &c1x() { return x1; }
+  const coord &c1x() const { return x1; }
+  coord &c1y() { return y1; }
+  const coord &c1y() const { return y1; }
+  coord &c2x() { return x2; }
+  const coord &c2x() const { return x2; }
+  coord &c2y() { return y2; }
+  const coord &c2y() const { return y2; }
+};
+
+template<typename Coord>
+using PointT = xypair_t<basic_point_t<Coord>>;
+template<bool scaled>
+using PointS = PointT<std::conditional_t<scaled, float, int32_t>>;
+using RawPoint = PointS<false>;
+using Point = PointS<true>;
+
+template<typename Coord>
+using SizeT = xypair_t<basic_size_t<Coord>>;
+template<bool scaled>
+using SizeS = SizeT<std::conditional_t<scaled, float, uint32_t>>;
+using RawSize = SizeS<false>;
+using Size = SizeS<true>;
+
+template<typename Coord>
+using RectT = ptpair_t<basic_rect_t<Coord>>;
+template<bool scaled>
+using RectS = RectT<std::conditional_t<scaled, float, int32_t>>;
+using RawRect = RectS<false>;
+using Rect = RectS<true>;
+
+} // namespace a8::gfx
+
+#endif // _a8_gfx_common_h_

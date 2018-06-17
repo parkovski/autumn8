@@ -1,0 +1,10 @@
+#ifndef ICON_MISSING
+  #define IDI_ICON 101
+
+  IDI_ICON ICON "Autumn8.ico"
+#endif /* ICON_MISSING */
+
+#define RT_MANIFEST 24
+#define ID_MANIFEST 1
+
+ID_MANIFEST RT_MANIFEST "Autumn8.manifest"
