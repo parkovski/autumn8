@@ -12,6 +12,7 @@
 #include <codecvt>
 #include <future>
 #include <atomic>
+#include <ostream>
 
 #define MY_HWND static_cast<HWND>(this->_nativeHandle)
 #define HWND_OF(w) static_cast<HWND>((w).nativeHandle())
@@ -95,7 +96,7 @@ namespace {
 
   void mainThread(MainThreadState &state) {
     setThreadName(L"Event thread");
-    logtrace("Event thread: {}", enableThreadDpiAwareness());
+    logtrace("Main thread: {}", enableThreadDpiAwareness());
 
     RECT rc;
     GetClientRect(HWND_OF(*state.window), &rc);

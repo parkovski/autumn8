@@ -1,29 +1,31 @@
 #include "a8/a8.h"
 #include "a8/platform/windows.h"
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "fmt/ostream.h"
+
 #include <Windows.h>
 #include <shellapi.h>
 #include <string_view>
 #include <optional>
 #include <string>
 #include <memory>
-#include "spdlog/spdlog.h"
-#include "fmt/ostream.h"
 
 #pragma comment(lib, "mincore.lib")
 
 using namespace a8::platform::windows;
 
-std::shared_ptr<spdlog::logger> a8::internal::g_logger;
+// std::shared_ptr<spdlog::logger> a8::internal::g_logger;
 
 void a8::internal::initLogging(int argc, char *argv[]) {
-  g_logger = spdlog::stdout_color_mt("autumn8");
-  g_logger->set_level(spdlog::level::trace);
+  // g_logger = spdlog::stdout_color_mt("autumn8");
+  // g_logger->set_level(spdlog::level::trace);
 }
 
 void a8::internal::shutdownLogging() {
   // Avoid VC++ deadlock bug
-  spdlog::drop_all();
+  // spdlog::drop_all();
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {

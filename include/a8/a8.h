@@ -4,74 +4,85 @@
 
 #ifdef HAS_SPDLOG
 
-# include "spdlog/spdlog.h"
+#include <memory>
+#include <utility>
+#include "fmt/format.h"
+#include "spdlog/spdlog.h"
+
 namespace a8::internal {
   void initLogging(int argc, char *argv[]);
   void shutdownLogging();
-}
 
-namespace a8::internal {
   extern std::shared_ptr<spdlog::logger> g_logger;
 }
 
 template<typename... Args>
-inline void logdebug(Args &&...args) {
-  ::a8::internal::g_logger->debug(std::forward<Args>(args)...);
+void logdebug(Args &&...args) {
+  using namespace ::a8::internal;
+  auto &l = *g_logger;
+  l.log(::spdlog::level::debug, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void logtrace(Args &&...args) {
-  ::a8::internal::g_logger->trace(std::forward<Args>(args)...);
+void logtrace(Args &&...args) {
+  using namespace ::a8::internal;
+  auto &l = *g_logger;
+  l.log(::spdlog::level::trace, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void loginfo(Args &&...args) {
-  ::a8::internal::g_logger->info(std::forward<Args>(args)...);
+void loginfo(Args &&...args) {
+  using namespace ::a8::internal;
+  g_logger->log(::spdlog::level::info, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void logwarn(Args &&...args) {
-  ::a8::internal::g_logger->warn(std::forward<Args>(args)...);
+void logwarn(Args &&...args) {
+  using namespace ::a8::internal;
+  g_logger->log(::spdlog::level::warn, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void logerror(Args &&...args) {
-  ::a8::internal::g_logger->error(std::forward<Args>(args)...);
+void logerror(Args &&...args) {
+  using namespace ::a8::internal;
+  g_logger->log(::spdlog::level::error, std::forward<Args>(args)...);
 }
 
 template<typename... Args>
-inline void logcritical(Args &&...args) {
-  ::a8::internal::g_logger->critical(std::forward<Args>(args)...);
+void logcritical(Args &&...args) {
+  using namespace ::a8::internal;
+  g_logger->log(::spdlog::level::critical, std::forward<Args>(args)...);
 }
 
 #else // HAS_SPDLOG
 
 namespace a8::internal {
-  inline void initLogging(int, char *[]);
-  inline void shutdownLogging();
+  void initLogging(int, char *[]);
+  void shutdownLogging();
 }
 
 template<typename... Args>
-inline void logdebug(Args &&...) { }
+void logdebug(const char *, Args &&...) { }
 
 template<typename... Args>
-inline void logtrace(Args &&...) { }
+void logtrace(const char *, Args &&...) { }
 
 template<typename... Args>
-inline void loginfo(Args &&...) { }
+void loginfo(const char *, Args &&...) { }
 
 template<typename... Args>
-inline void logwarn(Args &&...) { }
+void logwarn(const char *, Args &&...) { }
 
 template<typename... Args>
-inline void logerror(Args &&...) { }
+void logerror(const char *, Args &&...) { }
 
 template<typename... Args>
-inline void logcritical(Args &&...) { }
+void logcritical(const char *, Args &&...) { }
 
 #endif // HAS_SPDLOG
 
 #ifdef _MSC_VER
+
 # define A8_DLLEXPORT __declspec(dllexport)
 #else
 # define A8_DLLEXPORT

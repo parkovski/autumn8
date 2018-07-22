@@ -34,7 +34,7 @@ public:
   explicit CallSite(const wchar_t *dll, const char *fname) noexcept {
     auto dllHandle = GetModuleHandleW(dll);
     if (dllHandle) {
-      auto function = reinterpret_cast<F>(GetProcAddress(dllHandle, fname));
+      _cachedFunction = reinterpret_cast<F>(GetProcAddress(dllHandle, fname));
     }
   }
 

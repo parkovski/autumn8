@@ -12,7 +12,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
-option(WITHOUT_GUI "Don't add GUI targets" OFF)
+option(A8_GUI_ENABLED "Enable GUI targets" ON)
+option(A8_BUILD_TOOLS "Build tools" OFF)
+option(A8_BUILD_TESTS "Build tests" OFF)
+option(A8_BUILD_APP "Build the Autumn8 app" OFF)
 
 if(MSVC)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
@@ -56,55 +59,60 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 #
 # External libraries
 #
-find_package(spdlog CONFIG)
-find_package(fmt REQUIRED)
-find_package(cereal REQUIRED)
-find_package(cpprestsdk REQUIRED)
-find_package(catch2)
+find_package(plog REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+# find_package(cereal CONFIG REQUIRED)
+# cpprestsdk, uvw, evpp, GameNetworkingSockets, kcp, enet, boost asio/beast?
+find_package(Boost 1.67 REQUIRED
+#  COMPONENTS algorithm geometry signals2
+)
 
 add_library(concurrentqueue INTERFACE IMPORTED)
 target_include_directories(concurrentqueue INTERFACE
   ${PROJECT_SOURCE_DIR}/contrib/moodycamel/include
 )
 
-if(NOT WITHOUT_GUI)
-  find_package(imgui REQUIRED)
-  find_package(bgfx REQUIRED)
-  find_package(NanoVG REQUIRED)
-  find_package(Yoga REQUIRED)
-  find_package(fpsdk)
-
-  set(GUI_TARGETS_OK 1)
-endif() # NOT WITHOUT_GUI
-
-if(spdlog_FOUND)
-  set(HAS_SPDLOG 1)
-  link_libraries(spdlog::spdlog fmt::fmt)
-else()
-  message("Logging disabled, install spdlog to enable")
-endif()
-
 #
 # Targets
 #
 set(Autumn8_INCLUDE_DIRS
-  ${PROJECT_SOURCE_DIR}/include
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}>
+  $<INSTALL_INTERFACE:include>
 )
 include_directories(${Autumn8_INCLUDE_DIRS})
 
-add_subdirectory(src/core core)
+add_subdirectory(src/main main)
+add_subdirectory(src/midi midi)
+add_subdirectory(src/util util)
 
-if(GUI_TARGETS_OK)
+if(A8_GUI_ENABLED)
+  find_package(bgfx REQUIRED)
+  find_package(NanoVG_bgfx REQUIRED)
+  find_package(Yoga REQUIRED)
+  find_package(fpsdk)
+
   message(STATUS "GUI targets are enabled.")
   add_subdirectory(src/gfx gfx)
 
-  if(fpsdk_FOUND)
+  if(fpsdk_FOUND AND A8_BUILD_APP)
     message(STATUS "FL Studio plugin target is enabled.")
     add_subdirectory(src/flplugin flplugin)
   endif()
 else()
   message(STATUS "GUI targets are disabled.")
+endif()
+
+if(A8_BUILD_TOOLS)
+  add_subdirectory(src/tools tools)
+endif()
+
+if(A8_BUILD_TESTS)
+  find_package(catch2 CONFIG REQUIRED)
+  add_subdirectory(test test)
+endif()
+
+if(A8_BUILD_APP)
+  add_subdirectory(src/app app)
 endif()
 
 configure_file(

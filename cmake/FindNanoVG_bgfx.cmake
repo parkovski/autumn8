@@ -1,4 +1,4 @@
-if(NOT bgfx_INCLUDE_DIRS)
+if(NOT bgfx_FOUND)
   message(FATAL_ERROR "This version of NanoVG relies on bgfx; import that first.")
 endif()
 
@@ -14,8 +14,13 @@ if(NanoVG_DIR AND EXISTS "${NanoVG_DIR}/src/nanovg.c")
     "${PROJECT_SOURCE_DIR}/contrib/nanovg_bgfx"
   )
   add_library(NanoVG STATIC ${NanoVG_SOURCES})
-  target_include_directories(NanoVG PUBLIC ${NanoVG_INCLUDE_DIRS} ${bgfx_INCLUDE_DIRS})
+  target_include_directories(NanoVG PUBLIC
+    ${NanoVG_INCLUDE_DIRS}
+    ${bgfx_INCLUDE_DIRS}
+  )
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(NanoVG REQUIRED_VARS NanoVG_SOURCES NanoVG_INCLUDE_DIRS)
+find_package_handle_standard_args(NanoVG
+  REQUIRED_VARS NanoVG_SOURCES NanoVG_INCLUDE_DIRS
+)

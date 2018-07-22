@@ -1,10 +1,10 @@
-find_path(sol_INCLUDE_DIRS sol.hpp)
+find_path(sol_INCLUDE_DIR sol.hpp)
 
-if(sol_INCLUDE_DIRS)
+if(sol_INCLUDE_DIR)
   add_library(sol INTERFACE IMPORTED)
-  target_include_directories(sol ${Sol_INCLUDE_DIRS})
+  target_include_directories(sol ${Sol_INCLUDE_DIR})
 
-  file(READ "${sol_INCLUDE_DIRS}/sol_forward.hpp" sol_forward_hpp)
+  file(READ "${sol_INCLUDE_DIR}/sol_forward.hpp" sol_forward_hpp)
   string(REGEX MATCH "generated with sol v([0-9]+)\.([0-9]+)\.([0-9]+) " _ sol_forward_hpp)
   set(sol_VERSION_MAJOR ${CMAKE_MATCH_1})
   set(sol_VERSION_MINOR ${CMAKE_MATCH_2})
@@ -13,4 +13,7 @@ if(sol_INCLUDE_DIRS)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(sol REQUIRED_VARS sol_INCLUDE_DIRS VERSION_VAR sol_VERSION)
+find_package_handle_standard_args(sol
+  REQUIRED_VARS sol_INCLUDE_DIR
+  VERSION_VAR sol_VERSION
+)

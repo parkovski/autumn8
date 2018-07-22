@@ -1,5 +1,5 @@
-#ifndef _a8_gfx_window_h_
-#define _a8_gfx_window_h_
+#ifndef A8_GFX_WINDOW_H_
+#define A8_GFX_WINDOW_H_
 
 #include "a8/gfx/events.h"
 #include "a8/gfx/view.h"
@@ -45,10 +45,10 @@ class Window {
 
 public:
   /// Disambiguation marker so that strings don't call the void* constructor.
-  static inline constexpr struct bind_native_t final {} bind_native{};
+  static inline constexpr struct native_handle_t final {} native_handle{};
 
   explicit Window(std::string_view title);
-  explicit Window(const bind_native_t &, void *nativeHandle)
+  explicit Window(const native_handle_t &, void *nativeHandle)
     : Window()
   {
     _nativeHandle = nativeHandle;
@@ -104,4 +104,4 @@ void postQuitEvent(int exitCode = 0);
 
 } // namespace a8::gfx
 
-#endif // _a8_gfx_window_h_
+#endif // A8_GFX_WINDOW_H_

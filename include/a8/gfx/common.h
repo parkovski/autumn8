@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <iosfwd>
 
 namespace a8::gfx {
 
@@ -146,6 +147,8 @@ struct basic_point_t {
     : x{x}, y{y}
   {}
 
+  friend std::ostream &operator<<(std::ostream &os, const basic_point_t<Coord> &self);
+
   coord x;
   coord y;
 
@@ -171,6 +174,8 @@ struct basic_size_t {
     : width{w}, height{h}
   {}
 
+  friend std::ostream &operator<<(std::ostream &os, const basic_size_t<Coord> &self);
+
   coord width;
   coord height;
 
@@ -179,6 +184,68 @@ struct basic_size_t {
   coord &xy_y() { return height; }
   const coord &xy_y() const { return height; }
 };
+
+template<typename Coord>
+struct PointT {
+  Coord x;
+  Coord y;
+
+  PointT() = default;
+  PointT(Coord x, Coord y) noexcept : x{x}, y{y} {}
+  template<
+    typename Coord2,
+    typename = std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>
+  >
+  constexpr explicit PointT(const PointT<Coord2> &other) noexcept
+    : x{other.x}, y{other.y}
+  {}
+
+  PointT<Coord> &operator=(const PointT<Coord> &) = default;
+
+  bool operator==(const PointT<Coord> &other) const
+  { return x == other.x && y == other.y; }
+  bool operator!=(const PointT<Coord> &other) const
+  { return !(*this == other); }
+
+  PointT<Coord> operator-() { return {-x, -y}; }
+  PointT<Coord> &operator+=(const PointT<Coord> &other)
+  { x += other.x; y += other.y; return *this; }
+  PointT<Coord> &operator-=(const PointT<Coord> &other)
+  { return *this = -other; }
+  PointT<Coord> &operator*=(Coord scale)
+  { x *= scale; y *= scale; return *this; }
+  PointT<Coord> &operator*=(const PointT<Coord> &scale)
+  { x *= scale.x; y *= scale.y; return *this; }
+  PointT<Coord> &operator/=(Coord scale)
+  { x /= scale; y /= scale; return *this; }
+  PointT<Coord> &operator/=(const PointT<Coord> &scale)
+  { x /= scale.x; y /= scale.y; return *this; }
+
+
+};
+template<bool scaled>
+using PointS = PointT<std::conditional_t<scaled, float, int32_t>>;
+using RawPoint = PointS<false>;
+using Point = PointS<true>;
+
+template<typename Coord>
+struct SizeT {
+
+};
+template<bool scaled>
+using SizeS = SizeT<std::conditional_t<scaled, float, uint32_t>>;
+using RawSize = SizeS<false>;
+using Size = SizeS<true>;
+
+template<typename Coord>
+struct RectT {
+
+};
+template<bool scaled>
+using RectS = RectT<std::conditional_t<scaled, float, int32_t>>;
+using RawRect = RectS<false>;
+using Rect = RectS<true>;
+
 
 enum class Anchor {
   None          = 0,
@@ -237,6 +304,7 @@ constexpr Anchor operator-(Anchor a) {
 constexpr bool operator!(Anchor a) {
   return a == Anchor::None;
 }
+std::ostream &operator<<(std::ostream &os, Anchor a);
 
 template<typename Q>
 struct ptpair_t : public Q {
@@ -300,8 +368,41 @@ public:
     : Q{pt1.x, pt1.y, pt2.x, pt2.y}
   {}
 
-  //ptpair_t(const ptpair_t<coord> &) = default;
-  //ptpair_t<coord> &operator=(const ptpair_t<coord> &) = default;
+  constexpr ptpair_t(const ptpair_t<Q> &other) noexcept
+    : Q{other.c1x(), other.c1y(), other.c2x(), other.c2y()}
+  {}
+
+  constexpr ptpair_t<Q> &operator=(const ptpair_t<Q> &other) noexcept {
+    c1x() = other.c1x();
+    c1y() = other.c1y();
+    c2x() = other.c2x();
+    c2y() = other.c2y();
+  }
+
+  constexpr bool operator==(const ptpair_t<Q> &other) noexcept {
+    return c1x() == other.c1x() && c1y() == other.c1y() &&
+      c2x() == other.c2x() && c2y() == other.c2y();
+  }
+
+  constexpr bool operator!=(const ptpair_t<Q> &other) noexcept {
+    return !(*this == other);
+  }
+
+  constexpr ptpair_t<Q> operator-() noexcept {
+    return {c2x(), c2y(), c1x(), c2y()};
+  }
+
+  constexpr ptpair_t<Q> &operator+=(const basic_point_t<Q> &point) noexcept {
+    c1x() += point.x;
+    c1y() += point.y;
+    c2x() += point.x;
+    c2y() += point.y;
+    return *this;
+  }
+
+  constexpr ptpair_t<Q> &operator-=(const basic_point_t<Q> &point) noexcept {
+    return *this += -point;
+  }
 };
 
 template<typename Coord>
@@ -325,7 +426,8 @@ struct basic_rect_t {
     : left{left}, top{top}, right{right}, bottom{bottom}
   {}
 
-protected:
+  friend std::ostream &operator<<(std::ostream &os, const basic_rect_t<Coord> &self);
+
   coord &c1x() { return left; }
   const coord &c1x() const { return left; }
   coord &c1y() { return top; }
@@ -357,7 +459,8 @@ struct basic_line_t {
     : x1{x1}, y1{y1}, x2{x2}, y2{y2}
   {}
 
-protected:
+  friend std::ostream &operator<<(std::ostream &os, const basic_line_t<Coord> &self);
+
   coord &c1x() { return x1; }
   const coord &c1x() const { return x1; }
   coord &c1y() { return y1; }
@@ -368,26 +471,14 @@ protected:
   const coord &c2y() const { return y2; }
 };
 
+extern template struct ptpair_t<basic_line_t<int32_t>>;
+extern template struct ptpair_t<basic_line_t<float>>;
 template<typename Coord>
-using PointT = xypair_t<basic_point_t<Coord>>;
+using LineT = ptpair_t<basic_line_t<Coord>>;
 template<bool scaled>
-using PointS = PointT<std::conditional_t<scaled, float, int32_t>>;
-using RawPoint = PointS<false>;
-using Point = PointS<true>;
-
-template<typename Coord>
-using SizeT = xypair_t<basic_size_t<Coord>>;
-template<bool scaled>
-using SizeS = SizeT<std::conditional_t<scaled, float, uint32_t>>;
-using RawSize = SizeS<false>;
-using Size = SizeS<true>;
-
-template<typename Coord>
-using RectT = ptpair_t<basic_rect_t<Coord>>;
-template<bool scaled>
-using RectS = RectT<std::conditional_t<scaled, float, int32_t>>;
-using RawRect = RectS<false>;
-using Rect = RectS<true>;
+using LineS = LineT<std::conditional_t<scaled, float, int32_t>>;
+using RawLine = LineS<false>;
+using Line = LineS<true>;
 
 } // namespace a8::gfx
 

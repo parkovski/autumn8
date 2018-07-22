@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <Windows.h>
+#include <mmsystem.h>
 
 #pragma comment(lib, "winmm")
 

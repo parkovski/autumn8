@@ -84,11 +84,17 @@ void Window::process(const DataEvent &e) {
 }
 
 bool Window::nvgInit() {
-  return (_nvg = nvgCreate(1, 0));
+  if (!(_nvg = nvgCreate(1, 0))) {
+    return false;
+  }
+  nvgCreateFont(_nvg, "foo", "C:\\Users\\parker\\Documents\\GitHub\\autumn8\\res\\Roboto-Regular.ttf");
+  return true;
 }
 
 void Window::nvgDestroy() {
-  nvgDelete(_nvg);
+  if (_nvg) {
+    nvgDelete(_nvg);
+  }
 }
 
 bool Window::render() {
@@ -109,7 +115,6 @@ bool Window::render() {
   const char text[] = "I am some text. My name is jorj and I am a usb drive or something. A microSD card I guess.";
   const char *end = text + sizeof(text);
 
-  nvgCreateFont(_nvg, "foo", "D:\\dev\\nanovg\\example\\Roboto-Regular.ttf");
   nvgTextBox(_nvg, 20, 20, 200, text, end);
   nvgText(_nvg, 100, 100, text, end);
   nvgEndFrame(_nvg);

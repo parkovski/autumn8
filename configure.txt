@@ -1,0 +1,1 @@
+with NanoVG_DIR="D:/dev/nanovg",fpsdk_DIR="D:/dev/fpsdk",bgfx_DIR="D:/dev/libs" {ninjacmake ..}
