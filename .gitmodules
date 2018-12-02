@@ -1,0 +1,3 @@
+[submodule "contrib/nanovg"]
+	path = contrib/nanovg
+	url = https://github.com/memononen/nanovg

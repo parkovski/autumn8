@@ -57,7 +57,7 @@ endif()
 find_package(spdlog REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(Sol2 REQUIRED)
-find_package(range_v3 CONFIG REQUIRED)
+find_package(range-v3 CONFIG REQUIRED)
 # find_package(RxCpp REQUIRED)
 # find_package(cereal CONFIG REQUIRED)
 # cpprestsdk, uvw, evpp, GameNetworkingSockets, kcp, enet, boost asio/beast?

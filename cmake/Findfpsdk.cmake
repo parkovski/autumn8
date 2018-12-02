@@ -1,10 +1,8 @@
-find_path(fpsdk_DIR source/c/fp_cplug.h HINTS "$ENV{fpsdk_DIR}")
-
-if(fpsdk_DIR AND EXISTS "${fpsdk_DIR}/source/c/fp_cplug.cpp")
-  file(GLOB fpsdk_SOURCES ${fpsdk_DIR}/source/c *.cpp)
+if(EXISTS "${PROJECT_SOURCE_DIR}/contrib/fpsdk/fp_cplug.cpp")
+  file(GLOB fpsdk_SOURCES ${PROJECT_SOURCE_DIR}/contrib/fpsdk *.cpp)
   add_library(fpsdk INTERFACE IMPORTED)
   target_sources(fpsdk INTERFACE ${fpsdk_SOURCES})
-  set(fpsdk_INCLUDE_DIR "${fpsdk_DIR}/source/c")
+  set(fpsdk_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/contrib/fpsdk")
   target_include_directories(fpsdk INTERFACE "${fpsdk_INCLUDE_DIR}")
 endif()
 
