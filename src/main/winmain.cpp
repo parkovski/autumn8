@@ -1,9 +1,9 @@
 #include "a8/a8.h"
-#include "a8/platform/windows.h"
+#include "a8/platform/Windows/platform.h"
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "fmt/ostream.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <fmt/ostream.h>
 
 #include <Windows.h>
 #include <shellapi.h>

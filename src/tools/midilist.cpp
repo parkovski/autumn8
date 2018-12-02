@@ -1,5 +1,5 @@
 #include "a8/a8.h"
-#include "a8/midi.h"
+#include "a8/midi/midi.h"
 
 #include <iostream>
 #include <string>

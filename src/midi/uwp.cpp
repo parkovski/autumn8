@@ -1,4 +1,4 @@
-#include "a8/midi.h"
+#include "a8/midi/midi.h"
 
 #include <iostream>
 #include <vector>
@@ -17,6 +17,8 @@
 namespace WF = winrt::Windows::Foundation;
 namespace WDM = winrt::Windows::Devices::Midi;
 namespace WDE = winrt::Windows::Devices::Enumeration;
+
+extern "C" void __stdcall Sleep(uint32_t ms);
 
 namespace {
   std::string to_string(std::wstring_view wsv) {

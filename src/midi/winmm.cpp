@@ -1,4 +1,4 @@
-#include "a8/midi.h"
+#include "a8/midi/midi.h"
 
 #include <vector>
 #include <iostream>

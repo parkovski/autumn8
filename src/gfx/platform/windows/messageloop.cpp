@@ -1,6 +1,6 @@
 #define A8_PLATFORM_WINDOWS_IMPL
 #include "a8/a8.h"
-#include "a8/platform/windows.h"
+#include "a8/platform/Windows/platform.h"
 #include "a8/gfx/window.h"
 
 #include <bgfx/bgfx.h>
