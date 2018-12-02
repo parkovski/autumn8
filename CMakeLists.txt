@@ -13,14 +13,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 option(A8_GUI_ENABLED "Enable GUI targets" ON)
-option(A8_BUILD_TOOLS "Build tools" OFF)
+option(A8_BUILD_TOOLS "Build tools" ON)
 option(A8_BUILD_TESTS "Build tests" OFF)
-option(A8_BUILD_APP "Build the Autumn8 app" OFF)
+# option(A8_BUILD_APP "Build the Autumn8 app" OFF)
 
-if(MSVC)
-  add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
-  add_compile_options(-diagnostics:caret)
-endif()
+# if(MSVC)
+#   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
+#   add_compile_options(-diagnostics:caret)
+# endif()
 
 if(APPLE)
   if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -44,14 +44,21 @@ else()
   message(FATAL_ERROR "Target ${CMAKE_SYSTEM_NAME} is not supported.")
 endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+if(WIN32)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+else()
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
+endif()
 
 #
 # External libraries
 #
-find_package(plog REQUIRED)
+find_package(spdlog REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(Sol2 REQUIRED)
+find_package(range_v3 CONFIG REQUIRED)
+# find_package(RxCpp REQUIRED)
 # find_package(cereal CONFIG REQUIRED)
 # cpprestsdk, uvw, evpp, GameNetworkingSockets, kcp, enet, boost asio/beast?
 find_package(Boost 1.67 REQUIRED
@@ -85,7 +92,7 @@ if(A8_GUI_ENABLED)
   message(STATUS "GUI targets are enabled.")
   add_subdirectory(src/gfx gfx)
 
-  if(fpsdk_FOUND AND A8_BUILD_APP)
+  if(fpsdk_FOUND)
     message(STATUS "FL Studio plugin target is enabled.")
     add_subdirectory(src/flplugin flplugin)
   endif()
@@ -102,9 +109,9 @@ if(A8_BUILD_TESTS)
   add_subdirectory(test test)
 endif()
 
-if(A8_BUILD_APP)
-  add_subdirectory(app app)
-endif()
+# if(A8_BUILD_APP)
+#  add_subdirectory(app app)
+# endif()
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/config.h.in
