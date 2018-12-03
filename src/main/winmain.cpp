@@ -1,5 +1,6 @@
 #include "a8/a8.h"
 #include "a8/platform/Windows/platform.h"
+#include "a8/util/utfconv.h"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -15,6 +16,7 @@
 #pragma comment(lib, "mincore.lib")
 
 using namespace a8::platform::windows;
+using a8::util::utfconv::to_utf8;
 
 // std::shared_ptr<spdlog::logger> a8::internal::g_logger;
 

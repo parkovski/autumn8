@@ -1,16 +1,10 @@
 #ifndef _a8_gfx_platform_windows_h_
 #define _a8_gfx_platform_windows_h_
 
-#include <string>
-#include <string_view>
-#include <optional>
-#include <iosfwd>
+#include <ostream>
 #include <Windows.h>
 
 namespace a8::platform::windows {
-
-std::string to_utf8(std::wstring_view utf16str);
-std::wstring to_utf16(std::string_view utf8str);
 
 bool setThreadName(const wchar_t *name);
 

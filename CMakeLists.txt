@@ -15,12 +15,12 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 option(A8_GUI_ENABLED "Enable GUI targets" ON)
 option(A8_BUILD_TOOLS "Build tools" ON)
 option(A8_BUILD_TESTS "Build tests" OFF)
-# option(A8_BUILD_APP "Build the Autumn8 app" OFF)
+option(A8_BUILD_DOTNET "Build the .NET projects" OFF)
 
-# if(MSVC)
+if(MSVC)
 #   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
-#   add_compile_options(-diagnostics:caret)
-# endif()
+  add_compile_options(-diagnostics:caret)
+endif()
 
 if(APPLE)
   if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -56,8 +56,10 @@ endif()
 #
 find_package(spdlog REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-find_package(Sol2 REQUIRED)
+# find_package(Sol2 REQUIRED)
 find_package(range-v3 CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
+find_package(nlohmann-json REQUIRED)
 # find_package(RxCpp REQUIRED)
 # find_package(cereal CONFIG REQUIRED)
 # cpprestsdk, uvw, evpp, GameNetworkingSockets, kcp, enet, boost asio/beast?
@@ -79,9 +81,9 @@ set(Autumn8_INCLUDE_DIRS
 )
 include_directories(${Autumn8_INCLUDE_DIRS})
 
+add_subdirectory(src/util util)
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
-add_subdirectory(src/util util)
 
 if(A8_GUI_ENABLED)
   find_package(bgfx REQUIRED)
@@ -94,7 +96,7 @@ if(A8_GUI_ENABLED)
 
   if(fpsdk_FOUND)
     message(STATUS "FL Studio plugin target is enabled.")
-    add_subdirectory(src/flplugin flplugin)
+    add_subdirectory(src/fl fl)
   endif()
 else()
   message(STATUS "GUI targets are disabled.")
@@ -106,12 +108,13 @@ endif()
 
 if(A8_BUILD_TESTS)
   find_package(catch2 CONFIG REQUIRED)
-  add_subdirectory(test test)
+  add_subdirectory(test)
 endif()
 
-# if(A8_BUILD_APP)
-#  add_subdirectory(app app)
-# endif()
+if(A8_BUILD_DOTNET)
+  include(cmake/DotNetBuild.cmake)
+  # TODO...
+endif()
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/config.h.in

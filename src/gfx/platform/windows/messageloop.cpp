@@ -1,7 +1,9 @@
 #define A8_PLATFORM_WINDOWS_IMPL
+
 #include "a8/a8.h"
 #include "a8/platform/Windows/platform.h"
 #include "a8/gfx/window.h"
+#include "a8/util/utfconv.h"
 
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
@@ -9,7 +11,6 @@
 
 #include <Windows.h>
 #include <string>
-#include <codecvt>
 #include <future>
 #include <atomic>
 #include <ostream>
@@ -19,20 +20,11 @@
 
 using namespace a8::platform::windows;
 using namespace a8::gfx;
+using namespace a8::util::utfconv;
 
 namespace a8::platform::windows {
   const wchar_t *A8WindowClass = L"Autumn8WndClass";
   GlobalPlatformInit g_platformInit;
-
-  std::string to_utf8(std::wstring_view utf16str) {
-    return std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
-              .to_bytes(&utf16str.front(), &utf16str.back() + 1);
-  }
-
-  std::wstring to_utf16(std::string_view utf8str) {
-    return std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
-              .from_bytes(&utf8str.front(), &utf8str.back() + 1);
-  }
 
   bool setThreadName(const wchar_t *name) {
     static CallSite<decltype(&SetThreadDescription)> fn(

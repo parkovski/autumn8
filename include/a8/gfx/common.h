@@ -191,38 +191,97 @@ struct PointT {
   Coord y;
 
   PointT() = default;
-  PointT(Coord x, Coord y) noexcept : x{x}, y{y} {}
+  PointT(const PointT<Coord> &) = default;
+
+  constexpr PointT(Coord x, Coord y) noexcept
+    : x{x}, y{y}
+  {}
+
+  template<typename = std::enable_if_t<!std::is_reference_v<Coord>>>
+  constexpr explicit PointT(const PointT<Coord &> &ref) noexcept
+    : PointT{ref.x, ref.y}
+  {}
+
   template<
     typename Coord2,
     typename = std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>
   >
   constexpr explicit PointT(const PointT<Coord2> &other) noexcept
-    : x{other.x}, y{other.y}
+    : PointT{static_cast<Coord>(other.x), static_cast<Coord>(other.y)}
   {}
 
   PointT<Coord> &operator=(const PointT<Coord> &) = default;
 
-  bool operator==(const PointT<Coord> &other) const
-  { return x == other.x && y == other.y; }
-  bool operator!=(const PointT<Coord> &other) const
-  { return !(*this == other); }
+  constexpr bool operator==(const PointT<Coord> &other) const {
+    return x == other.x && y == other.y;
+  }
+  constexpr bool operator!=(const PointT<Coord> &other) const {
+    return !(*this == other);
+  }
 
-  PointT<Coord> operator-() { return {-x, -y}; }
-  PointT<Coord> &operator+=(const PointT<Coord> &other)
-  { x += other.x; y += other.y; return *this; }
-  PointT<Coord> &operator-=(const PointT<Coord> &other)
-  { return *this = -other; }
-  PointT<Coord> &operator*=(Coord scale)
-  { x *= scale; y *= scale; return *this; }
-  PointT<Coord> &operator*=(const PointT<Coord> &scale)
-  { x *= scale.x; y *= scale.y; return *this; }
-  PointT<Coord> &operator/=(Coord scale)
-  { x /= scale; y /= scale; return *this; }
-  PointT<Coord> &operator/=(const PointT<Coord> &scale)
-  { x /= scale.x; y /= scale.y; return *this; }
+  friend constexpr PointT<Coord> operator-(PointT<Coord> self) {
+    return {-self.x, -self.y};
+  }
 
+  constexpr PointT<Coord> &operator+=(const PointT<Coord> &other) {
+    x += other.x;
+    y += other.y;
+    return *this;
+  }
+  friend constexpr PointT<Coord> operator+(PointT<Coord> self, const PointT<Coord> &other) {
+    self += other;
+    return self;
+  }
 
+  constexpr PointT<Coord> &operator-=(const PointT<Coord> &other) {
+    return *this = -other;
+  }
+  friend constexpr PointT<Coord> operator-(PointT<Coord> self, const PointT<Coord> &other) {
+    self -= other;
+    return self;
+  }
+
+  constexpr PointT<Coord> &operator*=(Coord scale) {
+    x *= scale;
+    y *= scale;
+    return *this;
+  }
+  friend constexpr PointT<Coord> operator*(PointT<Coord> self, Coord scale) {
+    self *= scale;
+    return self;
+  }
+
+  constexpr PointT<Coord> &operator*=(const PointT<Coord> &scale) {
+    x *= scale.x;
+    y *= scale.y;
+    return *this;
+  }
+  friend constexpr PointT<Coord> operator*(PointT<Coord> self, const PointT<Coord> &scale) {
+    self *= scale;
+    return self;
+  }
+
+  constexpr PointT<Coord> &operator/=(Coord scale) {
+    x /= scale;
+    y /= scale;
+    return *this;
+  }
+  friend constexpr PointT<Coord> operator/(PointT<Coord> self, Coord scale) {
+    self /= scale;
+    return self;
+  }
+
+  constexpr PointT<Coord> &operator/=(const PointT<Coord> &scale) {
+    x /= scale.x;
+    y /= scale.y;
+    return *this;
+  }
+  friend constexpr PointT<Coord> operator/(PointT<Coord> self, const PointT<Coord> &scale) {
+    self /= scale;
+    return self;
+  }
 };
+
 template<bool scaled>
 using PointS = PointT<std::conditional_t<scaled, float, int32_t>>;
 using RawPoint = PointS<false>;
@@ -230,8 +289,98 @@ using Point = PointS<true>;
 
 template<typename Coord>
 struct SizeT {
+  Coord width;
+  Coord height;
 
+  SizeT() = default;
+  SizeT(const SizeT<Coord> &) = default;
+  constexpr SizeT(Coord width, Coord height) noexcept
+    : width{width}, height{height}
+  {}
+
+  template<typename = std::enable_if_t<!std::is_reference_v<Coord>>>
+  constexpr SizeT(const SizeT<Coord &> &ref) noexcept
+    : SizeT{ref.width, ref.height}
+  {}
+
+  template<
+    typename Coord2,
+    typename = std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>
+  >
+  constexpr explicit SizeT(const SizeT<Coord2> &other) noexcept
+    : SizeT{static_cast<Coord>(other.width), static_cast<Coord>(other.height)}
+  {}
+
+  SizeT<Coord> &operator=(const SizeT<Coord> &) = default;
+
+  constexpr bool operator==(const SizeT<Coord> &other) const {
+    return width == other.width && height == other.height;
+  }
+  constexpr bool operator!=(const SizeT<Coord> &other) const {
+    return !(*this == other);
+  }
+
+  constexpr SizeT<Coord> &operator+=(const SizeT<Coord> &other) {
+    width += other.width;
+    height += other.height;
+    return *this;
+  }
+  friend constexpr SizeT<Coord> operator+(SizeT<Coord> self, const SizeT<Coord> &other) {
+    self += other;
+    return self;
+  }
+
+  constexpr SizeT<Coord> &operator-=(const SizeT<Coord> &other) {
+    width -= other.width;
+    height -= other.height;
+    return *this;
+  }
+  friend constexpr SizeT<Coord> operator-(SizeT<Coord> self, const SizeT<Coord> &other) {
+    self -= other;
+    return self;
+  }
+
+  constexpr SizeT<Coord> &operator*=(Coord scale) {
+    width *= scale;
+    height *= scale;
+    return *this;
+  }
+  friend constexpr SizeT<Coord> operator*(SizeT<Coord> self, Coord scale) {
+    self *= scale;
+    return self;
+  }
+
+  constexpr SizeT<Coord> &operator*=(const SizeT<Coord> &scale) {
+    width *= scale.width;
+    height *= scale.height;
+    return *this;
+  }
+  friend constexpr SizeT<Coord> operator*(SizeT<Coord> self, const SizeT<Coord> &scale) {
+    self *= scale;
+    return self;
+  }
+
+  constexpr SizeT<Coord> &operator/=(Coord scale) {
+    width /= scale;
+    height /= scale;
+    return *this;
+  }
+  friend constexpr SizeT<Coord> operator/(SizeT<Coord> self, Coord scale) {
+    self /= scale;
+    return self;
+  }
+
+  constexpr SizeT<Coord> &operator/=(const SizeT<Coord> &scale) {
+    width /= scale.width;
+    height /= scale.height;
+    return *this;
+  }
+  friend constexpr SizeT<Coord> operator/(SizeT<Coord> self, const SizeT<Coord> &scale) {
+    self /= scale;
+    return self;
+  }
 };
+
 template<bool scaled>
 using SizeS = SizeT<std::conditional_t<scaled, float, uint32_t>>;
 using RawSize = SizeS<false>;
@@ -239,8 +388,66 @@ using Size = SizeS<true>;
 
 template<typename Coord>
 struct RectT {
+  Coord left;
+  Coord top;
+  Coord right;
+  Coord bottom;
 
+  RectT() = default;
+  RectT(const RectT<Coord> &) = default;
+
+  constexpr RectT(Coord left, Coord top, Coord right, Coord bottom) noexcept
+    : left{left}, top{top}, right{right}, bottom{bottom}
+  {}
+
+  template<typename = std::enable_if_t<!std::is_reference_v<Coord>>>
+  constexpr RectT(const RectT<Coord &> &ref) noexcept
+    : RectT{ ref.left, ref.top, ref.right, ref.bottom }
+  {}
+
+  template<
+    typename Coord2,
+    typename = std::enable_if_t<std::is_nothrow_constructible_v<Coord2, Coord>>
+  >
+  constexpr explicit RectT(const RectT<Coord2> &other) noexcept
+    : RectT{
+        static_cast<Coord>(left),
+        static_cast<Coord>(top),
+        static_cast<Coord>(right),
+        static_cast<Coord>(bottom)
+      }
+  {}
+
+  RectT<Coord> &operator=(const RectT<Coord> &) = default;
+
+  constexpr bool operator==(const RectT<Coord> &other) const {
+    return left == other.left &&
+           top == other.top &&
+           right == other.right &&
+           bottom == other.bottom;
+  }
+  constexpr bool operator!=(const RectT<Coord> &other) const {
+    return !(*this == other);
+  }
+
+  // Flip left/right, top/bottom.
+  constexpr friend RectT<Coord> operator-(RectT<Coord> self) {
+    return { self.right, self.bottom, self.left, self.top };
+  }
+
+  constexpr PointT<Coord &> topLeft() const {
+    return { left, top };
+  }
+
+  constexpr PointT<Coord &> bottomRight() const {
+    return { right, bottom };
+  }
+
+  constexpr SizeT<Coord> size() const {
+    return { right - left, bottom - top };
+  }
 };
+
 template<bool scaled>
 using RectS = RectT<std::conditional_t<scaled, float, int32_t>>;
 using RawRect = RectS<false>;

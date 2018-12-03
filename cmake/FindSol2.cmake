@@ -14,7 +14,7 @@ if(Sol2_INCLUDE_DIR)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(sol
+find_package_handle_standard_args(Sol2
   REQUIRED_VARS Sol2_INCLUDE_DIR
   # VERSION_VAR Sol2_VERSION
 )

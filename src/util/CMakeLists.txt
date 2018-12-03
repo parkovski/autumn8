@@ -1,5 +1,6 @@
 project(Autumn8Util)
 
-set(SOURCES)
+set(SOURCES utfconv.cpp)
 
-# add_library(a8util STATIC ${SOURCES})
+add_library(a8util STATIC ${SOURCES})
+

@@ -4,11 +4,12 @@
 #include "a8/gfx/events.h"
 #include "a8/gfx/view.h"
 
-#include "yoga/yoga.h"
+//#include "yoga/yoga.h"
 
 #include "concurrentqueue/concurrentqueue.h"
 #include <string_view>
 #include <future>
+#include <array>
 
 extern "C" {
   struct NVGcontext;
@@ -67,9 +68,11 @@ public:
   }
 
   template<typename... Events>
-  bool postEvents(RawEvent &&e1, Events &&...events) {
-    RawEvent events[] = { RawEvent(e1), RawEvent(std::forward<Events>(events))... };
-    return _events.enqueue_bulk(events, 1 + sizeof...(Events));
+  bool postEvents(const RawEvent &e1, const Events &...events) {
+    std::array<RawEvent, 1 + sizeof...(Events)> eventsArray{
+      e1, events...
+    };
+    return _events.enqueue_bulk(eventsArray.begin(), 1 + sizeof...(Events));
   }
 
   const View &root() const;

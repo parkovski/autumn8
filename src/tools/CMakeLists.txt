@@ -1,6 +1,12 @@
 project(Autumn8Tools)
 
-set(SOURCES)
-
 add_executable(midilist midilist.cpp)
 target_link_libraries(midilist a8midi)
+
+add_executable(netcorehost netcorehost.cpp)
+target_include_directories(netcorehost PRIVATE ${CMAKE_SOURCE_DIR}/contrib/dotnet/include)
+#target_link_libraries(netcorehost)
+
+add_executable(minigfx WIN32 minigfx.cpp)
+target_link_libraries(minigfx PRIVATE a8winmain a8gfx)
+

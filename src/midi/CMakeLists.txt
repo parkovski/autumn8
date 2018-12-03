@@ -7,3 +7,4 @@ else()
 endif()
 
 add_library(a8midi STATIC ${SOURCES})
+target_link_libraries(a8midi PUBLIC a8util)

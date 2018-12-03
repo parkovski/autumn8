@@ -1,4 +1,5 @@
 #include "a8/midi/midi.h"
+#include "a8/util/utfconv.h"
 
 #include <iostream>
 #include <vector>
@@ -6,8 +7,6 @@
 #include <mutex>
 #include <string>
 #include <string_view>
-#include <locale>
-#include <codecvt>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Devices.Midi.h>
@@ -20,17 +19,7 @@ namespace WDE = winrt::Windows::Devices::Enumeration;
 
 extern "C" void __stdcall Sleep(uint32_t ms);
 
-namespace {
-  std::string to_string(std::wstring_view wsv) {
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>()
-             .to_bytes(&wsv.front(), &wsv.back() + 1);
-  }
-
-  std::wstring to_wstring(std::string_view sv) {
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>()
-             .from_bytes(&sv.front(), &sv.back() + 1);
-  }
-}
+using namespace a8::util::utfconv;
 
 namespace a8 {
 
@@ -86,7 +75,7 @@ class UwpMidiManager final : public MidiManager {
       }
       if (inserted) {
         _deviceInfo.emplace_back(DevInfo {
-          ::to_string(name),
+          ::to_utf8(name),
           info,
           In ? DevInfo::portDisconnected : DevInfo::portInvalid,
           In ? DevInfo::portInvalid : DevInfo::portDisconnected
@@ -94,7 +83,7 @@ class UwpMidiManager final : public MidiManager {
       } else {
         index = it->second;
         _deviceInfo[index] = DevInfo {
-          ::to_string(name),
+          ::to_utf8(name),
           info,
           In ? DevInfo::portDisconnected : DevInfo::portInvalid,
           In ? DevInfo::portInvalid : DevInfo::portDisconnected
@@ -118,7 +107,7 @@ class UwpMidiManager final : public MidiManager {
       }
       auto &di = _deviceInfo[it->second];
       di.inPort = di.outPort = DevInfo::portInvalid;
-      auto range = _deviceNameMap.equal_range(to_wstring(di.name));
+      auto range = _deviceNameMap.equal_range(to_utf16(di.name));
       for (; range.first != range.second; ++range.first) {
         // Erase the index with the device index as the removed device.
         // it = iterator from unique id, range.first = current element with same name.
@@ -234,7 +223,7 @@ public:
   }
 
   virtual int findNamedDevice(std::string_view name) const override {
-    auto wname = to_wstring(name);
+    auto wname = to_utf16(name);
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _deviceNameMap.find(wname);
     if (it == _deviceNameMap.end()) {

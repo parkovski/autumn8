@@ -4,7 +4,7 @@
 using namespace a8::gfx;
 
 int a8main(int argc, char *argv[]) {
-  Window mainWindow{"Autumn8"};
+  Window mainWindow{"MiniGfx"};
   if (!mainWindow.isValid()) {
     return 1;
   }

@@ -13,6 +13,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/contrib/nanovg/src/nanovg.c")
   )
   add_library(NanoVG INTERFACE IMPORTED)
   target_sources(NanoVG INTERFACE ${NanoVG_SOURCES})
+  target_compile_definitions(NanoVG INTERFACE -D_CRT_SECURE_NO_WARNINGS)
   target_include_directories(NanoVG INTERFACE
     ${NanoVG_INCLUDE_DIRS}
     ${bgfx_INCLUDE_DIRS}
