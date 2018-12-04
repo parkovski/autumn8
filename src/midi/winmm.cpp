@@ -1,8 +1,8 @@
 #include "a8/midi/midi.h"
+#include "a8/util/utfconv.h"
 
 #include <vector>
 #include <iostream>
-#include <codecvt>
 #include <string>
 #include <string_view>
 #include <Windows.h>
@@ -10,12 +10,7 @@
 
 #pragma comment(lib, "winmm")
 
-namespace {
-  std::string to_string(std::wstring_view wsv) {
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>()
-             .to_bytes(&wsv.front(), &wsv.back() + 1);
-  }
-}
+using namespace a8::util::utfconv;
 
 namespace a8 {
 
@@ -24,7 +19,7 @@ struct MmDevice {
   UINT id;
 
   MmDevice(const WCHAR *name, UINT id)
-    : name(to_string(name)), id(id)
+    : name(to_utf8(name)), id(id)
   {}
 };
 

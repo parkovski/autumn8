@@ -1,9 +1,9 @@
 project(Autumn8Midi)
 
-if(A8_TARGET STREQUAL "Windows")
+if(A8_PLATFORM STREQUAL "Windows")
   set(SOURCES uwp.cpp winmm.cpp)
 else()
-  message(FATAL_ERROR "MIDI not implemented for platform ${A8_TARGET}")
+  message(FATAL_ERROR "MIDI not implemented for platform ${A8_PLATFORM}")
 endif()
 
 add_library(a8midi STATIC ${SOURCES})

@@ -13,8 +13,8 @@ target_link_libraries(a8gfx
   concurrentqueue
 )
 
-if(${A8_TARGET} STREQUAL "Windows")
+if(${A8_PLATFORM} STREQUAL "Windows")
   target_sources(a8gfx PRIVATE
-    platform/windows/messageloop.cpp
+    platform/Windows/messageloop.cpp
   )
 endif()
