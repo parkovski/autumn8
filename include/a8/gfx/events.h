@@ -1,5 +1,5 @@
-#ifndef _a8_gfx_events_h_
-#define _a8_gfx_events_h_
+#ifndef A8_GFX_EVENTS_H_
+#define A8_GFX_EVENTS_H_
 
 #include "a8/gfx/common.h"
 
@@ -383,4 +383,5 @@ using Event = EventS<true>;
 
 } // namespace a8::gfx
 
-#endif // _a8_gfx_events_h_
+#endif // A8_GFX_EVENTS_H_
+

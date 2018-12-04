@@ -1,5 +1,5 @@
-#ifndef _a8_gfx_common_h_
-#define _a8_gfx_common_h_
+#ifndef A8_GFX_COMMON_H_
+#define A8_GFX_COMMON_H_
 
 #include <cstdint>
 #include <type_traits>
@@ -689,4 +689,5 @@ using Line = LineS<true>;
 
 } // namespace a8::gfx
 
-#endif // _a8_gfx_common_h_
+#endif /* A8_GFX_COMMON_H_ */
+

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef A8_A8_H_
+#define A8_A8_H_
 
 #include "a8config.h"
 
@@ -89,3 +90,6 @@ void logcritical(const char *, Args &&...) { }
 #endif
 
 extern "C" int a8main(int argc, char *argv[]);
+
+#endif /* A8_A8_H_ */
+

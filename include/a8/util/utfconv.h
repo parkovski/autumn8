@@ -1,5 +1,5 @@
-#ifndef _a8_util_utfconv_h_
-#define _a8_util_utfconv_h_
+#ifndef A8_UTIL_UTFCONV_H_
+#define A8_UTIL_UTFCONV_H_
 
 #include <string>
 #include <string_view>
@@ -11,4 +11,5 @@ std::wstring to_utf16(std::string_view utf8str);
 
 } // namespace a8::util::utfconv
 
-#endif // _a8_util_utfconv_h_
+#endif /* A8_UTIL_UTFCONV_H_ */
+

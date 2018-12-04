@@ -1,0 +1,7 @@
+#ifndef A8_GFX_BACKEND_WIN32_H_
+#define A8_GFX_BACKEND_WIN32_H_
+
+
+
+#endif /* A8_GFX_BACKEND_WIN32_H_ */
+

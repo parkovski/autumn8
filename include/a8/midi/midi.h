@@ -1,5 +1,5 @@
-#ifndef _a8_midi_h_
-#define _a8_midi_h_
+#ifndef A8_MIDI_H_
+#define A8_MIDI_H_
 
 #include "a8/a8.h"
 
@@ -32,4 +32,5 @@ A8_DLLEXPORT MidiManager *newWinmmMidiManager();
 
 } // namespace a8
 
-#endif // _a8_midi_h_
+#endif /* A8_MIDI_H_ */
+

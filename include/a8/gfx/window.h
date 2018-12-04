@@ -108,3 +108,4 @@ void postQuitEvent(int exitCode = 0);
 } // namespace a8::gfx
 
 #endif // A8_GFX_WINDOW_H_
+

@@ -1,5 +1,5 @@
-#ifndef _a8_gfx_view_h_
-#define _a8_gfx_view_h_
+#ifndef A8_GFX_VIEW_H_
+#define A8_GFX_VIEW_H_
 
 #include "a8/gfx/common.h"
 #include "a8/gfx/renderer.h"
@@ -28,4 +28,5 @@ public:
 
 }
 
-#endif // _a8_gfx_view_h_
+#endif // A8_GFX_VIEW_H_
+

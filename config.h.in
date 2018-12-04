@@ -1,4 +1,5 @@
-#pragma once
+#ifndef A8_CONFIG_H_
+#define A8_CONFIG_H_
 
 #define A8_VERSION_MAJOR @A8_VERSION_MAJOR@
 #define A8_VERSION_MINOR @A8_VERSION_MINOR@
@@ -9,4 +10,6 @@
 #define A8_GFXBACKEND "@A8_GFXBACKEND@"
 #define A8_PLATFORM_HEADER "a8/platform/@A8_PLATFORM@/platform.h"
 #define A8_GFX_PLATFORM_HEADER "a8/gfx/backend-@A8_GFXBACKEND@.h"
+
+#endif /* A8_CONFIG_H_ */
 
