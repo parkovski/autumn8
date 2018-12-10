@@ -1,11 +1,11 @@
-project(Autumn8Gfx)
+project(Autumn8Graphics)
 
 set(SOURCES
   nvgrenderer.cpp
   window.cpp
 )
 
-add_library(a8gfx ${SOURCES})
+add_library(a8gfx STATIC ${SOURCES})
 target_link_libraries(a8gfx
   bgfx
   fmt::fmt-header-only
@@ -13,8 +13,8 @@ target_link_libraries(a8gfx
   concurrentqueue
 )
 
-if(${A8_PLATFORM} STREQUAL "Windows")
+if(${A8_GFXBACKEND} STREQUAL "Win32")
   target_sources(a8gfx PRIVATE
-    platform/Windows/messageloop.cpp
+    backend/Win32/messageloop.cpp
   )
 endif()

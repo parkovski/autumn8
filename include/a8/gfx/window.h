@@ -59,8 +59,8 @@ public:
   bool isValid() const;
   std::future<bool> isValidF() const;
 
-  bool postEvent(RawEvent &&event) {
-    return _events.enqueue(std::move(event));
+  bool postEvent(const RawEvent &event) {
+    return _events.enqueue(event);
   }
 
   bool postEvents(RawEvent *begin, RawEvent *end) {

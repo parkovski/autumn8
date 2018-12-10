@@ -1,5 +1,5 @@
-#ifndef _a8_gfx_platform_windows_h_
-#define _a8_gfx_platform_windows_h_
+#ifndef A8_GFX_PLATFORM_WINDOWS_H_
+#define A8_GFX_PLATFORM_WINDOWS_H_
 
 #include <ostream>
 #include <Windows.h>
@@ -72,4 +72,5 @@ extern const wchar_t *A8WindowClass;
 
 } // namespace a8::platform::windows
 
-#endif // _a8_gfx_platform_windows_h_
+#endif // A8_GFX_PLATFORM_WINDOWS_H_
+

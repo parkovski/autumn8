@@ -18,30 +18,30 @@
 using namespace a8::platform::windows;
 using a8::util::utfconv::to_utf8;
 
-// std::shared_ptr<spdlog::logger> a8::internal::g_logger;
+std::shared_ptr<spdlog::logger> a8::internal::g_logger;
 
 void a8::internal::initLogging(int argc, char *argv[]) {
-  // g_logger = spdlog::stdout_color_mt("autumn8");
-  // g_logger->set_level(spdlog::level::trace);
+  g_logger = spdlog::stdout_color_mt("autumn8");
+  g_logger->set_level(spdlog::level::trace);
 }
 
 void a8::internal::shutdownLogging() {
   // Avoid VC++ deadlock bug
-  // spdlog::drop_all();
+  spdlog::drop_all();
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   int argc;
-  auto args = GetCommandLineW();
+  // auto args = GetCommandLineW();
   wchar_t **argv16 = CommandLineToArgvW(args, &argc);
   std::string buffer{};
   std::string temp;
-  auto argv8 = std::make_unique<char *[]>(argc);
+  std::unique_ptr<char *[]> argv8{argc};
   for (int i = 0; i < argc; ++i) {
     temp = to_utf8(argv16[i]);
-    argv8[i] = (char *)(temp.length() + 1);
+    argv8[i] = reinterpret_cast<char *>(temp.length() + 1);
     if (i > 0) {
-      argv8[i] += (size_t)argv8[i - 1];
+      argv8[i] += reinterpret_cast<size_t>(argv8[i - 1]);
     }
     buffer.append(temp).push_back('\0');
 
@@ -49,8 +49,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
       AllocConsole();
     }
   }
+  LocalFree(argv16);
+  argv16 = nullptr;
   for (int i = argc - 1; i > 0; --i) {
-    argv8[i] = buffer.data() + (size_t)(argv8[i - 1]);
+    argv8[i] = buffer.data() + reinterpret_cast<size_t>(argv8[i - 1]);
   }
   argv8[0] = buffer.data();
 

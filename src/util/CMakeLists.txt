@@ -1,4 +1,4 @@
-project(Autumn8Util)
+project(Autumn8Utility)
 
 set(SOURCES utfconv.cpp)
 
