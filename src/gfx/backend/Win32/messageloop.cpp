@@ -18,6 +18,7 @@
 #define MY_HWND static_cast<HWND>(this->_nativeHandle)
 #define HWND_OF(w) static_cast<HWND>((w).nativeHandle())
 
+using a8::Log;
 using namespace a8::platform::windows;
 using namespace a8::gfx;
 using namespace a8::util::utfconv;
@@ -88,7 +89,7 @@ namespace {
 
   void mainThread(MainThreadState &state) {
     setThreadName(L"Event thread");
-    logtrace("Main thread: {}", enableThreadDpiAwareness());
+    Log::trace("Main thread: {}", enableThreadDpiAwareness());
 
     RECT rc;
     GetClientRect(HWND_OF(*state.window), &rc);
@@ -234,19 +235,19 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       const RawPoint point{pos->x, pos->y};
       switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
       case 0:
-        //logtrace("{}: {}, {} : {}x{}", name, pos->x, pos->y, pos->cx, pos->cy);
+        //Log::trace("{}: {}, {} : {}x{}", name, pos->x, pos->y, pos->cx, pos->cy);
         window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
         break;
       case SWP_NOMOVE:
-        //logtrace("{}: {}, {}", name, pos->cx, pos->cy);
+        //Log::trace("{}: {}, {}", name, pos->cx, pos->cy);
         window->postEvents(RawSizingEvent{size, Anchor::None});
         break;
       case SWP_NOSIZE:
-        //logtrace("{}: {}x{}", name, pos->x, pos->y);
+        //Log::trace("{}: {}x{}", name, pos->x, pos->y);
         window->postEvent(RawMovingEvent{point});
         break;
       default:
-        //logtrace("{}", name);
+        //Log::trace("{}", name);
         break;
       }
     }

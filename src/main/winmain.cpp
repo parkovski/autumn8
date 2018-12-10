@@ -15,28 +15,27 @@
 
 #pragma comment(lib, "mincore.lib")
 
+using a8::Log;
 using namespace a8::platform::windows;
 using a8::util::utfconv::to_utf8;
 
-std::shared_ptr<spdlog::logger> a8::internal::g_logger;
+std::shared_ptr<spdlog::logger> Log::g_logger;
 
-void a8::internal::initLogging(int argc, char *argv[]) {
+Log::Log(int argc, char *argv[]) noexcept {
   g_logger = spdlog::stdout_color_mt("autumn8");
   g_logger->set_level(spdlog::level::trace);
 }
 
-void a8::internal::shutdownLogging() {
-  // Avoid VC++ deadlock bug
+Log::~Log() {
   spdlog::drop_all();
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   int argc;
-  // auto args = GetCommandLineW();
-  wchar_t **argv16 = CommandLineToArgvW(args, &argc);
+  wchar_t **argv16 = CommandLineToArgvW(GetCommandLineW(), &argc);
   std::string buffer{};
   std::string temp;
-  std::unique_ptr<char *[]> argv8{argc};
+  auto argv8{std::make_unique<char *[]>(argc)};
   for (int i = 0; i < argc; ++i) {
     temp = to_utf8(argv16[i]);
     argv8[i] = reinterpret_cast<char *>(temp.length() + 1);
@@ -56,12 +55,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   }
   argv8[0] = buffer.data();
 
-  a8::internal::initLogging(argc, argv8.get());
+  Log log{argc, argv8.get()};
 
-  logtrace("WinMain: command line: {}", buffer);
+  Log::trace("WinMain: command line: {}", buffer);
 
   setThreadName(L"Message thread");
-  logtrace("Message thread: {}", enableThreadDpiAwareness());
+  Log::trace("Message thread: {}", enableThreadDpiAwareness());
 
   WNDCLASSEXW cls{};
   cls.cbSize = sizeof(WNDCLASSEXW);
@@ -80,7 +79,5 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   g_platformInit.hInstance = hInstance;
   g_platformInit.nCmdShow = nCmdShow;
 
-  auto exitCode = a8main(argc, argv8.get());
-  a8::internal::shutdownLogging();
-  return exitCode;
+  return a8main(argc, argv8.get());
 }

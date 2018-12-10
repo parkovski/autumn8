@@ -2,92 +2,54 @@
 #define A8_A8_H_
 
 #include "a8config.h"
-
-#ifdef HAS_SPDLOG
+#include "a8/compiler.h"
 
 #include <memory>
 #include <utility>
-#include "fmt/format.h"
-#include "spdlog/spdlog.h"
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
-namespace a8::internal {
-  void initLogging(int argc, char *argv[]);
-  void shutdownLogging();
+namespace a8 {
 
-  extern std::shared_ptr<spdlog::logger> g_logger;
-}
+class Log {
+  static std::shared_ptr<spdlog::logger> g_logger;
 
-template<typename... Args>
-void logdebug(Args &&...args) {
-  using namespace ::a8::internal;
-  auto &l = *g_logger;
-  l.log(::spdlog::level::debug, std::forward<Args>(args)...);
-}
+public:
+  explicit Log(int argc, char *argv[]) noexcept;
+  ~Log();
 
-template<typename... Args>
-void logtrace(Args &&...args) {
-  using namespace ::a8::internal;
-  auto &l = *g_logger;
-  l.log(::spdlog::level::trace, std::forward<Args>(args)...);
-}
+  template<typename... Args>
+  static inline void debug(Args &&...args) {
+    g_logger->log(::spdlog::level::debug, std::forward<Args>(args)...);
+  }
 
-template<typename... Args>
-void loginfo(Args &&...args) {
-  using namespace ::a8::internal;
-  g_logger->log(::spdlog::level::info, std::forward<Args>(args)...);
-}
+  template<typename... Args>
+  static inline void trace(Args &&...args) {
+    g_logger->log(::spdlog::level::trace, std::forward<Args>(args)...);
+  }
 
-template<typename... Args>
-void logwarn(Args &&...args) {
-  using namespace ::a8::internal;
-  g_logger->log(::spdlog::level::warn, std::forward<Args>(args)...);
-}
+  template<typename... Args>
+  static inline void info(Args &&...args) {
+    g_logger->log(::spdlog::level::info, std::forward<Args>(args)...);
+  }
 
-template<typename... Args>
-void logerror(Args &&...args) {
-  using namespace ::a8::internal;
-  g_logger->log(::spdlog::level::error, std::forward<Args>(args)...);
-}
+  template<typename... Args>
+  static inline void warn(Args &&...args) {
+    g_logger->log(::spdlog::level::warn, std::forward<Args>(args)...);
+  }
 
-template<typename... Args>
-void logcritical(Args &&...args) {
-  using namespace ::a8::internal;
-  g_logger->log(::spdlog::level::critical, std::forward<Args>(args)...);
-}
+  template<typename... Args>
+  static inline void error(Args &&...args) {
+    g_logger->log(::spdlog::level::error, std::forward<Args>(args)...);
+  }
 
-#else // HAS_SPDLOG
+  template<typename... Args>
+  static inline void critical(Args &&...args) {
+    g_logger->log(::spdlog::level::critical, std::forward<Args>(args)...);
+  }
+};
 
-namespace a8::internal {
-  void initLogging(int, char *[]);
-  void shutdownLogging();
-}
-
-template<typename... Args>
-void logdebug(const char *, Args &&...) { }
-
-template<typename... Args>
-void logtrace(const char *, Args &&...) { }
-
-template<typename... Args>
-void loginfo(const char *, Args &&...) { }
-
-template<typename... Args>
-void logwarn(const char *, Args &&...) { }
-
-template<typename... Args>
-void logerror(const char *, Args &&...) { }
-
-template<typename... Args>
-void logcritical(const char *, Args &&...) { }
-
-#endif // HAS_SPDLOG
-
-#ifdef _MSC_VER
-
-# define A8_DLLEXPORT __declspec(dllexport)
-#else
-# define A8_DLLEXPORT
-#endif
+} // namespace a8
 
 extern "C" int a8main(int argc, char *argv[]);
 

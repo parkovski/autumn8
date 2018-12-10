@@ -8,7 +8,7 @@
 
 namespace a8 {
 
-class A8_DLLEXPORT MidiManager {
+class MidiManager {
 public:
   static constexpr int InvalidDeviceId = -1;
 
@@ -26,9 +26,9 @@ public:
   virtual int findNamedDevice(std::string_view name) const = 0;
 };
 
-A8_DLLEXPORT void uwpMidiInitWinRT();
-A8_DLLEXPORT MidiManager *newUwpMidiManager();
-A8_DLLEXPORT MidiManager *newWinmmMidiManager();
+void uwpMidiInitWinRT();
+MidiManager *newUwpMidiManager();
+MidiManager *newWinmmMidiManager();
 
 } // namespace a8
 

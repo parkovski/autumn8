@@ -17,8 +17,6 @@ namespace WF = winrt::Windows::Foundation;
 namespace WDM = winrt::Windows::Devices::Midi;
 namespace WDE = winrt::Windows::Devices::Enumeration;
 
-extern "C" void __stdcall Sleep(uint32_t ms);
-
 using namespace a8::util::utfconv;
 
 namespace a8 {

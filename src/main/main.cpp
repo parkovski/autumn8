@@ -5,14 +5,15 @@
 
 #include <memory>
 
-std::shared_ptr<spdlog::logger> a8::internal::g_logger;
+std::shared_ptr<spdlog::logger> a8::Log::g_logger;
 
-void a8::internal::initLogging(int argc, char *argv[]) {
-  g_logger = spdlog::stdout_color_mt("autumn8");
+a8::Log::Log(int argc, char *argv[]) noexcept
+  : g_logger{spdlog::stdout_color_mt("autumn8")}
+{
   g_logger->set_level(spdlog::level::trace);
 }
 
-void a8::internal::shutdownLogging() {
+a8::Log::~Log() {
   spdlog::drop_all();
 }
 
@@ -24,7 +25,7 @@ void a8::internal::shutdownLogging() {
 int wmain(int argc, wchar_t *argv16[]) {
   // Convert UTF-16 args to UTF-8.
   // RAII array of arg pointers.
-  std::unique_ptr<char *[]> _argv8{argc};
+  auto _argv8{std::make_unique<char *[]>(argc)};
   // UTF-8 argv.
   char *argv[] = _argv8.get();
   // Single buffer to hold all arguments, null separated.
@@ -57,9 +58,7 @@ int main(int argc, char *argv[]) {
 
 #endif // defined(_WIN32)
 
-  a8::internal::initLogging(argc, argv);
-  auto exitCode = a8main(argc, argv);
-  a8::internal::shutdownLogging();
-  return exitCode;
+  a8::Log log{argc, argv};
+  return a8main(argc, argv);
 }
 

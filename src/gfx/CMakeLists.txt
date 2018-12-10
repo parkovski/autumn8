@@ -7,6 +7,7 @@ set(SOURCES
 
 add_library(a8gfx STATIC ${SOURCES})
 target_link_libraries(a8gfx
+  a8util
   bgfx
   fmt::fmt-header-only
   NanoVG

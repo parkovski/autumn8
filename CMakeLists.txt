@@ -88,6 +88,7 @@ set(Autumn8_INCLUDE_DIRS
   $<INSTALL_INTERFACE:include>
 )
 include_directories(${Autumn8_INCLUDE_DIRS})
+link_libraries(spdlog::spdlog fmt::fmt-header-only)
 
 add_subdirectory(src/util util)
 add_subdirectory(src/main main)

@@ -4,6 +4,7 @@
 #include "nanovg.h"
 #include "nanovg_bgfx.h"
 
+using a8::Log;
 using namespace a8::gfx;
 
 bool Window::isValid() const {
@@ -46,7 +47,7 @@ void Window::process(const MidiEvent &e) {
 void Window::process(const RawSizingEvent &e) {
   _size = e.size;
   bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
-  logtrace("Size {}x{}", e.size.width, e.size.height);
+  Log::trace("Size {}x{}", e.size.width, e.size.height);
   //bgfx::setViewRect(0, 0, 0, (uint16_t)e.size.x, (uint16_t)e.size.y);
 }
 
@@ -62,7 +63,7 @@ void Window::process(const RawResizeEvent &e) {
 void Window::process(const DisplayScaleEvent &e) {
   //bgfx::reset(e.displayWidth, e.displayHeight, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   _scale = e.scale;
-  logtrace("Monitor {}x ({}, {})", e.scale, e.displaySize.width, e.displaySize.height);
+  Log::trace("Monitor {}x ({}, {})", e.scale, e.displaySize.width, e.displaySize.height);
 }
 
 void Window::process(const SystemEvent &e) {
