@@ -1,15 +1,15 @@
-find_path(bgfx_DIR include/bgfx/bgfx.h HINTS "$ENV{bgfx_DIR}")
-find_path(bx_DIR include/bx/bx.h HINTS "$ENV{bx_DIR}" "$ENV{bgfx_DIR}")
-find_path(bimg_DIR include/bimg/bimg.h HINTS "$ENV{bimg_DIR}" "$ENV{bgfx_DIR}")
+find_path(bgfx_DIR include/bgfx/bgfx.h)
+find_path(bx_DIR include/bx/bx.h)
+find_path(bimg_DIR include/bimg/bimg.h)
 
 if(bgfx_DIR AND bx_DIR AND bimg_DIR)
   set(bgfx_LIB_NAME debug bgfxd optimized bgfx)
   set(bx_LIB_NAME debug bxd optimized bx)
   set(bimg_LIB_NAME debug bimgd optimized bimg)
 
-  find_library(bgfx_LIB NAMES ${bgfx_LIB_NAME} HINTS "$ENV{bgfx_DIR}/lib")
-  find_library(bx_LIB NAMES ${bx_LIB_NAME} HINTS "$ENV{bx_DIR}/lib" "$ENV{bgfx_DIR}/lib")
-  find_library(bimg_LIB NAMES ${bimg_LIB_NAME} HINTS "$ENV{bimg_DIR}/lib" "$ENV{bgfx_DIR}/lib")
+  find_library(bgfx_LIB NAMES ${bgfx_LIB_NAME})
+  find_library(bx_LIB NAMES ${bx_LIB_NAME})
+  find_library(bimg_LIB NAMES ${bimg_LIB_NAME})
 
   add_library(bgfx INTERFACE IMPORTED)
   set(bgfx_LIBRARIES ${bgfx_LIB} ${bx_LIB} ${bimg_LIB})

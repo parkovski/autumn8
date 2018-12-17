@@ -6,6 +6,7 @@
 #include <variant>
 #include <cstdint>
 #include <cassert>
+#include <boost/signals2.hpp>
 
 namespace a8::gfx {
 
@@ -253,7 +254,7 @@ struct ResizeEventS {
   explicit constexpr ResizeEventS(PointS<scaled> point, SizeS<scaled> size) noexcept
     : pos(point), size(size)
   {
-    assert(size.x >= 0 && size.y >= 0);
+    assert(size.width >= 0 && size.height >= 0);
   }
 
   explicit constexpr ResizeEventS(const ResizeEventS<!scaled> &e, float scale) noexcept
@@ -380,6 +381,58 @@ using EventS = std::variant<
 
 using RawEvent = EventS<false>;
 using Event = EventS<true>;
+
+template<typename E>
+using WindowEvent = boost::signals2::signal<bool (class Window &, const E &)>;
+
+template<typename E>
+using ViewEvent = boost::signals2::signal<bool (class View &, const E &)>;
+
+template<template<typename> class EventKind>
+struct EventSignals {
+  // Let you refer to the signals here by type.
+  template<typename E> E &get();
+
+  template<typename E> const E &get() const {
+    return const_cast<EventSignals *>(this)->get<E>();
+  }
+
+  EventKind<PointerEvent> pointer;
+  template<> PointerEvent &get<PointerEvent>() { return pointer; }
+
+  EventKind<KeyboardEvent> keyboard;
+  template<> KeyboardEvent &get<KeyboardEvent>() { return keyboard; }
+
+  EventKind<GamepadEvent> gamepad;
+  template<> GamepadEvent &get<GamepadEvent>() { return gamepad; }
+
+  EventKind<MidiEvent> midi;
+  template<> MidiEvent &get<MidiEvent>() { return midi; }
+
+  EventKind<SizingEvent> sizing;
+  template<> SizingEvent &get<SizingEvent>() { return sizing; }
+
+  EventKind<MovingEvent> moving;
+  template<> MovingEvent &get<MovingEvent>() { return moving; }
+
+  EventKind<ResizeEvent> resize;
+  template<> ResizeEvent &get<ResizeEvent>() { return resize; }
+
+  EventKind<DisplayScaleEvent> displayScale;
+  template<> DisplayScaleEvent &get<DisplayScaleEvent>() { return displayScale; }
+
+  EventKind<SystemEvent> system;
+  template<> SystemEvent &get<SystemEvent>() { return system; }
+
+  EventKind<StyleChangeEvent> styleChange;
+  template<> StyleChangeEvent &get<StyleChangeEvent>() { return styleChange; }
+
+  EventKind<DragDropEvent> dragDrop;
+  template<> DragDropEvent &get<DragDropEvent>() { return dragDrop; }
+
+  EventKind<DataEvent> data;
+  template<> DataEvent &get<DataEvent>() { return data; }
+};
 
 } // namespace a8::gfx
 

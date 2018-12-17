@@ -29,34 +29,42 @@ bool Window::processEvents() {
 }
 
 void Window::process(const RawPointerEvent &e) {
-
+  auto scaledPoint = Point{e.pos} * _scale;
+  _signals.pointer(*this, PointerEvent{scaledPoint, e.amount, e.params});
 }
 
 void Window::process(const KeyboardEvent &e) {
-
+  _signals.keyboard(*this, e);
 }
 
 void Window::process(const GamepadEvent &e) {
-
+  _signals.gamepad(*this, e);
 }
 
 void Window::process(const MidiEvent &e) {
-
+  _signals.midi(*this, e);
 }
 
 void Window::process(const RawSizingEvent &e) {
   _size = e.size;
   bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   Log::trace("Size {}x{}", e.size.width, e.size.height);
+  auto scaledSize = Size{e.size} * _scale;
+  _signals.sizing(*this, SizingEvent{scaledSize, e.side});
   //bgfx::setViewRect(0, 0, 0, (uint16_t)e.size.x, (uint16_t)e.size.y);
 }
 
 void Window::process(const RawMovingEvent &e) {
+  auto scaledPoint = Point{e.pos} * _scale;
+  _signals.moving(*this, MovingEvent{scaledPoint});
 }
 
 void Window::process(const RawResizeEvent &e) {
   _size = e.size;
   bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
+  auto scaledSize = Size{e.size} * _scale;
+  auto scaledPoint = Point{e.pos} * _scale;
+  _signals.resize(*this, ResizeEvent{scaledPoint, scaledSize});
   //bgfx::setViewRect(0, 0, 0, (uint16_t)e.size.x, (uint16_t)e.size.y);
 }
 
@@ -64,24 +72,26 @@ void Window::process(const DisplayScaleEvent &e) {
   //bgfx::reset(e.displayWidth, e.displayHeight, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   _scale = e.scale;
   Log::trace("Monitor {}x ({}, {})", e.scale, e.displaySize.width, e.displaySize.height);
+  _signals.displayScale(*this, e);
 }
 
 void Window::process(const SystemEvent &e) {
+  _signals.system(*this, e);
   if (e == SystemEvent::Close) {
     postQuitEvent();
   }
 }
 
 void Window::process(const StyleChangeEvent &e) {
-
+  _signals.styleChange(*this, e);
 }
 
 void Window::process(const DragDropEvent &e) {
-
+  _signals.dragDrop(*this, e);
 }
 
 void Window::process(const DataEvent &e) {
-
+  _signals.data(*this, e);
 }
 
 bool Window::nvgInit() {
@@ -103,21 +113,26 @@ bool Window::render() {
     return false;
   }
 
-  // TODO: What to pass here?
   bgfx::touch(0);
-  nvgBeginFrame(_nvg, _size.width / _scale, _size.height / _scale, _scale);
-  nvgStrokeColor(_nvg, nvgRGB(0xff, 0xff, 0xff));
-  nvgFillColor(_nvg, nvgRGB(0xff, 0x80, 0x20));
-  nvgBeginPath(_nvg);
-  nvgCircle(_nvg, 250, 250, 100);
-  nvgStroke(_nvg);
-  nvgFill(_nvg);
+  NvgRenderer renderer{_nvg};
+  root().render(renderer);
 
-  const char text[] = "I am some text. My name is jorj and I am a usb drive or something. A microSD card I guess.";
-  const char *end = text + sizeof(text);
-
-  nvgTextBox(_nvg, 20, 20, 200, text, end);
-  nvgText(_nvg, 100, 100, text, end);
-  nvgEndFrame(_nvg);
   return true;
 }
+
+View::~View() {}
+
+void RootView::render(Renderer &r) {
+  r.beginFrame(window()->size(), window()->scale());
+  r.strokeColor(Renderer::rgb(0xff, 0xff, 0xff));
+  r.fillColor(Renderer::rgb(0xff, 0x80, 0x20));
+  r.beginPath();
+  r.circle(250, 250, 100);
+  r.stroke();
+  r.fill();
+  auto const text = "I am some text";
+  r.textBox(20, 20, 200, text);
+  r.text(100, 100, "I am some text");
+  r.endFrame();
+}
+

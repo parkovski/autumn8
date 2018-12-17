@@ -6,30 +6,40 @@ namespace a8::gfx {
 
 template<typename Coord>
 std::ostream &
-operator<<(std::ostream &os, const basic_point_t<Coord> &self) {
+operator<<(std::ostream &os, const PointT<Coord> &self) {
   os << "Point(" << self.x << ", " << self.y << ")";
 }
 
+// Explicit instantiations
+template<> std::ostream &
+operator<< <RawPoint::coord_type>(std::ostream &, const RawPoint &);
+template<> std::ostream &
+operator<< <Point::coord_type>(std::ostream &, const Point &);
+
 template<typename Coord>
 std::ostream &
-operator<<(std::ostream &os, const basic_size_t<Coord> &self) {
+operator<<(std::ostream &os, const SizeT<Coord> &self) {
   return os << "Size(" << self.width << " x " << self.height << ")";
 }
 
+// Explicit instantiations
+template<> std::ostream &
+operator<< <RawSize::coord_type>(std::ostream &, const RawSize &);
+template<> std::ostream &
+operator<< <Size::coord_type>(std::ostream &, const Size &);
+
 template<typename Coord>
 std::ostream &
-operator<<(std::ostream &os, const basic_rect_t<Coord> &self) {
+operator<<(std::ostream &os, const RectT<Coord> &self) {
   return os << "Rect{(" << self.left << ", " << self.top <<
-    ") - (" << self.right << ", " << self.bottom << ")}";
+    "), (" << self.right << ", " << self.bottom << ")}";
 }
 
-template<typename Coord>
-std::ostream &
-operator<<(std::ostream &os, const basic_line_t<Coord> &self) {
-  return os << "Line{(" << self.x1 << ", " << self.y1 <<
-    ") - (" << self.x2 << ", " << self.y2 << ")}";
-}
-
+// Explicit instantiations
+template<> std::ostream &
+operator<< <RawRect::coord_type>(std::ostream &, const RawRect &);
+template<> std::ostream &
+operator<< <Rect::coord_type>(std::ostream &, const Rect &);
 
 std::ostream &a8::gfx::operator<<(std::ostream &os, Anchor a) {
   switch (a) {
@@ -53,15 +63,4 @@ std::ostream &a8::gfx::operator<<(std::ostream &os, Anchor a) {
   return os;
 }
 
-template struct xypair_t<basic_point_t<int32_t>>;
-template struct xypair_t<basic_point_t<float>>;
-
-template struct xypair_t<basic_size_t<int32_t>>;
-template struct xypair_t<basic_size_t<float>>;
-
-template struct ptpair_t<basic_rect_t<int32_t>>;
-template struct ptpair_t<basic_rect_t<float>>;
-
-template struct ptpair_t<basic_line_t<int32_t>>;
-template struct ptpair_t<basic_line_t<float>>;
 }

@@ -1,5 +1,5 @@
-find_path(Yoga_INCLUDE_DIR yoga/Yoga.h HINTS "$ENV{Yoga_DIR}/include")
-find_library(Yoga_LIBRARIES yogacore HINTS "$ENV{Yoga_DIR}/lib")
+find_path(Yoga_INCLUDE_DIR yoga/Yoga.h)
+find_library(Yoga_LIBRARIES yogacore)
 
 add_library(Yoga INTERFACE IMPORTED)
 target_include_directories(Yoga INTERFACE ${Yoga_INCLUDE_DIR})

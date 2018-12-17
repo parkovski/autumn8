@@ -24,51 +24,79 @@ using namespace a8::gfx;
 using namespace a8::util::utfconv;
 
 namespace a8::platform::windows {
-  const wchar_t *A8WindowClass = L"Autumn8WndClass";
-  GlobalPlatformInit g_platformInit;
 
-  bool setThreadName(const wchar_t *name) {
-    static CallSite<decltype(&SetThreadDescription)> fn(
-      L"kernel32.dll", "SetThreadDescription"
-    );
-    return fn && fn(GetCurrentThread(), name) == S_OK;
+const wchar_t *A8WindowClass = L"Autumn8WndClass";
+GlobalPlatformInit g_platformInit;
+
+bool setThreadName(const wchar_t *name) {
+  static CallSite<decltype(&SetThreadDescription)> fn(
+    L"kernel32.dll", "SetThreadDescription"
+  );
+  return fn && fn(GetCurrentThread(), name) == S_OK;
+}
+
+DpiStatus enableThreadDpiAwareness() {
+  static CallSite<decltype(&SetThreadDpiAwarenessContext)> fn(
+    L"user32.dll", "SetThreadDpiAwarenessContext"
+  );
+  if (fn && fn(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+    return DpiStatus::Ok;
   }
 
-  DpiStatus enableThreadDpiAwareness() {
-    static CallSite<decltype(&SetThreadDpiAwarenessContext)> fn(
-      L"user32.dll", "SetThreadDpiAwarenessContext"
-    );
-    if (fn && fn(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-      return DpiStatus::Ok;
-    }
+  static CallSite<HRESULT (WINAPI *)(int)> fnFallback(
+    L"shcore.dll", "SetProcessDpiAwareness"
+  );
+  if (fnFallback && fnFallback(2 /* PROCESS_PER_MONITOR_DPI_AWARE */)) {
+    return DpiStatus::Fallback;
+  };
+  return DpiStatus::Error;
+}
 
-    static CallSite<HRESULT (WINAPI *)(int)> fnFallback(
-      L"shcore.dll", "SetProcessDpiAwareness"
-    );
-    if (fnFallback && fnFallback(2 /* PROCESS_PER_MONITOR_DPI_AWARE */)) {
-      return DpiStatus::Fallback;
-    };
-    return DpiStatus::Error;
-  }
 } // namespace a8::platform::windows
 
-Window::Window(std::string_view title)
+Window::Window() noexcept
+  : _events{QueueSize}, _nvg{}, _rootView{std::make_unique<RootView>(this)},
+    _scale{1}, _zoom{1}, _pos{}, _size{}
+{}
+
+// HACK (pos*10, size*10)
+// We don't know the DPI yet, but have to convert these to integers.
+Window::Window(std::string_view title, Point pos, Size size) noexcept
   : Window()
 {
+  HWND hDesktop = GetDesktopWindow();
+  _scale = GetDpiForWindow(hDesktop) / (float)USER_DEFAULT_SCREEN_DPI;
+  _pos = RawPoint{pos * _scale};
+  _size = RawSize{size * _scale};
+
   _nativeHandle = CreateWindowExW(
     WS_EX_ACCEPTFILES,
     A8WindowClass,
     to_utf16(title).c_str(),
     WS_OVERLAPPEDWINDOW,
-    0, 0, 500, 500,
+    _pos.x, _pos.y, _size.width, _size.height,
     nullptr,
     nullptr,
     g_platformInit.hInstance,
     this
   );
-
-  _size = {500, 500};
   // TODO: Async creation when not in main thread.
+}
+
+Window::Window(const Window::native_handle_t &, void *nativeHandle) noexcept
+  : Window()
+{
+  _nativeHandle = nativeHandle;
+  HWND hWnd = static_cast<HWND>(nativeHandle);
+  RECT rc;
+  if (GetWindowRect(hWnd, &rc)) {
+    _pos = {rc.left, rc.top};
+    _size = {
+      static_cast<unsigned>(rc.right - rc.left),
+      static_cast<unsigned>(rc.bottom - rc.top)
+    };
+  }
+  _scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
 }
 
 Window::~Window() {
@@ -154,6 +182,11 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
       window->_scale =
         GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
+      // HACK
+      window->_pos = RawPoint{Point{window->_pos} * (window->_scale / 10)};
+      window->_size = RawSize{Size{window->_size} * (window->_scale / 10)};
+      MoveWindow(hWnd, window->_pos.x, window->_pos.y, window->_size.width,
+                 window->_size.height, false);
       window->postEvent(SystemEvent::Initialize);
     }
     break;
