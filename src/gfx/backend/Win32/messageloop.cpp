@@ -59,15 +59,13 @@ Window::Window() noexcept
     _scale{1}, _zoom{1}, _pos{}, _size{}
 {}
 
-// HACK (pos*10, size*10)
-// We don't know the DPI yet, but have to convert these to integers.
 Window::Window(std::string_view title, Point pos, Size size) noexcept
   : Window()
 {
-  HWND hDesktop = GetDesktopWindow();
-  _scale = GetDpiForWindow(hDesktop) / (float)USER_DEFAULT_SCREEN_DPI;
-  _pos = RawPoint{pos * _scale};
-  _size = RawSize{size * _scale};
+  _pos = RawPoint{pos};
+  _size = RawSize{size};
+
+  Log::info("Creating window at {}, size {}, scale {}", _pos, _size, _scale);
 
   _nativeHandle = CreateWindowExW(
     WS_EX_ACCEPTFILES,
@@ -92,8 +90,8 @@ Window::Window(const Window::native_handle_t &, void *nativeHandle) noexcept
   if (GetWindowRect(hWnd, &rc)) {
     _pos = {rc.left, rc.top};
     _size = {
-      static_cast<unsigned>(rc.right - rc.left),
-      static_cast<unsigned>(rc.bottom - rc.top)
+      rc.right - rc.left,
+      rc.bottom - rc.top
     };
   }
   _scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
@@ -147,10 +145,7 @@ namespace {
     bgfx::frame();
 
     while (state.running) {
-      //WaitForSingleObject(state.eventsReady);
-      bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
       state.window->render();
-
       bgfx::frame();
     }
 
@@ -160,7 +155,7 @@ namespace {
 }
 
 static RawSize toSize(LPRECT rect) {
-  return {(unsigned)(rect->right - rect->left), (unsigned)(rect->bottom - rect->top)};
+  return {(rect->right - rect->left), (rect->bottom - rect->top)};
 }
 
 static RawSize getNonClientBorders(HWND hWnd) {
@@ -180,13 +175,13 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
       window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
       SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
-      window->_scale =
-        GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
-      // HACK
-      window->_pos = RawPoint{Point{window->_pos} * (window->_scale / 10)};
-      window->_size = RawSize{Size{window->_size} * (window->_scale / 10)};
-      MoveWindow(hWnd, window->_pos.x, window->_pos.y, window->_size.width,
-                 window->_size.height, false);
+
+      window->_scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
+      window->_pos = RawPoint{Point{window->_pos} * window->_scale};
+      window->_size = RawSize{Size{window->_size} * window->_scale};
+      SetWindowPos(hWnd, nullptr, window->_pos.x, window->_pos.y,
+                   window->_size.width, window->_size.height,
+                   SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
       window->postEvent(SystemEvent::Initialize);
     }
     break;
@@ -211,12 +206,39 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     }
     break;
   case WM_ERASEBKGND:
-    break;
+    return 0;
   case WM_PAINT:
+      /*if (window->_nvg) {
+        PAINTSTRUCT ps;
+        BeginPaint(hWnd, &ps);
+        window->render();
+        EndPaint(hWnd, &ps);
+        return 0;
+      }*/
     break;
-  /*case WM_SIZING:
+  case WM_SIZE:
     {
-      Anchor side = Anchor::None;
+      RawPoint pos{};
+      RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
+      switch (wParam) {
+      case SIZE_MINIMIZED:
+        window->postEvent(SystemEvent::Minimize);
+        break;
+      case SIZE_MAXIMIZED:
+        window->postEvents(RawResizeEvent{pos, size}, SystemEvent::Maximize);
+        break;
+      case SIZE_RESTORED:
+        window->postEvents(RawResizeEvent{pos, size}, SystemEvent::RestoreSize);
+        break;
+      default:
+        window->postEvent(RawResizeEvent{pos, size});
+        break;
+      }
+    }
+    return 0;
+  case WM_SIZING:
+    {
+      Anchor side;
       switch (wParam) {
       case WMSZ_LEFT:
         side = Anchor::Left;
@@ -243,44 +265,73 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
         side = Anchor::BottomLeft;
         break;
       default:
+        side = Anchor::None;
         break;
       }
+
       RECT *rc = reinterpret_cast<RECT *>(lParam);
-      window->postEvent(RawSizingEvent(toSize(rc) - getNonClientBorders(hWnd), side));
+      auto size = toSize(rc) - getNonClientBorders(hWnd);
+      window->postEvent(RawSizingEvent{size, side});
     }
-    return TRUE;
+    return true;
+  case WM_MOVE:
+    {
+      int x = (int)(short)LOWORD(lParam);
+      int y = (int)(short)HIWORD(lParam);
+      window->postEvent(RawMovingEvent{RawPoint{x, y}});
+    }
+    return 0;
   case WM_MOVING:
     {
       auto rc = reinterpret_cast<LPRECT>(lParam);
       window->postEvent(RawMovingEvent{{rc->left, rc->top}});
     }
-    break;*/
+    return true;
   case WM_ENTERSIZEMOVE:
   case WM_EXITSIZEMOVE:
     break;
   case WM_WINDOWPOSCHANGING:
-  case WM_WINDOWPOSCHANGED:
     {
       auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
       const RawSize size{
-        RawSize{(unsigned)pos->cx, (unsigned)pos->cy} - getNonClientBorders(hWnd)
+        RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
       };
       const RawPoint point{pos->x, pos->y};
       switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
       case 0:
-        //Log::trace("{}: {}, {} : {}x{}", name, pos->x, pos->y, pos->cx, pos->cy);
         window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
         break;
       case SWP_NOMOVE:
-        //Log::trace("{}: {}, {}", name, pos->cx, pos->cy);
+        break;
+      case SWP_NOSIZE:
+        break;
+      default:
+        break;
+      }
+    }
+    break;
+  case WM_WINDOWPOSCHANGED:
+    {
+      auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
+      const RawSize size{
+        RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
+      };
+      const RawPoint point{pos->x, pos->y};
+      switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
+      case 0:
+        //Log::trace("WindowPos: {}, {} : {}x{}", pos->x, pos->y, pos->cx, pos->cy);
+        window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
+        break;
+      case SWP_NOMOVE:
+        //Log::trace("WindowPos: {}, {}", pos->cx, pos->cy);
         window->postEvents(RawSizingEvent{size, Anchor::None});
         break;
       case SWP_NOSIZE:
-        //Log::trace("{}: {}x{}", name, pos->x, pos->y);
+        //Log::trace("WindowPos: {}x{}", pos->x, pos->y);
         window->postEvent(RawMovingEvent{point});
         break;
       default:
-        //Log::trace("{}", name);
+        //Log::trace("WindowPos");
         break;
       }
     }
@@ -299,14 +350,18 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       auto y = rect->top;
       auto w = rect->right - x;
       auto h = rect->bottom - y;
-      SetWindowPos(hWnd, nullptr, x, y, w, h, SWP_NOZORDER);
+      SetWindowPos(hWnd, nullptr, x, y, w, h, SWP_NOZORDER | SWP_NOSENDCHANGING);
       auto monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-      MONITORINFOEXW mi{};
-      mi.cbSize = sizeof(MONITORINFOEXW);
+      MONITORINFO mi{};
+      mi.cbSize = sizeof(MONITORINFO);
       GetMonitorInfoW(monitor, &mi);
       auto xres = mi.rcMonitor.right - mi.rcMonitor.left;
       auto yres = mi.rcMonitor.bottom - mi.rcMonitor.top;
-      window->postEvent(DisplayScaleEvent(scale, {(uint32_t)xres, (uint32_t)yres}));
+      auto borders = getNonClientBorders(hWnd);
+      w -= borders.width;
+      h -= borders.height;
+      window->postEvents(DisplayScaleEvent{scale, {(uint32_t)xres, (uint32_t)yres}},
+                         RawResizeEvent{{x, y}, {w, h}});
     }
     break;
   }
@@ -335,7 +390,7 @@ int a8::gfx::runMessageLoop(Window &window) {
   QueryInterruptTime(&currentTime);
   ULONGLONG nextTime = currentTime + interval;
 
-  bgfx::renderFrame();
+  bgfx::renderFrame((int32_t)(interval / 10'000ULL));
 
   MSG msg;
   while (true) {
@@ -355,7 +410,7 @@ int a8::gfx::runMessageLoop(Window &window) {
     }
     if (currentTime > nextTime) {
       nextTime = currentTime + interval;
-      bgfx::renderFrame();
+      bgfx::renderFrame((int32_t)(interval / 10'000ULL));
     }
   }
 break_message_loop:

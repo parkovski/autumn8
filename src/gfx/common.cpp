@@ -7,38 +7,38 @@ namespace a8::gfx {
 template<typename Coord>
 std::ostream &
 operator<<(std::ostream &os, const PointT<Coord> &self) {
-  os << "Point(" << self.x << ", " << self.y << ")";
+  return os << "(" << self.x << ", " << self.y << ")";
 }
 
 // Explicit instantiations
-template<> std::ostream &
+template std::ostream &
 operator<< <RawPoint::coord_type>(std::ostream &, const RawPoint &);
-template<> std::ostream &
+template std::ostream &
 operator<< <Point::coord_type>(std::ostream &, const Point &);
 
 template<typename Coord>
 std::ostream &
 operator<<(std::ostream &os, const SizeT<Coord> &self) {
-  return os << "Size(" << self.width << " x " << self.height << ")";
+  return os << "(" << self.width << " x " << self.height << ")";
 }
 
 // Explicit instantiations
-template<> std::ostream &
+template std::ostream &
 operator<< <RawSize::coord_type>(std::ostream &, const RawSize &);
-template<> std::ostream &
+template std::ostream &
 operator<< <Size::coord_type>(std::ostream &, const Size &);
 
 template<typename Coord>
 std::ostream &
 operator<<(std::ostream &os, const RectT<Coord> &self) {
-  return os << "Rect{(" << self.left << ", " << self.top <<
+  return os << "{(" << self.left << ", " << self.top <<
     "), (" << self.right << ", " << self.bottom << ")}";
 }
 
 // Explicit instantiations
-template<> std::ostream &
+template std::ostream &
 operator<< <RawRect::coord_type>(std::ostream &, const RawRect &);
-template<> std::ostream &
+template std::ostream &
 operator<< <Rect::coord_type>(std::ostream &, const Rect &);
 
 std::ostream &a8::gfx::operator<<(std::ostream &os, Anchor a) {

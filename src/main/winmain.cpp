@@ -45,7 +45,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
     buffer.append(temp).push_back('\0');
 
     if (i > 0 && temp == "--console") {
-      AllocConsole();
+      if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+        AllocConsole();
+      }
     }
   }
   LocalFree(argv16);

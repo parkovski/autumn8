@@ -7,6 +7,75 @@
 
 namespace a8::gfx {
 
+// Anchor {{{
+
+enum class Anchor {
+  None          = 0,
+  Left          = 0x1,
+  Right         = 0x2,
+  /// Both left and right
+  Horizontal    = 0x3,
+  Top           = 0x4,
+  TopLeft       = 0x5,
+  TopRight      = 0x6,
+  /// Top, left, and right
+  FillTop       = 0x7,
+  Bottom        = 0x8,
+  BottomLeft    = 0x9,
+  BottomRight   = 0xA,
+  /// Bottom, left, and right
+  FillBottom    = 0xB,
+  /// Top and bottom
+  Vertical      = 0xC,
+  /// Top, bottom, and left
+  FillLeft      = 0xD,
+  /// Top, bottom, and right
+  FillRight     = 0xE,
+  /// All edges
+  Expand        = 0xF,
+};
+/// Union: Points in either a1 or a2.
+constexpr Anchor operator|(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>(static_cast<int>(a1) | static_cast<int>(a2));
+}
+/// Union: Same as operator|.
+constexpr Anchor operator+(Anchor a1, Anchor a2) {
+  return a1 | a2;
+}
+/// Intersection: Points occurring in both a1 and a2.
+constexpr Anchor operator&(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>(static_cast<int>(a1) & static_cast<int>(a2));
+}
+/// Set difference: Removes points in a2 from the set a1.
+constexpr Anchor operator-(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>(static_cast<int>(a1) & ~static_cast<int>(a2));
+}
+/// Exclusion: Points in either set but not both.
+constexpr Anchor operator^(Anchor a1, Anchor a2) {
+  return static_cast<Anchor>((static_cast<int>(a1) ^ static_cast<int>(a2)) & 0xF);
+}
+/// Inverse: Changes all points to the opposite state.
+constexpr Anchor operator~(Anchor a) {
+  return static_cast<Anchor>(~static_cast<int>(a));
+}
+/// Reflection: Flips left/right, top/bottom, but when both are set, both remain.
+constexpr Anchor operator-(Anchor a) {
+  const int i = static_cast<int>(a);
+  return static_cast<Anchor>(((i & 0x5) << 1) | ((i & 0xA) >> 1));
+}
+constexpr bool operator!(Anchor a) {
+  return a == Anchor::None;
+}
+std::ostream &operator<<(std::ostream &os, Anchor a);
+
+// }}}
+
+// Point {{{
+
+template<typename Coord> struct PointT;
+template<typename Coord>
+std::ostream &operator<<(std::ostream &, const PointT<Coord> &);
+
 template<typename Coord>
 struct PointT {
   using coord_type = Coord;
@@ -19,11 +88,6 @@ struct PointT {
 
   constexpr PointT(Coord x, Coord y) noexcept
     : x{x}, y{y}
-  {}
-
-  template<typename = std::enable_if_t<!std::is_reference_v<Coord>>>
-  constexpr PointT(const PointT<Coord &> &ref) noexcept
-    : PointT{ref.x, ref.y}
   {}
 
   template<
@@ -105,13 +169,22 @@ struct PointT {
     return self;
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const PointT<Coord> &self);
+  friend std::ostream &operator<< <Coord>(std::ostream &os,
+                                          const PointT<Coord> &self);
 };
 
 template<bool scaled>
 using PointS = PointT<std::conditional_t<scaled, float, int32_t>>;
 using RawPoint = PointS<false>;
 using Point = PointS<true>;
+
+// }}}
+
+// Size {{{
+
+template<typename Coord> struct SizeT;
+template<typename Coord>
+std::ostream &operator<<(std::ostream &, const SizeT<Coord> &);
 
 template<typename Coord>
 struct SizeT {
@@ -124,11 +197,6 @@ struct SizeT {
   SizeT(const SizeT<Coord> &) = default;
   constexpr SizeT(Coord width, Coord height) noexcept
     : width{width}, height{height}
-  {}
-
-  template<typename = std::enable_if_t<!std::is_reference_v<Coord>>>
-  constexpr SizeT(const SizeT<Coord &> &ref) noexcept
-    : SizeT{ref.width, ref.height}
   {}
 
   template<
@@ -208,13 +276,22 @@ struct SizeT {
     return self;
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const SizeT<Coord> &self);
+  friend std::ostream &operator<< <Coord>(std::ostream &os,
+                                          const SizeT<Coord> &self);
 };
 
 template<bool scaled>
-using SizeS = SizeT<std::conditional_t<scaled, float, uint32_t>>;
+using SizeS = SizeT<std::conditional_t<scaled, float, int32_t>>;
 using RawSize = SizeS<false>;
 using Size = SizeS<true>;
+
+// }}}
+
+// Rect {{{
+
+template<typename Coord> struct RectT;
+template<typename Coord>
+std::ostream &operator<<(std::ostream &, const RectT<Coord> &);
 
 template<typename Coord>
 struct RectT {
@@ -232,9 +309,10 @@ struct RectT {
     : left{left}, top{top}, right{right}, bottom{bottom}
   {}
 
-  template<typename = std::enable_if_t<!std::is_reference_v<Coord>>>
-  constexpr RectT(const RectT<Coord &> &ref) noexcept
-    : RectT{ ref.left, ref.top, ref.right, ref.bottom }
+  constexpr RectT(PointT<Coord> leftTop, SizeT<Coord> size) noexcept
+    : left{leftTop.x}, top{leftTop.y},
+      right{leftTop.x + size.width},
+      bottom{leftTop.y + size.height}
   {}
 
   template<
@@ -267,19 +345,32 @@ struct RectT {
     return { self.right, self.bottom, self.left, self.top };
   }
 
-  constexpr PointT<Coord &> topLeft() const {
+  constexpr PointT<Coord> topLeft() const {
     return { left, top };
   }
 
-  constexpr PointT<Coord &> bottomRight() const {
+  constexpr PointT<Coord> topRight() const {
+    return { right, top };
+  }
+
+  constexpr PointT<Coord> bottomLeft() const {
+    return { left, bottom };
+  }
+
+  constexpr PointT<Coord> bottomRight() const {
     return { right, bottom };
+  }
+
+  constexpr PointT<Coord> center() const {
+    return { (left + right) / 2, (top + bottom) / 2 };
   }
 
   constexpr SizeT<Coord> size() const {
     return { right - left, bottom - top };
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const RectT<Coord> &self);
+  friend std::ostream &operator<< <Coord>(std::ostream &os,
+                                          const RectT<Coord> &self);
 };
 
 template<bool scaled>
@@ -287,65 +378,7 @@ using RectS = RectT<std::conditional_t<scaled, float, int32_t>>;
 using RawRect = RectS<false>;
 using Rect = RectS<true>;
 
-
-enum class Anchor {
-  None          = 0,
-  Left          = 0x1,
-  Right         = 0x2,
-  /// Both left and right
-  Horizontal    = 0x3,
-  Top           = 0x4,
-  TopLeft       = 0x5,
-  TopRight      = 0x6,
-  /// Top, left, and right
-  FillTop       = 0x7,
-  Bottom        = 0x8,
-  BottomLeft    = 0x9,
-  BottomRight   = 0xA,
-  /// Bottom, left, and right
-  FillBottom    = 0xB,
-  /// Top and bottom
-  Vertical      = 0xC,
-  /// Top, bottom, and left
-  FillLeft      = 0xD,
-  /// Top, bottom, and right
-  FillRight     = 0xE,
-  /// All edges
-  Expand        = 0xF,
-};
-/// Union: Points in either a1 or a2.
-constexpr Anchor operator|(Anchor a1, Anchor a2) {
-  return static_cast<Anchor>(static_cast<int>(a1) | static_cast<int>(a2));
-}
-/// Union: Same as operator|.
-constexpr Anchor operator+(Anchor a1, Anchor a2) {
-  return a1 | a2;
-}
-/// Intersection: Points occurring in both a1 and a2.
-constexpr Anchor operator&(Anchor a1, Anchor a2) {
-  return static_cast<Anchor>(static_cast<int>(a1) & static_cast<int>(a2));
-}
-/// Set difference: Removes points in a2 from the set a1.
-constexpr Anchor operator-(Anchor a1, Anchor a2) {
-  return static_cast<Anchor>(static_cast<int>(a1) & ~static_cast<int>(a2));
-}
-/// Exclusion: Points in either set but not both.
-constexpr Anchor operator^(Anchor a1, Anchor a2) {
-  return static_cast<Anchor>((static_cast<int>(a1) ^ static_cast<int>(a2)) & 0xF);
-}
-/// Inverse: Changes all points to the opposite state.
-constexpr Anchor operator~(Anchor a) {
-  return static_cast<Anchor>(~static_cast<int>(a));
-}
-/// Reflection: Flips left/right, top/bottom, but when both are set, both remain.
-constexpr Anchor operator-(Anchor a) {
-  const int i = static_cast<int>(a);
-  return static_cast<Anchor>(((i & 0x5) << 1) | ((i & 0xA) >> 1));
-}
-constexpr bool operator!(Anchor a) {
-  return a == Anchor::None;
-}
-std::ostream &operator<<(std::ostream &os, Anchor a);
+// }}}
 
 } // namespace a8::gfx
 

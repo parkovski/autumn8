@@ -2,6 +2,7 @@ project(Autumn8Graphics)
 
 set(SOURCES
   nvgrenderer.cpp
+  common.cpp
   window.cpp
 )
 
