@@ -10,3 +10,6 @@ target_include_directories(netcorehost PRIVATE ${CMAKE_SOURCE_DIR}/contrib/dotne
 add_executable(minigfx WIN32 minigfx.cpp)
 target_link_libraries(minigfx PRIVATE a8winmain a8gfx)
 
+add_executable(fftexplorer fftexplorer.cpp)
+target_link_libraries(fftexplorer a8main a8script ffts)
+

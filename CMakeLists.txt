@@ -91,6 +91,7 @@ include_directories(${Autumn8_INCLUDE_DIRS})
 link_libraries(spdlog::spdlog fmt::fmt-header-only)
 
 add_subdirectory(src/util util)
+add_subdirectory(src/script script)
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
 add_subdirectory(src/audio audio)

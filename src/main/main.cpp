@@ -1,15 +1,16 @@
 #include "a8/a8.h"
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_colors_sinks.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <memory>
 
-std::shared_ptr<spdlog::logger> a8::Log::g_logger;
+using a8::Log;
 
-a8::Log::Log(int argc, char *argv[]) noexcept
-  : g_logger{spdlog::stdout_color_mt("autumn8")}
-{
+std::shared_ptr<spdlog::logger> Log::g_logger;
+
+a8::Log::Log(int argc, char *argv[]) noexcept {
+  g_logger = spdlog::stdout_color_mt("autumn8");
   g_logger->set_level(spdlog::level::trace);
 }
 
@@ -26,8 +27,6 @@ int wmain(int argc, wchar_t *argv16[]) {
   // Convert UTF-16 args to UTF-8.
   // RAII array of arg pointers.
   auto _argv8{std::make_unique<char *[]>(argc)};
-  // UTF-8 argv.
-  char *argv[] = _argv8.get();
   // Single buffer to hold all arguments, null separated.
   std::string _buffer{};
   // Temp conversion string.
@@ -37,24 +36,26 @@ int wmain(int argc, wchar_t *argv16[]) {
     // Set each pointer to its end offset in `_buffer` (offset of next arg).
     // This offset is the length of the current string plus the previous
     // argument's offset.
-    _argv8[i] = reinterpret_cast<char *>(temp.length() + 1);
+    _argv8[i] = reinterpret_cast<char *>(_temp.length() + 1);
     if (i > 0) {
-      _argv8[i] += reinterpret_cast<size_t>(argv8[i - 1]);
+      _argv8[i] += reinterpret_cast<size_t>(_argv8[i - 1]);
     }
     // Append the converted string to the single buffer.
     _buffer.append(_temp).push_back('\0');
   }
   // Convert offsets to actual pointers into the buffer.
   for (int i = argc - 1; i > 0; --i) {
-    _argv8[i] = _buffer.data() + reinterpret_cast<size_t>(argv8[i - 1]);
+    _argv8[i] = _buffer.data() + reinterpret_cast<size_t>(_argv8[i - 1]);
   }
   // First argument is at buffer offset 0.
   _argv8[0] = _buffer.data();
+  // UTF-8 argv.
+  char **argv = _argv8.get();
 
 #else // defined(_WIN32)
 
 // Non-Windows entry point.
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
 
 #endif // defined(_WIN32)
 

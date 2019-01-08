@@ -2,7 +2,7 @@
 #define A8_A8_H_
 
 #include "a8config.h"
-#include "a8/compiler.h"
+#include "compiler.h"
 
 #include <memory>
 #include <utility>
