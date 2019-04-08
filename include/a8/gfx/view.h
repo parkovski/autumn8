@@ -1,28 +1,28 @@
 #ifndef A8_GFX_VIEW_H_
 #define A8_GFX_VIEW_H_
 
-#include "a8/gfx/events.h"
-#include "a8/gfx/renderer.h"
+#include "renderer.h"
+#include <vector>
+#include <memory>
 
 namespace a8::gfx {
 
 class Window;
-class RootView;
 
 class View {
   View *_parent;
-  RootView *_root;
-
-  friend class RootView;
-
-protected:
-  EventSignals<ViewEvent> _signals;
+  Window *_window;
 
 public:
   View() = delete;
 
+  explicit View(Window *window) noexcept
+    : _parent{nullptr}, _window{window}
+  {}
+
+  // @param parent may not be null.
   explicit View(View *parent) noexcept
-    : _parent{parent}, _root{parent ? parent->_root : nullptr}
+    : _parent{parent}, _window{parent->_window}
   {}
 
   View(const View &) = delete;
@@ -37,42 +37,20 @@ public:
     return _parent;
   }
 
-  RootView *root() {
-    return _root;
-  }
-
-  Window *window();
-
-  /// @type E The event type.
-  /// @param slot The callback function.
-  template<typename E>
-  auto connect(boost::signals2::slot<bool (View &, const E &)> slot) {
-    return _signals.get<E>().connect(slot);
-  }
-
-  virtual void render(Renderer &r) = 0;
-};
-
-class RootView : public View {
-  Window *_window;
-
-public:
-  explicit RootView(Window *window) noexcept
-    : View{nullptr}, _window{window}
-  {
-    _root = this;
-  }
+  View *root();
 
   Window *window() {
     return _window;
   }
 
-  void render(Renderer &r) override;
+  virtual void render(Renderer &r) = 0;
 };
 
-inline Window *View::window() {
-  return _root->window();
-}
+class EmptyView : public View {
+public:
+  using View::View;
+  void render(Renderer &) override;
+};
 
 class CanvasView : public View {
   std::function<void(View &, Renderer &)> _renderCallback;
@@ -81,7 +59,31 @@ public:
   explicit CanvasView(
     View *parent, std::function<void(View &, Renderer &)> renderCallback
   ) noexcept
-    : View{parent}, _renderCallback{renderCallback}
+    : View{parent}, _renderCallback{std::move(renderCallback)}
+  {}
+
+  explicit CanvasView(
+    Window *window, std::function<void(View &, Renderer &)> renderCallback
+  ) noexcept
+    : View{window}, _renderCallback{std::move(renderCallback)}
+  {}
+
+  explicit CanvasView(
+    View *parent, std::function<void(Renderer &)> renderCallback
+  ) noexcept
+    : View{parent},
+      _renderCallback{[rc = std::move(renderCallback)](View &, Renderer &r) {
+        rc(r);
+      }}
+  {}
+
+  explicit CanvasView(
+    Window *window, std::function<void(Renderer &)> renderCallback
+  ) noexcept
+    : View{window},
+      _renderCallback{[rc = std::move(renderCallback)](View &, Renderer &r) {
+        rc(r);
+      }}
   {}
 
   void render(Renderer &r) override {

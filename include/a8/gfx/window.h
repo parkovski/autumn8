@@ -1,7 +1,8 @@
 #ifndef A8_GFX_WINDOW_H_
 #define A8_GFX_WINDOW_H_
 
-#include "a8/gfx/view.h"
+#include "view.h"
+#include "events.h"
 
 //#include "yoga/yoga.h"
 
@@ -138,4 +139,3 @@ void postQuitEvent(int exitCode = 0);
 } // namespace a8::gfx
 
 #endif // A8_GFX_WINDOW_H_
-

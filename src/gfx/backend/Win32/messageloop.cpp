@@ -54,8 +54,13 @@ DpiStatus enableThreadDpiAwareness() {
 
 } // namespace a8::platform::windows
 
+namespace a8::gfx {
+  void default_render(View &, Renderer &);
+}
+using a8::gfx::default_render;
+
 Window::Window() noexcept
-  : _events{QueueSize}, _nvg{}, _rootView{std::make_unique<RootView>(this)},
+  : _events{QueueSize}, _nvg{}, _rootView{std::make_unique<EmptyView>(this)},
     _scale{1}, _zoom{1}, _pos{}, _size{}
 {}
 

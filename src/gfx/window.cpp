@@ -112,15 +112,18 @@ bool Window::render() {
   bgfx::setViewRect(0, 0, 0, _size.width, _size.height);
   bgfx::touch(0);
   NvgRenderer renderer{_nvg};
+  static_cast<Renderer &>(renderer).beginFrame(size(), scale());
   root().render(renderer);
+  renderer.endFrame();
 
   return true;
 }
 
 View::~View() {}
 
-void RootView::render(Renderer &r) {
-  r.beginFrame(window()->size(), window()->scale());
+View *View::root() { return &_window->root(); }
+
+void EmptyView::render(Renderer &r) {
   r.strokeColor(Renderer::rgb(0xff, 0xff, 0xff));
   r.fillColor(Renderer::rgb(0xff, 0x80, 0x20));
   r.beginPath();
@@ -130,6 +133,4 @@ void RootView::render(Renderer &r) {
   auto const text = "I am some text";
   r.textBox(20, 20, 200, text);
   r.text(100, 100, "I am some text");
-  r.endFrame();
 }
-

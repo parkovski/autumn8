@@ -1,7 +1,7 @@
 #ifndef A8_GFX_DELEGATE_H_
 #define A8_GFX_DELEGATE_H_
 
-#include "a8/gfx/events.h"
+#include "events.h"
 
 namespace a8::gfx {
 
