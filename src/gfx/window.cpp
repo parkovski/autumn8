@@ -46,22 +46,34 @@ void Window::process(const MidiEvent &e) {
 }
 
 void Window::process(const RawSizingEvent &e) {
-  _size = e.size;
+  if (_size == e.size) {
+    return;
+  }
+  //_size = e.size;
   auto scaledSize = Size{e.size} * _scale;
+  Log::trace("Sizing ({}, {})", scaledSize.width, scaledSize.height);
   _signals.sizing(*this, SizingEvent{scaledSize, e.side});
 }
 
 void Window::process(const RawMovingEvent &e) {
+  if (_pos == e.pos) {
+    return;
+  }
+  _pos = e.pos;
   auto scaledPoint = Point{e.pos} * _scale;
+  Log::trace("Move ({}, {})", scaledPoint.x, scaledPoint.y);
   _signals.moving(*this, MovingEvent{scaledPoint});
 }
 
 void Window::process(const RawResizeEvent &e) {
+  // if (_size == e.size) {
+  //   return;
+  // }
   _size = e.size;
   bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   auto scaledSize = Size{e.size} * _scale;
-  auto scaledPoint = Point{e.pos} * _scale;
-  _signals.resize(*this, ResizeEvent{scaledPoint, scaledSize});
+  Log::trace("Resize ({}, {})", scaledSize.width, scaledSize.height);
+  _signals.resize(*this, ResizeEvent{scaledSize});
 }
 
 void Window::process(const DisplayScaleEvent &e) {

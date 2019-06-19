@@ -190,14 +190,18 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       window->postEvent(SystemEvent::Initialize);
     }
     break;
+
   case WM_CLOSE:
     window->postEvent(SystemEvent::Close);
     return 0;
+
   case WM_DESTROY:
     window->postEvent(SystemEvent::Destroy);
     return 0;
+
   case WM_NCDESTROY:
     return 0;
+
   case WM_MOUSEMOVE:
     {
       int x = LOWORD(lParam);
@@ -210,8 +214,10 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       );
     }
     break;
+
   case WM_ERASEBKGND:
     return 0;
+
   case WM_PAINT:
       /*if (window->_nvg) {
         PAINTSTRUCT ps;
@@ -221,27 +227,30 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
         return 0;
       }*/
     break;
+#if 0
   case WM_SIZE:
     {
-      RawPoint pos{};
       RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
+      Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
       switch (wParam) {
       case SIZE_MINIMIZED:
         window->postEvent(SystemEvent::Minimize);
         break;
       case SIZE_MAXIMIZED:
-        window->postEvents(RawResizeEvent{pos, size}, SystemEvent::Maximize);
+        window->postEvents(RawResizeEvent{size}, SystemEvent::Maximize);
         break;
-      case SIZE_RESTORED:
-        window->postEvents(RawResizeEvent{pos, size}, SystemEvent::RestoreSize);
-        break;
+      // case SIZE_RESTORED:
+      //   window->postEvents(RawResizeEvent{size}, SystemEvent::RestoreSize);
+      //   break;
       default:
-        window->postEvent(RawResizeEvent{pos, size});
+        window->postEvent(RawResizeEvent{size});
         break;
       }
     }
     return 0;
+
   case WM_SIZING:
+    Log::trace("WM_SIZING");
     {
       Anchor side;
       switch (wParam) {
@@ -276,9 +285,10 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
       RECT *rc = reinterpret_cast<RECT *>(lParam);
       auto size = toSize(rc) - getNonClientBorders(hWnd);
-      window->postEvent(RawSizingEvent{size, side});
+      //window->postEvent(RawSizingEvent{size, side});
     }
     return true;
+
   case WM_MOVE:
     {
       int x = (int)(short)LOWORD(lParam);
@@ -286,35 +296,49 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       window->postEvent(RawMovingEvent{RawPoint{x, y}});
     }
     return 0;
+
   case WM_MOVING:
     {
       auto rc = reinterpret_cast<LPRECT>(lParam);
       window->postEvent(RawMovingEvent{{rc->left, rc->top}});
     }
     return true;
+#endif
   case WM_ENTERSIZEMOVE:
-  case WM_EXITSIZEMOVE:
+    Log::trace("WM_ENTERSIZEMOVE");
     break;
+
+  case WM_EXITSIZEMOVE:
+    Log::trace("WM_EXITSIZEMOVE");
+    break;
+
   case WM_WINDOWPOSCHANGING:
     {
       auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
-      const RawSize size{
-        RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
-      };
       const RawPoint point{pos->x, pos->y};
+      const RawSize borderSize = getNonClientBorders(hWnd);
+      RawSize size{pos->cx, pos->cy};
+      if (size.width > 0 && size.height > 0) {
+        size -= borderSize;
+      }
+      Log::trace("WM_WINDOWPOSCHANGING: {}, {} : {}x{}, flags=0x{:X}",
+                 pos->x, pos->y, pos->cx, pos->cy, pos->flags);
       switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
       case 0:
         window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
         break;
       case SWP_NOMOVE:
+        window->postEvent(RawSizingEvent{size, Anchor::None});
         break;
       case SWP_NOSIZE:
+        window->postEvent(RawMovingEvent{point});
         break;
       default:
         break;
       }
     }
-    break;
+    return 0;
+
   case WM_WINDOWPOSCHANGED:
     {
       auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
@@ -322,14 +346,15 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
         RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
       };
       const RawPoint point{pos->x, pos->y};
+      Log::trace("WM_WINDOWPOSCHANGED: {}, {} : {}x{}; flags=0x{:X}",
+                 pos->x, pos->y, pos->cx, pos->cy, pos->flags);
       switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
       case 0:
-        //Log::trace("WindowPos: {}, {} : {}x{}", pos->x, pos->y, pos->cx, pos->cy);
-        window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
+        window->postEvents(RawResizeEvent{size}, RawMovingEvent{point});
         break;
       case SWP_NOMOVE:
         //Log::trace("WindowPos: {}, {}", pos->cx, pos->cy);
-        window->postEvents(RawSizingEvent{size, Anchor::None});
+        window->postEvents(RawResizeEvent{size});
         break;
       case SWP_NOSIZE:
         //Log::trace("WindowPos: {}x{}", pos->x, pos->y);
@@ -341,12 +366,15 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       }
     }
     return 0;
+
   case WM_SETFOCUS:
     window->postEvent(SystemEvent::Focus);
     break;
+
   case WM_KILLFOCUS:
     window->postEvent(SystemEvent::Unfocus);
     break;
+
   case WM_DPICHANGED:
     {
       auto scale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
@@ -365,8 +393,11 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       auto borders = getNonClientBorders(hWnd);
       w -= borders.width;
       h -= borders.height;
-      window->postEvents(DisplayScaleEvent{scale, {(uint32_t)xres, (uint32_t)yres}},
-                         RawResizeEvent{{x, y}, {w, h}});
+      window->postEvents(
+        DisplayScaleEvent{scale, {(uint32_t)xres, (uint32_t)yres}},
+        RawMovingEvent{{x, y}},
+        RawResizeEvent{{w, h}}
+      );
     }
     break;
   }

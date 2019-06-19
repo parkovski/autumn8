@@ -18,6 +18,28 @@ enum class PointerKind {
   XY      = 4,
 };
 
+inline std::ostream &operator<<(std::ostream &os, PointerKind pk) {
+  switch (pk) {
+    default:
+      os << "Unknown";
+      break;
+    case PointerKind::Mouse:
+      os << "Mouse";
+      break;
+    case PointerKind::Touch:
+      os << "Touch";
+      break;
+    case PointerKind::Pen:
+      os << "Pen";
+      break;
+    case PointerKind::XY:
+      os << "XY";
+      break;
+  }
+
+  return os;
+}
+
 enum class PointerAction {
   /// The pointer was pressed (tapped, clicked, etc) on the active view.
   Pressed   = 0x10,
@@ -40,6 +62,46 @@ enum class PointerAction {
   /// The mouse was scrolled horizontally.
   HScrolled = 0xA0,
 };
+
+inline std::ostream &operator<<(std::ostream &os, PointerAction pa) {
+  switch (pa) {
+    default:
+      os << "Unknown";
+      break;
+    case PointerAction::Pressed:
+      os << "Pressed";
+      break;
+    case PointerAction::Released:
+      os << "Released";
+      break;
+    case PointerAction::Held:
+      os << "Held";
+      break;
+    case PointerAction::Moved:
+      os << "Moved";
+      break;
+    case PointerAction::Entered:
+      os << "Entered";
+      break;
+    case PointerAction::Exited:
+      os << "Exited";
+      break;
+    case PointerAction::Hovered:
+      os << "Hovered";
+      break;
+    case PointerAction::Dragged:
+      os << "Dragged";
+      break;
+    case PointerAction::VScrolled:
+      os << "VScrolled";
+      break;
+    case PointerAction::HScrolled:
+      os << "HScrolled";
+      break;
+  }
+
+  return os;
+}
 
 template<bool scaled>
 struct PointerEventS {
@@ -153,6 +215,10 @@ struct KeyboardEvent {
     KeyHeld     = 0x4000,
   };
 
+  struct ShowModifiers {
+    uint32_t modifiers;
+  };
+
   explicit constexpr KeyboardEvent(uint32_t key, uint32_t modifiers) noexcept
     : key(key), modifiers(modifiers)
   {}
@@ -166,10 +232,50 @@ struct KeyboardEvent {
   constexpr bool isDown() const { return hasModifiers(KeyDown); }
   constexpr bool isUp() const { return hasModifiers(KeyUp); }
   constexpr bool isHeld() const { return hasModifiers(KeyHeld); }
+  constexpr ShowModifiers showModifiers() const { return {modifiers}; }
 
   uint32_t key;
   uint32_t modifiers;
 };
+
+inline std::ostream &
+operator<<(std::ostream &os, KeyboardEvent::ShowModifiers ms) {
+  auto m = ms.modifiers;
+  if (m & KeyboardEvent::KeyHeld) {
+    os << "Held";
+  } else if (m & KeyboardEvent::KeyDown) {
+    os << "Down";
+  } else if (m & KeyboardEvent::KeyUp) {
+    os << "Up";
+  }
+
+  if (m & KeyboardEvent::LeftShift) {
+    os << " LShift";
+  }
+  if (m & KeyboardEvent::RightShift) {
+    os << " RShift";
+  }
+  if (m & KeyboardEvent::LeftControl) {
+    os << " LCtrl";
+  }
+  if (m & KeyboardEvent::RightControl) {
+    os << " RCtrl";
+  }
+  if (m & KeyboardEvent::LeftAlt) {
+    os << " LAlt";
+  }
+  if (m & KeyboardEvent::RightAlt) {
+    os << " RAlt";
+  }
+  if (m & KeyboardEvent::LeftWin) {
+    os << " LWin";
+  }
+  if (m & KeyboardEvent::RightWin) {
+    os << " RWin";
+  }
+
+  return os;
+}
 
 struct GamepadEvent {
   enum Control {
@@ -251,20 +357,19 @@ using MovingEvent = MovingEventS<true>;
 
 template<bool scaled>
 struct ResizeEventS {
-  explicit constexpr ResizeEventS(PointS<scaled> point, SizeS<scaled> size) noexcept
-    : pos(point), size(size)
+  explicit constexpr ResizeEventS(SizeS<scaled> size) noexcept
+    : size(size)
   {
     assert(size.width >= 0 && size.height >= 0);
   }
 
   explicit constexpr ResizeEventS(const ResizeEventS<!scaled> &e, float scale) noexcept
-    : ResizeEventS(PointS<!scaled>(e.pos, scale), SizeS<!scaled>(e.size, scale))
+    : ResizeEventS(SizeS<!scaled>(e.size, scale))
   {}
 
   ResizeEventS(const ResizeEventS<scaled> &) = default;
   ResizeEventS<scaled> &operator=(const ResizeEventS<scaled> &) = default;
 
-  PointS<scaled> pos;
   SizeS<scaled> size;
 };
 
@@ -309,6 +414,8 @@ enum class SystemEvent {
   /// Sent when the system back button is pressed.
   Back,
 };
+
+std::ostream &operator<<(std::ostream &os, SystemEvent e);
 
 struct StyleChangeEvent {
   int todo;
@@ -383,10 +490,12 @@ using RawEvent = EventS<false>;
 using Event = EventS<true>;
 
 template<typename E>
-using WindowEvent = boost::signals2::signal<bool (class Window &, const E &)>;
+using WindowEventHandler =
+  boost::signals2::signal<bool (class Window &, const E &)>;
 
 template<typename E>
-using ViewEvent = boost::signals2::signal<bool (class View &, const E &)>;
+using ViewEventHandler =
+  boost::signals2::signal<bool (class View &, const E &)>;
 
 template<template<typename> class EventKind>
 struct EventSignals {

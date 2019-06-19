@@ -122,7 +122,7 @@ private:
 #endif
 
   moodycamel::ConcurrentQueue<RawEvent> _events;
-  EventSignals<WindowEvent> _signals;
+  EventSignals<WindowEventHandler> _signals;
   NVGcontext *_nvg;
   std::unique_ptr<View> _rootView;
 
