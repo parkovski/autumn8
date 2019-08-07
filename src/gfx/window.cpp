@@ -49,7 +49,8 @@ void Window::process(const RawSizingEvent &e) {
   if (_size == e.size) {
     return;
   }
-  //_size = e.size;
+  bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
+  _size = e.size;
   auto scaledSize = Size{e.size} * _scale;
   Log::trace("Sizing ({}, {})", scaledSize.width, scaledSize.height);
   _signals.sizing(*this, SizingEvent{scaledSize, e.side});
@@ -69,15 +70,16 @@ void Window::process(const RawResizeEvent &e) {
   // if (_size == e.size) {
   //   return;
   // }
+  if (_size != e.size) {
+    bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
+  }
   _size = e.size;
-  bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   auto scaledSize = Size{e.size} * _scale;
   Log::trace("Resize ({}, {})", scaledSize.width, scaledSize.height);
   _signals.resize(*this, ResizeEvent{scaledSize});
 }
 
 void Window::process(const DisplayScaleEvent &e) {
-  bgfx::reset(e.displaySize.width, e.displaySize.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   _scale = e.scale;
   Log::trace("DisplayScale {}x ({}, {})", e.scale, e.displaySize.width, e.displaySize.height);
   _signals.displayScale(*this, e);
@@ -121,7 +123,7 @@ bool Window::render() {
     return false;
   }
 
-  bgfx::setViewRect(0, 0, 0, _size.width, _size.height);
+  //bgfx::setViewRect(0, 0, 0, _size.width, _size.height);
   bgfx::touch(0);
   NvgRenderer renderer{_nvg};
   static_cast<Renderer &>(renderer).beginFrame(size(), scale());
