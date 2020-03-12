@@ -13,3 +13,5 @@ target_link_libraries(minigfx PRIVATE a8winmain a8gfx)
 add_executable(fftexplorer fftexplorer.cpp)
 target_link_libraries(fftexplorer a8main ffts)
 
+add_executable(server server.cpp)
+target_link_libraries(server a8main uWebSockets)

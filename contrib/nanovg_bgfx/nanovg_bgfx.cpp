@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bgfx#license-bsd-2-clause
  */
 
@@ -49,7 +49,7 @@ static const bgfx::EmbeddedShader s_embeddedShaders[] =
 
 namespace
 {
-	static bgfx::VertexDecl s_nvgDecl;
+	static bgfx::VertexLayout s_nvgLayout;
 
 	enum GLNVGshaderType
 	{
@@ -272,7 +272,7 @@ namespace
 		gl->u_scissorExtScale = bgfx::createUniform("u_scissorExtScale", bgfx::UniformType::Vec4);
 		gl->u_extentRadius    = bgfx::createUniform("u_extentRadius",    bgfx::UniformType::Vec4);
 		gl->u_params          = bgfx::createUniform("u_params",          bgfx::UniformType::Vec4);
-		gl->s_tex             = bgfx::createUniform("s_tex",             bgfx::UniformType::Int1);
+		gl->s_tex             = bgfx::createUniform("s_tex",             bgfx::UniformType::Sampler);
 
 		if (bgfx::getRendererType() == bgfx::RendererType::Direct3D9)
 		{
@@ -283,7 +283,7 @@ namespace
 			gl->u_halfTexel.idx = bgfx::kInvalidHandle;
 		}
 
-		s_nvgDecl
+		s_nvgLayout
 			.begin()
 			.add(bgfx::Attrib::Position,  2, bgfx::AttribType::Float)
 			.add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
@@ -332,7 +332,7 @@ namespace
 						, false
 						, 1
 						, NVG_TEXTURE_RGBA == _type ? bgfx::TextureFormat::RGBA8 : bgfx::TextureFormat::R8
-						, BGFX_TEXTURE_NONE
+						, BGFX_SAMPLER_NONE
 						);
 
 		if (NULL != mem)
@@ -371,7 +371,11 @@ namespace
 		uint32_t pitch = tex->width * bytesPerPixel;
 
 		const bgfx::Memory* mem = bgfx::alloc(w * h * bytesPerPixel);
-		bx::gather(mem->data, data + y * pitch + x * bytesPerPixel, w * bytesPerPixel, h, pitch);
+		bx::gather(mem->data,                            // dst
+		           data + y * pitch + x * bytesPerPixel, // src
+		           pitch,                                // srcStride
+		           w * bytesPerPixel,                    // stride
+		           h);                                   // num
 
 		bgfx::updateTexture2D(
 			  tex->id
@@ -759,7 +763,7 @@ namespace
 
 		if (gl->ncalls > 0)
 		{
-			bgfx::allocTransientVertexBuffer(&gl->tvb, gl->nverts, s_nvgDecl);
+			bgfx::allocTransientVertexBuffer(&gl->tvb, gl->nverts, s_nvgLayout);
 
 			int allocated = gl->tvb.size/gl->tvb.stride;
 
@@ -1021,7 +1025,7 @@ namespace
 	}
 
 	static void nvgRenderTriangles(void* _userPtr, struct NVGpaint* paint, NVGcompositeOperationState compositeOperation, struct NVGscissor* scissor,
-									   const struct NVGvertex* verts, int nverts)
+									   const struct NVGvertex* verts, int nverts, float fringe)
 	{
 		struct GLNVGcontext* gl = (struct GLNVGcontext*)_userPtr;
 		struct GLNVGcall* call = glnvg__allocCall(gl);
@@ -1039,7 +1043,7 @@ namespace
 		// Fill shader
 		call->uniformOffset = glnvg__allocFragUniforms(gl, 1);
 		frag = nvg__fragUniformPtr(gl, call->uniformOffset);
-		glnvg__convertPaint(gl, frag, paint, scissor, 1.0f, 1.0f);
+		glnvg__convertPaint(gl, frag, paint, scissor, 1.0f, fringe);
 		frag->type = NSVG_SHADER_IMG;
 	}
 

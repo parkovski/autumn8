@@ -1,22 +1,13 @@
 #include "a8/a8.h"
 #include "a8/gfx/window.h"
+#include "a8/gfx/view.h"
+#include "a8/gfx/renderer.h"
 
 #include "nanovg.h"
 #include "nanovg_bgfx.h"
 
 using a8::Log;
 using namespace a8::gfx;
-
-bool Window::isValid() const {
-  return !!_nativeHandle;
-}
-
-std::future<bool> Window::isValidF() const {
-  // TODO: Async validation when not in main thread.
-  std::promise<bool> p;
-  p.set_value(!!_nativeHandle);
-  return p.get_future();
-}
 
 bool Window::processEvents() {
   RawEvent e;
@@ -104,6 +95,12 @@ void Window::process(const DataEvent &e) {
   _signals.data(*this, e);
 }
 
+View *Window::setView(View *view) {
+  View *oldView = _view;
+  _view = view;
+  return oldView;
+}
+
 bool Window::nvgInit() {
   if (!(_nvg = nvgCreate(1, 0))) {
     return false;
@@ -119,7 +116,7 @@ void Window::nvgDestroy() {
 }
 
 bool Window::render() {
-  if (!processEvents()) {
+  if (!processEvents() || !_view) {
     return false;
   }
 
@@ -127,24 +124,8 @@ bool Window::render() {
   bgfx::touch(0);
   NvgRenderer renderer{_nvg};
   static_cast<Renderer &>(renderer).beginFrame(size(), scale());
-  root().render(renderer);
+  _view->render(renderer);
   renderer.endFrame();
 
   return true;
-}
-
-View::~View() {}
-
-View *View::root() { return &_window->root(); }
-
-void EmptyView::render(Renderer &r) {
-  r.strokeColor(Renderer::rgb(0xff, 0xff, 0xff));
-  r.fillColor(Renderer::rgb(0xff, 0x80, 0x20));
-  r.beginPath();
-  r.circle(250, 250, 100);
-  r.stroke();
-  r.fill();
-  auto const text = "I am some text";
-  r.textBox(20, 20, 200, text);
-  r.text(100, 100, "I am some text");
 }

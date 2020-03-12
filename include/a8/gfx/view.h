@@ -1,35 +1,29 @@
 #ifndef A8_GFX_VIEW_H_
 #define A8_GFX_VIEW_H_
 
-#include "renderer.h"
+#include <boost/signals2.hpp>
+
+#include <type_traits>
 #include <vector>
-#include <memory>
 
 namespace a8::gfx {
 
-class Window;
+class Renderer;
 
 class View {
-  View *_parent;
-  Window *_window;
-
 public:
-  View() = delete;
+  template<typename E>
+  using sig_t = boost::signals2::signal<bool (View &, const E &)>;
 
-  explicit View(Window *window) noexcept
-    : _parent{nullptr}, _window{window}
-  {}
-
-  // @param parent may not be null.
-  explicit View(View *parent) noexcept
-    : _parent{parent}, _window{parent->_window}
+  explicit View() noexcept
+    : _parent{nullptr}
   {}
 
   View(const View &) = delete;
   View &operator=(const View &) = delete;
 
-  View(View &&) = default;
-  View &operator=(View &&) = default;
+  View(View &&) = delete;
+  View &operator=(View &&) = delete;
 
   virtual ~View() = 0;
 
@@ -37,61 +31,33 @@ public:
     return _parent;
   }
 
-  View *root();
-
-  Window *window() {
-    return _window;
-  }
-
   virtual void render(Renderer &r) = 0;
+
+private:
+  View *_parent;
 };
 
-class EmptyView : public View {
-public:
-  using View::View;
-  void render(Renderer &) override;
-};
-
+template<typename F>
 class CanvasView : public View {
-  std::function<void(View &, Renderer &)> _renderCallback;
-
 public:
-  explicit CanvasView(
-    View *parent, std::function<void(View &, Renderer &)> renderCallback
-  ) noexcept
-    : View{parent}, _renderCallback{std::move(renderCallback)}
+  template<typename = std::enable_if_t<
+    std::is_invocable_v<F, View &, Renderer &>
+  >>
+  explicit CanvasView(F &&renderCallback)
+    noexcept(std::is_nothrow_move_constructible_v<F>)
+    : _renderCallback{std::move(renderCallback)}
   {}
 
-  explicit CanvasView(
-    Window *window, std::function<void(View &, Renderer &)> renderCallback
-  ) noexcept
-    : View{window}, _renderCallback{std::move(renderCallback)}
-  {}
-
-  explicit CanvasView(
-    View *parent, std::function<void(Renderer &)> renderCallback
-  ) noexcept
-    : View{parent},
-      _renderCallback{[rc = std::move(renderCallback)](View &, Renderer &r) {
-        rc(r);
-      }}
-  {}
-
-  explicit CanvasView(
-    Window *window, std::function<void(Renderer &)> renderCallback
-  ) noexcept
-    : View{window},
-      _renderCallback{[rc = std::move(renderCallback)](View &, Renderer &r) {
-        rc(r);
-      }}
-  {}
+  ~CanvasView() = default;
 
   void render(Renderer &r) override {
     _renderCallback(*this, r);
   }
+
+private:
+  F _renderCallback;
 };
 
 } // namespace a8::gfx
 
 #endif // A8_GFX_VIEW_H_
-

@@ -9,7 +9,6 @@
 #define A8_PLATFORM "@A8_PLATFORM@"
 #define A8_GFXBACKEND "@A8_GFXBACKEND@"
 #define A8_PLATFORM_HEADER "a8/platform/@A8_PLATFORM@/platform.h"
-#define A8_GFX_PLATFORM_HEADER "a8/gfx/backend-@A8_GFXBACKEND@.h"
+#define A8_GFX_PLATFORM_HEADER "a8/gfx/backend/@A8_GFXBACKEND@.h"
 
 #endif /* A8_CONFIG_H_ */
-

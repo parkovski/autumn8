@@ -54,52 +54,40 @@ DpiStatus enableThreadDpiAwareness() {
 
 } // namespace a8::platform::windows
 
-namespace a8::gfx {
-  void default_render(View &, Renderer &);
+namespace {
+  // To not lose precision by storing coordinates as int.
+  constexpr int InitialCoordMultiplier = 60;
 }
-using a8::gfx::default_render;
 
-Window::Window() noexcept
-  : _events{QueueSize}, _nvg{}, _rootView{std::make_unique<EmptyView>(this)},
-    _scale{1}, _zoom{1}, _pos{}, _size{}
-{}
+Window *Window::create(std::string_view title, Point pos, Size size) {
+  Log::info("Creating window at {}, size {}", pos, size);
 
-Window::Window(std::string_view title, Point pos, Size size) noexcept
-  : Window()
-{
-  _pos = RawPoint{pos};
-  _size = RawSize{size};
-
-  Log::info("Creating window at {}, size {}, scale {}", _pos, _size, _scale);
-
-  _nativeHandle = CreateWindowExW(
+  auto win = new Window();
+  auto handle = CreateWindowExW(
     WS_EX_ACCEPTFILES,
     A8WindowClass,
     to_utf16(title).c_str(),
     WS_OVERLAPPEDWINDOW,
-    _pos.x, _pos.y, _size.width, _size.height,
+    int(pos.x * InitialCoordMultiplier),
+    int(pos.y * InitialCoordMultiplier),
+    int(size.width * InitialCoordMultiplier),
+    int(size.height * InitialCoordMultiplier),
     nullptr,
     nullptr,
     g_platformInit.hInstance,
-    this
+    win
   );
-  // TODO: Async creation when not in main thread.
+  if (!handle) {
+    delete win;
+    return nullptr;
+  }
+  win->_nativeHandle = handle;
+  return win;
 }
 
-Window::Window(const Window::native_handle_t &, void *nativeHandle) noexcept
-  : Window()
+Window::Window() noexcept
+  : _events{QueueSize}, _nvg{}, _nativeHandle{}, _zoom{1}
 {
-  _nativeHandle = nativeHandle;
-  HWND hWnd = static_cast<HWND>(nativeHandle);
-  RECT rc;
-  if (GetWindowRect(hWnd, &rc)) {
-    _pos = {rc.left, rc.top};
-    _size = {
-      rc.right - rc.left,
-      rc.bottom - rc.top
-    };
-  }
-  _scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
 }
 
 Window::~Window() {
@@ -181,9 +169,16 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
       SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
 
-      window->_scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
-      window->_pos = RawPoint{Point{window->_pos} * window->_scale};
-      window->_size = RawSize{Size{window->_size} * window->_scale};
+      float scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
+      window->_scale = scale;
+      window->_pos = RawPoint{
+        int(createStruct->x * scale / InitialCoordMultiplier),
+        int(createStruct->y * scale / InitialCoordMultiplier)
+      };
+      window->_size = RawSize{
+        int(createStruct->cx * scale / InitialCoordMultiplier),
+        int(createStruct->cy * scale / InitialCoordMultiplier)
+      };
       SetWindowPos(hWnd, nullptr, window->_pos.x, window->_pos.y,
                    window->_size.width, window->_size.height,
                    SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);

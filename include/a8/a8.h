@@ -54,4 +54,3 @@ public:
 extern "C" int a8main(int argc, char *argv[]);
 
 #endif /* A8_A8_H_ */
-

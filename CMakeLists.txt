@@ -74,6 +74,7 @@ find_package(ffts REQUIRED)
 find_package(Boost 1.67 REQUIRED
 #  COMPONENTS algorithm geometry signals2
 )
+find_package(uWebSockets REQUIRED)
 
 add_library(concurrentqueue INTERFACE IMPORTED)
 target_include_directories(concurrentqueue INTERFACE
@@ -88,7 +89,7 @@ set(Autumn8_INCLUDE_DIRS
   $<INSTALL_INTERFACE:include>
 )
 include_directories(${Autumn8_INCLUDE_DIRS})
-link_libraries(spdlog::spdlog fmt::fmt-header-only)
+link_libraries(spdlog::spdlog_header_only fmt::fmt-header-only)
 
 add_subdirectory(src/util util)
 add_subdirectory(src/main main)
@@ -97,7 +98,10 @@ add_subdirectory(src/audio audio)
 add_subdirectory(src/uiauto uiauto)
 
 if(A8_GUI_ENABLED)
-  find_package(bgfx REQUIRED)
+  find_package(bgfx CONFIG REQUIRED)
+  get_target_property(bx_INCLUDE_DIR bgfx::bx INTERFACE_INCLUDE_DIRECTORIES)
+  set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${bx_INCLUDE_DIR};${bx_INCLUDE_DIR}/compat/msvc")
+  # target_include_directories(bgfx::bx
   find_package(NanoVG_bgfx REQUIRED)
   # find_package(Yoga REQUIRED)
   find_package(fpsdk)

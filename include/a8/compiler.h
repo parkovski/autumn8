@@ -42,22 +42,29 @@
 #endif
 
 #ifdef __GNUC__
-#  define A8_PRAGMA_GCC(s) _Pragma(#s)
-#  define A8_ATTR_GCC(a) __attribute__((a))
+#  define A8_PRAGMA_GCC_CLANG(s) _Pragma(#s)
+#  define A8_ATTR_GCC_CLANG(a) __attribute__((a))
 #
 #  ifdef __clang__
 #    define A8_PRAGMA_CLANG(s) _Pragma(#s)
 #    define A8_ATTR_CLANG(a) __attribute__((a))
 #
-#    define A8_PRAGMA_GCC_ONLY(s)
-#    define A8_ATTR_GCC_ONLY(a)
+#    define A8_PRAGMA_GCC(s)
+#    define A8_ATTR_GCC(a)
 #  else
-#    define A8_PRAGMA_GCC_ONLY(s) _Pragma(#s)
-#    define A8_ATTR_GCC_ONLY(a) __attribute__((a))
-#
 #    define A8_PRAGMA_CLANG(s)
 #    define A8_ATTR_CLANG(a)
+#
+#    define A8_PRAGMA_GCC(s) _Pragma(#s)
+#    define A8_ATTR_GCC(a) __attribute__((a))
 #  endif
+#else
+#  define A8_PRAGMA_GCC_CLANG(s)
+#  define A8_ATTR_GCC_CLANG(a)
+#  define A8_PRAGMA_GCC(s)
+#  define A8_ATTR_GCC(a)
+#  define A8_PRAGMA_CLANG(s)
+#  define A8_ATTR_CLANG(s)
 #endif
 
 #ifndef A8_PRAGMA
@@ -65,4 +72,3 @@
 #endif
 
 #endif /* A8_COMPILER_H_ */
-

@@ -281,36 +281,36 @@ public:
   }
 
   static NVGcolor rgbf(float r, float g, float b) {
-    nvgRGBf(r, g, b);
+    return nvgRGBf(r, g, b);
   }
 
   static NVGcolor rgba(unsigned char r, unsigned char g, unsigned char b,
                        unsigned char a) {
-    nvgRGBA(r, g, b, a);
+    return nvgRGBA(r, g, b, a);
   }
 
   static NVGcolor rgbaf(float r, float g, float b, float a) {
-    nvgRGBAf(r, g, b, a);
+    return nvgRGBAf(r, g, b, a);
   }
 
   static NVGcolor lerpRGBA(NVGcolor c0, NVGcolor c1, float u) {
-    nvgLerpRGBA(c0, c1, u);
+    return nvgLerpRGBA(c0, c1, u);
   }
 
   static NVGcolor transRGBA(NVGcolor c0, unsigned char a) {
-    nvgTransRGBA(c0, a);
+    return nvgTransRGBA(c0, a);
   }
 
   static NVGcolor transRGBA(NVGcolor c0, float a) {
-    nvgTransRGBAf(c0, a);
+    return nvgTransRGBAf(c0, a);
   }
 
   static NVGcolor hsl(float h, float s, float l) {
-    nvgHSL(h, s, l);
+    return nvgHSL(h, s, l);
   }
 
   static NVGcolor hsla(float h, float s, float l, unsigned char a) {
-    nvgHSLA(h, s, l, a);
+    return nvgHSLA(h, s, l, a);
   }
 
   static void transformIdentity(float* dst) {
@@ -354,7 +354,7 @@ public:
   }
 
   static int transformInverse(float* dst, const float* src) {
-    nvgTransformInverse(dst, src);
+    return nvgTransformInverse(dst, src);
   }
 
   static void transformPoint(float* dstx, float* dsty, const float* xform,
@@ -365,14 +365,15 @@ public:
   static Point transformPoint(const float* xform, Point src) {
     Point dst;
     transformPoint(&dst.x, &dst.y, xform, src.x, src.y);
+    return dst;
   }
 
   static float degToRad(float deg) {
-    nvgDegToRad(deg);
+    return nvgDegToRad(deg);
   }
 
   static float radToDeg(float rad) {
-    nvgRadToDeg(rad);
+    return nvgRadToDeg(rad);
   }
   // }}}
 };

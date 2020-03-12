@@ -432,7 +432,7 @@ private:
   explicit constexpr DataEvent(
     void *pointer, uint32_t tag, const B &auxValueByte, std::index_sequence<I...>
   ) noexcept
-    : pointer(pointer), tag(tag), auxValueByte{B[I]...}
+    : pointer(pointer), tag(tag), auxValueByte{auxValueByte[I]...}
   {}
 
 public:

@@ -1,15 +1,16 @@
 project(Autumn8Graphics)
 
 set(SOURCES
-  nvgrenderer.cpp
   common.cpp
+  nvgrenderer.cpp
+  view.cpp
   window.cpp
 )
 
 add_library(a8gfx STATIC ${SOURCES})
 target_link_libraries(a8gfx
   a8util
-  bgfx
+  bgfx::bgfx
   fmt::fmt-header-only
   NanoVG
   concurrentqueue

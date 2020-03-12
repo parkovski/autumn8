@@ -1,7 +1,6 @@
 /.vscode/
 /.vs/
+/.clangd/
 /build/
-/**/bin
-/**/obj
 /compile_commands.json
 /session.vim

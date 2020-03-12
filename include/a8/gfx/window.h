@@ -1,16 +1,17 @@
 #ifndef A8_GFX_WINDOW_H_
 #define A8_GFX_WINDOW_H_
 
-#include "view.h"
 #include "events.h"
 
 //#include "yoga/yoga.h"
 
 #include "concurrentqueue/concurrentqueue.h"
-#include <string_view>
-#include <future>
-#include <array>
+
 #include <boost/signals2.hpp>
+
+#include <string_view>
+#include <array>
+#include <vector>
 
 extern "C" {
   struct NVGcontext;
@@ -18,32 +19,28 @@ extern "C" {
 
 namespace a8::gfx {
 
+class View;
+
 class Window {
   static constexpr int QueueSize = 64;
 
   explicit Window() noexcept;
 
 public:
-  // Disambiguation marker so that strings don't call the void* constructor.
-  static inline constexpr struct native_handle_t final {} native_handle{};
+  template<typename E>
+  using winsig_t = boost::signals2::signal<bool (Window &, const E &)>;
 
-  // Platform specific implementations in backend/.
-  explicit Window(std::string_view title, Point pos = Point{},
-                  Size size = Size{}) noexcept;
-
-  explicit Window(const native_handle_t &, void *nativeHandle) noexcept;
+  static Window *create(std::string_view title, Point pos = Point{},
+                        Size size = Size{});
 
   ~Window();
-
-  bool isValid() const;
-  std::future<bool> isValidF() const;
 
   bool postEvent(const RawEvent &event) {
     return _events.enqueue(event);
   }
 
   bool postEvents(RawEvent *begin, RawEvent *end) {
-    return _events.enqueue_bulk(begin, (end - begin) / sizeof(RawEvent));
+    return _events.enqueue_bulk(begin, end - begin);
   }
 
   template<typename E1, typename... Events>
@@ -62,20 +59,21 @@ public:
     return _signals.get<E>().connect(slot);
   }
 
-  View &root() {
-    return *_rootView;
+  View *setView(View *view);
+  View *view() {
+    return _view;
   }
-  const View &root() const {
-    return const_cast<Window *>(this)->root();
+  const View *view() const {
+    return _view;
   }
 
-  View &activeView();
-  const View &activeView() const {
+  View *activeView();
+  const View *activeView() const {
     return const_cast<Window *>(this)->activeView();
   }
 
-  View &findView(const Point &point);
-  const View &findView(const Point &point) const {
+  View *findView(const Point &point);
+  const View *findView(const Point &point) const {
     return const_cast<Window *>(this)->findView(point);
   }
 
@@ -124,13 +122,13 @@ private:
   moodycamel::ConcurrentQueue<RawEvent> _events;
   EventSignals<WindowEventHandler> _signals;
   NVGcontext *_nvg;
-  std::unique_ptr<View> _rootView;
 
   void *_nativeHandle;
   float _scale;
   float _zoom;
   RawPoint _pos;
   RawSize _size;
+  View *_view;
 };
 
 int runMessageLoop(Window &);

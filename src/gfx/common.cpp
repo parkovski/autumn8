@@ -41,26 +41,26 @@ operator<< <RawRect::coord_type>(std::ostream &, const RawRect &);
 template std::ostream &
 operator<< <Rect::coord_type>(std::ostream &, const Rect &);
 
-std::ostream &a8::gfx::operator<<(std::ostream &os, Anchor a) {
+std::ostream &operator<<(std::ostream &os, Anchor a) {
   switch (a) {
-  case Anchor::Left: os << "Anchor::Left"; break;
-  case Anchor::Right: os << "Anchor::Right"; break;
-  case Anchor::Horizontal: os << "Anchor::Horizontal"; break;
-  case Anchor::Top: os << "Anchor::Top"; break;
-  case Anchor::TopLeft: os << "Anchor::TopLeft"; break;
-  case Anchor::TopRight: os << "Anchor::TopRight"; break;
-  case Anchor::FillTop: os << "Anchor::FillTop"; break;
-  case Anchor::Bottom: os << "Anchor::Bottom"; break;
-  case Anchor::BottomLeft: os << "Anchor::BottomLeft"; break;
-  case Anchor::BottomRight: os << "Anchor::BottomRight"; break;
-  case Anchor::FillBottom: os << "Anchor::FillBottom"; break;
-  case Anchor::Vertical: os << "Anchor::Vertical"; break;
-  case Anchor::FillLeft: os << "Anchor::FillLeft"; break;
-  case Anchor::FillRight: os << "Anchor::FillRight"; break;
-  case Anchor::Expand: os << "Anchor::Expand"; break;
-  default: os << "Anchor::None"; break;
+  case Anchor::Left: os << "Left"; break;
+  case Anchor::Right: os << "Right"; break;
+  case Anchor::Horizontal: os << "Horizontal"; break;
+  case Anchor::Top: os << "Top"; break;
+  case Anchor::TopLeft: os << "TopLeft"; break;
+  case Anchor::TopRight: os << "TopRight"; break;
+  case Anchor::FillTop: os << "FillTop"; break;
+  case Anchor::Bottom: os << "Bottom"; break;
+  case Anchor::BottomLeft: os << "BottomLeft"; break;
+  case Anchor::BottomRight: os << "BottomRight"; break;
+  case Anchor::FillBottom: os << "FillBottom"; break;
+  case Anchor::Vertical: os << "Vertical"; break;
+  case Anchor::FillLeft: os << "FillLeft"; break;
+  case Anchor::FillRight: os << "FillRight"; break;
+  case Anchor::Expand: os << "Expand"; break;
+  default: os << "None"; break;
   }
   return os;
 }
 
-}
+} // namespace a8::gfx
