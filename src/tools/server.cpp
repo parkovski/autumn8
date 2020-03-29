@@ -73,19 +73,22 @@ int a8main(int argc, char **argv) {
 
   auto &dir = opts.baseDir;
   uWS::App().get("/*", [&dir](auto *res, auto *req) {
+    res->writeHeader("Content-Type", "text/plain");
+    res->writeHeader("Access-Control-Allow-Origin", "*");
     std::string_view url = req->getUrl().substr(1);
     std::filesystem::path path{dir};
+    std::stringstream ss;
     if (!url.empty()) {
       path /= url;
       if (!std::filesystem::is_directory(path)) {
-        res->end("not a directory");
+        ss << "not a directory: " << path.u8string();
+        res->end(ss.str());
         return;
       }
     }
-    std::stringstream ss;
     std::filesystem::directory_iterator di{path}, end;
     for (; di != end; ++di) {
-      ss << di->path() << "\n";
+      ss << di->path().lexically_relative(path).u8string() << "\n";
     }
     res->end(ss.str());
   }).listen(opts.port, [](auto *) {

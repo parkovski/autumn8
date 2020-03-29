@@ -14,8 +14,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 
 option(A8_GUI_ENABLED "Enable GUI targets" ON)
 option(A8_BUILD_TOOLS "Build tools" ON)
-option(A8_BUILD_TESTS "Build tests" OFF)
-option(A8_BUILD_DOTNET "Build the .NET projects" OFF)
+# option(A8_BUILD_TESTS "Build tests" OFF)
 
 if(MSVC)
 #   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS -D_CRT_SECURE_NO_WARNINGS)
@@ -63,18 +62,17 @@ endif()
 #
 find_package(spdlog REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-# find_package(Sol2 REQUIRED)
 # find_package(range-v3 CONFIG REQUIRED)
 # find_package(yaml-cpp CONFIG REQUIRED)
 # find_package(nlohmann-json REQUIRED)
 find_package(ffts REQUIRED)
 # find_package(RxCpp REQUIRED)
 # find_package(cereal CONFIG REQUIRED)
-# cpprestsdk, uvw, evpp, GameNetworkingSockets, kcp, enet, boost asio/beast?
 find_package(Boost 1.67 REQUIRED
 #  COMPONENTS algorithm geometry signals2
 )
 find_package(uWebSockets REQUIRED)
+find_package(ni-media CONFIG REQUIRED)
 
 add_library(concurrentqueue INTERFACE IMPORTED)
 target_include_directories(concurrentqueue INTERFACE
@@ -94,25 +92,25 @@ link_libraries(spdlog::spdlog_header_only fmt::fmt-header-only)
 add_subdirectory(src/util util)
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
-add_subdirectory(src/audio audio)
-add_subdirectory(src/uiauto uiauto)
+# add_subdirectory(src/audio audio)
+# add_subdirectory(src/uiauto uiauto)
 
 if(A8_GUI_ENABLED)
   find_package(bgfx CONFIG REQUIRED)
   get_target_property(bx_INCLUDE_DIR bgfx::bx INTERFACE_INCLUDE_DIRECTORIES)
-  set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${bx_INCLUDE_DIR};${bx_INCLUDE_DIR}/compat/msvc")
-  # target_include_directories(bgfx::bx
+  if(MSVC)
+    set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${bx_INCLUDE_DIR};${bx_INCLUDE_DIR}/compat/msvc")
+endif()
   find_package(NanoVG_bgfx REQUIRED)
   # find_package(Yoga REQUIRED)
-  find_package(fpsdk)
-
   message(STATUS "GUI targets are enabled.")
   add_subdirectory(src/gfx gfx)
 
-  if(fpsdk_FOUND)
-    message(STATUS "FL Studio plugin target is enabled.")
-    add_subdirectory(src/fls fls)
-  endif()
+  # find_package(fpsdk)
+  # if(fpsdk_FOUND)
+  #   message(STATUS "FL Studio plugin target is enabled.")
+  #   add_subdirectory(src/fls fls)
+  # endif()
 else()
   message(STATUS "GUI targets are disabled.")
 endif()
@@ -121,15 +119,10 @@ if(A8_BUILD_TOOLS)
   add_subdirectory(src/tools tools)
 endif()
 
-if(A8_BUILD_TESTS)
-  find_package(catch2 CONFIG REQUIRED)
-  add_subdirectory(test)
-endif()
-
-if(A8_BUILD_DOTNET)
-  include(cmake/DotNetBuild.cmake)
-  # TODO...
-endif()
+# if(A8_BUILD_TESTS)
+#   find_package(catch2 CONFIG REQUIRED)
+#   add_subdirectory(test)
+# endif()
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/config.h.in

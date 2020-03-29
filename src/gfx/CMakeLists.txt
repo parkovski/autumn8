@@ -11,8 +11,7 @@ add_library(a8gfx STATIC ${SOURCES})
 target_link_libraries(a8gfx
   a8util
   bgfx::bgfx
-  fmt::fmt-header-only
-  NanoVG
+  NanoVG_bgfx
   concurrentqueue
 )
 

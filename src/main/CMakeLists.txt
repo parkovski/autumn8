@@ -12,3 +12,4 @@ if(A8_PLATFORM STREQUAL "Windows")
 else()
   add_library(a8winmain ALIAS a8main)
 endif()
+
