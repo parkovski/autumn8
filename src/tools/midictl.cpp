@@ -1,10 +1,5 @@
 #include "a8/a8.h"
-
-#include <vector>
-#include <Windows.h>
-#include <mmsystem.h>
-
-#pragma comment(lib, "winmm")
+#include "a8/midi/midi.h"
 
 using namespace a8;
 

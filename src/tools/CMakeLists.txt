@@ -23,6 +23,6 @@ target_link_libraries(rna_to_wav2 a8main ni::audiostream ni::pcm)
 
 if(WIN32)
   add_executable(midictl midictl.cpp)
-  target_link_libraries(midictl a8main a8util)
+  target_link_libraries(midictl a8main a8midi)
 endif()
 

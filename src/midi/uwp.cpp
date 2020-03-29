@@ -19,7 +19,7 @@ namespace WDE = winrt::Windows::Devices::Enumeration;
 
 using namespace a8::util::utfconv;
 
-namespace a8 {
+namespace a8::midi {
 
 struct DevInfo {
   std::string name;
@@ -239,4 +239,4 @@ MidiManager *newUwpMidiManager() {
   return new UwpMidiManager;
 }
 
-} // namespace a8
+} // namespace a8::midi

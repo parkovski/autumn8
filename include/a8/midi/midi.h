@@ -6,7 +6,7 @@
 #include <functional>
 #include <string_view>
 
-namespace a8 {
+namespace a8::midi {
 
 class MidiManager {
 public:
@@ -30,7 +30,7 @@ void uwpMidiInitWinRT();
 MidiManager *newUwpMidiManager();
 MidiManager *newWinmmMidiManager();
 
-} // namespace a8
+} // namespace a8::midi
 
 #endif /* A8_MIDI_H_ */
 

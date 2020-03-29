@@ -12,7 +12,7 @@
 
 using namespace a8::util::utfconv;
 
-namespace a8 {
+namespace a8::midi {
 
 struct MmDevice {
   std::string name;
@@ -99,4 +99,4 @@ MidiManager *newWinmmMidiManager() {
   return new WinmmMidiManager;
 }
 
-}
+} // namespace a8::midi
