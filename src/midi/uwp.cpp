@@ -19,224 +19,142 @@ namespace WDE = winrt::Windows::Devices::Enumeration;
 
 using namespace a8::util::utfconv;
 
-namespace a8::midi {
+namespace a8::midi_impl::uwp {
 
-struct DevInfo {
-  std::string name;
-  WDE::DeviceInformation winDevInfo;
-  int inPort;
-  int outPort;
-
-  static constexpr int portDisconnected = -1;
-  static constexpr int portInvalid = -2;
-  static constexpr bool isPortConnected(int id) {
-    return id >= 0;
-  }
+template<typename P> struct winport;
+template<> struct winport<midi::InputPort> {
+  using type = WDM::MidiInPort;
+  static constexpr const char *direction = "In";
+};
+template<> struct winport<midi::OutputPort> {
+  using type = WDM::MidiOutPort;
+  static constexpr const char *direction = "Out";
 };
 
-class UwpMidiManager final : public MidiManager {
-  WDE::DeviceWatcher _midiInWatcher;
-  WDE::DeviceWatcher _midiOutWatcher;
-
-  mutable std::mutex _mutex;
-  mutable std::wstring _temp;
-  std::vector<DevInfo> _deviceInfo;
-  std::unordered_map<std::wstring, size_t> _deviceIdMap;
-  std::unordered_multimap<std::wstring, size_t> _deviceNameMap;
-  std::vector<WDM::MidiInPort> _inPorts;
-  std::vector<WDM::MidiOutPort> _outPorts;
-  std::function<void (int, bool)> _callback;
-
-  template<bool In>
-  void deviceAdded(const WDE::DeviceWatcher &, const WDE::DeviceInformation &info) {
-    int deviceId;
-    {
-      std::lock_guard<std::mutex> lock(_mutex);
-
-      auto index = _deviceInfo.size();
-      auto id = info.Id();
-      auto [it, inserted] = _deviceIdMap.emplace(std::wstring_view(id), index);
-      auto name = info.Name();
-      // std::wcout << L"\nDevice " << name.operator std::wstring_view() << L":\n";
-      // std::wcout << L"  " << info.Properties().Size() << L" properties\n";
-      auto foo = info.Properties().First();
-      while (foo) {
-        // std::wcout << foo.Current().Key().operator std::wstring_view() << L": ";
-        WF::IPropertyValue bob;
-        if (foo.Current().Value() && foo.Current().Value().try_as<WF::IPropertyValue>(bob)) {
-          if (bob.Type() == WF::PropertyType::String) {
-            // std::wcout << bob.GetString().operator std::wstring_view();
-          }
-        }
-        // std::wcout << L"\n";
-        ++foo;
-      }
-      if (inserted) {
-        _deviceInfo.emplace_back(DevInfo {
-          ::to_utf8(name),
-          info,
-          In ? DevInfo::portDisconnected : DevInfo::portInvalid,
-          In ? DevInfo::portInvalid : DevInfo::portDisconnected
-        });
-      } else {
-        index = it->second;
-        _deviceInfo[index] = DevInfo {
-          ::to_utf8(name),
-          info,
-          In ? DevInfo::portDisconnected : DevInfo::portInvalid,
-          In ? DevInfo::portInvalid : DevInfo::portDisconnected
-        };
-      }
-      _deviceNameMap.emplace(std::wstring_view(name), index);
-      deviceId = (int)index;
-    }
-    _callback(deviceId, true);
-  }
-
-  template<bool In>
-  void deviceRemoved(const WDE::DeviceWatcher &, const WDE::DeviceInformationUpdate &update) {
-    int deviceId;
-    {
-      std::lock_guard<std::mutex> lock(_mutex);
-
-      auto it = _deviceIdMap.find(_temp = update.Id());
-      if (it == _deviceIdMap.end()) {
-        return;
-      }
-      auto &di = _deviceInfo[it->second];
-      di.inPort = di.outPort = DevInfo::portInvalid;
-      auto range = _deviceNameMap.equal_range(to_utf16(di.name));
-      for (; range.first != range.second; ++range.first) {
-        // Erase the index with the device index as the removed device.
-        // it = iterator from unique id, range.first = current element with same name.
-        if (range.first->second == it->second) {
-          _deviceNameMap.erase(range.first);
-          break;
-        }
-      }
-      deviceId = (int)it->second;
-    }
-    _callback(deviceId, false);
-  }
-
-  void deviceUpdated(const WDE::DeviceWatcher &, const WDE::DeviceInformationUpdate &update) {
-    std::lock_guard<std::mutex> lock(_mutex);
-
-    auto it = _deviceIdMap.find(_temp = update.Id());
-    if (it == _deviceIdMap.end()) {
-      return;
-    }
-    _deviceInfo[it->second].winDevInfo.Update(update);
-  }
-
-  template<bool In>
-  void enumerationCompleted(const WDE::DeviceWatcher &, const WF::IInspectable &) {
-    // When both are done, emit a devices loaded message
-  }
-
-  template<bool In>
-  void enumerationStopped(const WDE::DeviceWatcher &, const WF::IInspectable &) {
-    // Emit a devices loading canceled message.
-  }
-
-  static void emptyCallback(int, bool) {}
-
+template<typename P>
+class PortManager : public midi::PortManager<P> {
 public:
-  UwpMidiManager()
-    : _midiInWatcher(WDE::DeviceInformation::CreateWatcher(WDM::MidiInPort::GetDeviceSelector())),
-      _midiOutWatcher(WDE::DeviceInformation::CreateWatcher(WDM::MidiOutPort::GetDeviceSelector())),
-      _callback(emptyCallback)
+  using base = midi::PortManager<P>;
+  using typename base::promise_type;
+  using typename base::future_type;
+  using typename base::iterator;
+
+  explicit PortManager()
+    : _watcher{WDE::DeviceInformation::CreateWatcher(
+        winport<P>::type::GetDeviceSelector()
+      )}
   {
-    using DW = const WDE::DeviceWatcher &;
-    using DI = const WDE::DeviceInformation &;
-    using DIU = const WDE::DeviceInformationUpdate &;
-    using obj = const WF::IInspectable &;
-
-    _midiInWatcher.Added({ this, &UwpMidiManager::deviceAdded<true> });
-    _midiInWatcher.Removed({ this, &UwpMidiManager::deviceRemoved<true> });
-    _midiInWatcher.Updated({ this, &UwpMidiManager::deviceUpdated });
-    _midiInWatcher.EnumerationCompleted({ this, &UwpMidiManager::enumerationCompleted<true> });
-    _midiInWatcher.Stopped({ this, &UwpMidiManager::enumerationStopped<true> });
-
-    _midiOutWatcher.Added({ this, &UwpMidiManager::deviceAdded<false> });
-    _midiOutWatcher.Removed({ this, &UwpMidiManager::deviceRemoved<false> });
-    _midiOutWatcher.Updated({ this, &UwpMidiManager::deviceUpdated });
-    _midiOutWatcher.EnumerationCompleted({ this, &UwpMidiManager::enumerationCompleted<false> });
-    _midiOutWatcher.Stopped({ this, &UwpMidiManager::enumerationStopped<false> });
+    _watcher.Added({this, &PortManager::onDeviceAdded});
+    _watcher.Updated({this, &PortManager::onDeviceUpdated});
+    _watcher.Removed({this, &PortManager::onDeviceRemoved});
+    //_watcher.EnumerationCompleted({this, &PortManager::onEnumerationCompleted});
+    //_watcher.Stopped({this, &PortManager::onStopped});
   }
 
-  virtual void watchDevices(std::function<void (int, bool)> callback) override {
-    std::lock_guard<std::mutex> lock(_mutex);
-    _callback = callback;
-    for (auto watcher : {&_midiInWatcher, &_midiOutWatcher}) {
-      switch (watcher->Status()) {
-      case WDE::DeviceWatcherStatus::Created:
-      case WDE::DeviceWatcherStatus::Stopped:
-      case WDE::DeviceWatcherStatus::Aborted:
-        watcher->Start();
-        break;
-      default:
-        break;
+  ~PortManager() {}
+
+  static future_type create() {
+    promise_type promise;
+    auto self = new PortManager;
+    auto future = promise.get_future();
+    self->_watcher.EnumerationCompleted(
+      [self, promise = std::move(promise)]
+      (auto &&watcher, auto &&inspectable) mutable {
+        self->onEnumerationCompleted(watcher, inspectable);
+        promise.set_value(std::unique_ptr<PortManager>(self));
       }
-    }
+    );
+    // can this throw? how do we handle the promise stuff here?
+    self->startWatching();
+    return future;
   }
 
-  virtual void stopWatchingDevices() override {
-    std::lock_guard<std::mutex> lock(_mutex);
-    _callback = emptyCallback;
-    for (auto watcher : {&_midiInWatcher, &_midiOutWatcher}) {
-      if (watcher->Status() == WDE::DeviceWatcherStatus::Created) {
-        continue;
-      }
-      watcher->Stop();
-    }
+  void startWatching() {
+    _watcher.Start();
   }
 
-  virtual bool isDeviceValid(int id) const override {
-    if (id < 0 || id >= _deviceInfo.size()) {
-      return false;
-    }
-    std::lock_guard<std::mutex> lock(_mutex);
-    return (
-      _deviceInfo[id].inPort != DevInfo::portInvalid ||
-      _deviceInfo[id].outPort != DevInfo::portInvalid
+  void stopWatching() {
+    _watcher.Stop();
+  }
+
+  bool hasNext(size_t index) const noexcept override {
+    return false;
+  }
+
+  iterator begin() const noexcept override {
+    return {this};
+  }
+
+  typename P::future_type open() override {
+    throw nullptr;
+  }
+
+private:
+  void onDeviceAdded(const WDE::DeviceWatcher &,
+                     const WDE::DeviceInformation &info) {
+    std::lock_guard<std::mutex> lock{_mutex};
+
+    Log::debug(
+      "MIDI {} Added: {} / Id: {} / Kind: {}",
+      winport<P>::direction, to_utf8(info.Name()), to_utf8(info.Id()),
+      (int)info.Kind()
     );
   }
 
-  virtual bool isInputDevice(int id) const override {
-    if (id < 0 || id >= _deviceInfo.size()) {
-      return false;
-    }
-    std::lock_guard<std::mutex> lock(_mutex);
-    return _deviceInfo[id].inPort != DevInfo::portInvalid;
+  void onDeviceUpdated(const WDE::DeviceWatcher &,
+                       const WDE::DeviceInformationUpdate &info) {
+    std::lock_guard<std::mutex> lock{_mutex};
+
+    Log::debug(
+      "MIDI {} Update: Id {} / Kind: {}",
+      winport<P>::direction, to_utf8(info.Id()), (int)info.Kind()
+    );
   }
 
-  virtual std::string_view deviceName(int id) const override {
-    if (id < 0 || id >= _deviceInfo.size()) {
-      return std::string_view();
-    }
-    Sleep(100);
-    //std::lock_guard<std::mutex> lock(_mutex);
-    return _deviceInfo[id].name;
+  void onDeviceRemoved(const WDE::DeviceWatcher &,
+                       const WDE::DeviceInformationUpdate &info) {
+    std::lock_guard<std::mutex> lock{_mutex};
+
+    Log::debug(
+      "MIDI {} Removed: Id {} / Kind {}",
+      winport<P>::direction, to_utf8(info.Id()), (int)info.Kind()
+    );
   }
 
-  virtual int findNamedDevice(std::string_view name) const override {
-    auto wname = to_utf16(name);
-    std::lock_guard<std::mutex> lock(_mutex);
-    auto it = _deviceNameMap.find(wname);
-    if (it == _deviceNameMap.end()) {
-      return -1;
-    }
-    return (int)it->second;
+  void onEnumerationCompleted(const WDE::DeviceWatcher &,
+                              const WF::IInspectable &) {
+    Log::debug("MIDI {} Enumeration completed", winport<P>::direction);
+
+    stopWatching();
   }
+
+  void onStopped(const WDE::DeviceWatcher &,
+                 const WF::IInspectable &) {
+    Log::debug("MIDI {} Stopped", winport<P>::direction);
+  }
+
+  WDE::DeviceWatcher _watcher;
 };
+
+template class PortManager<midi::InputPort>;
+template class PortManager<midi::OutputPort>;
+
+} // namespace a8::midi_impl::uwp
+
+namespace a8::midi {
+
+template<> template<>
+auto PortManager<InputPort>::create<Backend::UWP>() -> future_type {
+  return midi_impl::uwp::PortManager<InputPort>::create();
+}
+
+template<> template<>
+auto PortManager<OutputPort>::create<Backend::UWP>() -> future_type {
+  return midi_impl::uwp::PortManager<OutputPort>::create();
+}
 
 void uwpMidiInitWinRT() {
   winrt::init_apartment();
-}
-
-MidiManager *newUwpMidiManager() {
-  return new UwpMidiManager;
 }
 
 } // namespace a8::midi

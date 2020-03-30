@@ -1,8 +1,5 @@
 project(Autumn8Tools)
 
-add_executable(midilist midilist.cpp)
-target_link_libraries(midilist a8midi)
-
 add_executable(minigfx WIN32 minigfx.cpp)
 target_link_libraries(minigfx PRIVATE a8winmain a8gfx)
 
@@ -25,4 +22,3 @@ if(WIN32)
   add_executable(midictl midictl.cpp)
   target_link_libraries(midictl a8main a8midi)
 endif()
-
