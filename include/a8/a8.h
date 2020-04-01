@@ -3,6 +3,7 @@
 
 #include "a8config.h"
 #include "compiler.h"
+#include "util/inline.h"
 
 #include <memory>
 #include <utility>

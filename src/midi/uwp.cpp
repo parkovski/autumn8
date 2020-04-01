@@ -21,59 +21,111 @@ using namespace a8::util::utfconv;
 
 namespace a8::midi_impl::uwp {
 
-template<typename P> struct winport;
-template<> struct winport<midi::InputPort> {
-  using type = WDM::MidiInPort;
+class InputPort : public midi::InputPort {
+public:
+  using base = midi::InputPort;
+  using typename base::promise_type;
+  using typename base::future_type;
+  using winrt_type = WDM::MidiInPort;
   static constexpr const char *direction = "In";
+
+  explicit InputPort(WDM::IMidiInPort port)
+    : _port(std::move(port))
+  {}
+
+  void foobar() {
+  }
+
+private:
+  WDM::IMidiInPort _port;
 };
-template<> struct winport<midi::OutputPort> {
-  using type = WDM::MidiOutPort;
+
+class OutputPort : public midi::OutputPort {
+public:
+  using base = midi::OutputPort;
+  using typename base::promise_type;
+  using typename base::future_type;
+  using winrt_type = WDM::MidiOutPort;
   static constexpr const char *direction = "Out";
+
+  explicit OutputPort(WDM::IMidiOutPort port)
+    : _port(std::move(port))
+  {}
+
+private:
+  WDM::IMidiOutPort _port;
+};
+
+struct PortInfo {
+  explicit PortInfo(const WDE::DeviceInformation &info)
+    : id{info.Id()}, kind{info.Kind()}
+  {}
+
+  bool operator==(const WDE::DeviceInformation &info) const {
+    return id == info.Id() && kind == info.Kind();
+  }
+  bool operator!=(const WDE::DeviceInformation &info) const {
+    return !(*this == info);
+  }
+
+  bool operator==(const WDE::DeviceInformationUpdate &info) const {
+    return id == info.Id() && kind == info.Kind();
+  }
+  bool operator!=(const WDE::DeviceInformationUpdate &info) const {
+    return !(*this == info);
+  }
+
+  std::wstring id;
+  WDE::DeviceInformationKind kind;
 };
 
 template<typename P>
-class PortManager : public midi::PortManager<P> {
+class PortManager : public midi::PortManager<typename P::base> {
 public:
-  using base = midi::PortManager<P>;
+  using base = midi::PortManager<typename P::base>;
   using typename base::promise_type;
   using typename base::future_type;
   using typename base::iterator;
 
   explicit PortManager()
     : _watcher{WDE::DeviceInformation::CreateWatcher(
-        winport<P>::type::GetDeviceSelector()
+        P::winrt_type::GetDeviceSelector()
       )}
   {
     _watcher.Added({this, &PortManager::onDeviceAdded});
     _watcher.Updated({this, &PortManager::onDeviceUpdated});
     _watcher.Removed({this, &PortManager::onDeviceRemoved});
     //_watcher.EnumerationCompleted({this, &PortManager::onEnumerationCompleted});
-    //_watcher.Stopped({this, &PortManager::onStopped});
+    _watcher.Stopped({this, &PortManager::onStopped});
   }
 
   ~PortManager() {}
 
-  static future_type create() {
-    promise_type promise;
-    auto self = new PortManager;
+  std::future<void> scan() override {
+    std::promise<void> promise;
     auto future = promise.get_future();
-    self->_watcher.EnumerationCompleted(
-      [self, promise = std::move(promise)]
+    winrt::event_token evToken;
+    evToken = _watcher.EnumerationCompleted(
+      [this, promise = std::move(promise), evToken]
       (auto &&watcher, auto &&inspectable) mutable {
-        self->onEnumerationCompleted(watcher, inspectable);
-        promise.set_value(std::unique_ptr<PortManager>(self));
+        watcher.EnumerationCompleted(evToken);
+        watcher.Stop();
+        this->onEnumerationCompleted(watcher, inspectable);
+        promise.set_value();
       }
     );
+    _ports.clear();
     // can this throw? how do we handle the promise stuff here?
-    self->startWatching();
+    _watcher.Start();
     return future;
   }
 
-  void startWatching() {
+  void startWatching() override {
+    Log::warn("Watcher APIs are WIP");
     _watcher.Start();
   }
 
-  void stopWatching() {
+  void stopWatching() override {
     _watcher.Stop();
   }
 
@@ -81,76 +133,111 @@ public:
     return false;
   }
 
-  iterator begin() const noexcept override {
-    return {this};
+  size_t size() const noexcept override {
+    return _ports.size();
   }
 
-  typename P::future_type open() override {
-    throw nullptr;
+  iterator begin() const noexcept override {
+    if (this->empty()) {
+      return {this};
+    }
+    return {this, 0};
+  }
+
+  typename P::future_type open(const iterator &it) override {
+    typename P::promise_type promise;
+    auto future = promise.get_future();
+    auto const &id = _ports[this->iteratorIndex(it)].id;
+    P::winrt_type::FromIdAsync(id).Completed(
+      [promise = std::move(promise)](auto &&sender, auto &&status) mutable {
+        promise.set_value(std::make_unique<P>(sender.GetResults()));
+      }
+    );
+    return future;
   }
 
 private:
   void onDeviceAdded(const WDE::DeviceWatcher &,
                      const WDE::DeviceInformation &info) {
-    std::lock_guard<std::mutex> lock{_mutex};
+    std::lock_guard<std::mutex> lock{this->_mutex};
+
+    _ports.emplace_back(info);
 
     Log::debug(
       "MIDI {} Added: {} / Id: {} / Kind: {}",
-      winport<P>::direction, to_utf8(info.Name()), to_utf8(info.Id()),
+      P::direction, to_utf8(info.Name()), to_utf8(info.Id()),
       (int)info.Kind()
     );
   }
 
   void onDeviceUpdated(const WDE::DeviceWatcher &,
                        const WDE::DeviceInformationUpdate &info) {
-    std::lock_guard<std::mutex> lock{_mutex};
+    std::lock_guard<std::mutex> lock{this->_mutex};
+
+    // TODO: What to do here? Anything?
 
     Log::debug(
       "MIDI {} Update: Id {} / Kind: {}",
-      winport<P>::direction, to_utf8(info.Id()), (int)info.Kind()
+      P::direction, to_utf8(info.Id()), (int)info.Kind()
     );
   }
 
   void onDeviceRemoved(const WDE::DeviceWatcher &,
                        const WDE::DeviceInformationUpdate &info) {
-    std::lock_guard<std::mutex> lock{_mutex};
+    std::lock_guard<std::mutex> lock{this->_mutex};
 
-    Log::debug(
-      "MIDI {} Removed: Id {} / Kind {}",
-      winport<P>::direction, to_utf8(info.Id()), (int)info.Kind()
+    for (auto it = _ports.begin(), end = _ports.end(); it != end; ++it) {
+      if (*it == info) {
+        _ports.erase(it);
+        Log::debug(
+          "MIDI {} Removed: Id {} / Kind {}",
+          P::direction, to_utf8(info.Id()), (int)info.Kind()
+        );
+        return;
+      }
+    }
+
+    Log::warn(
+      "MIDI {} No device found to remove for Id {} / Kind {}",
+      P::direction, to_utf8(info.Id()), (int)info.Kind()
     );
   }
 
   void onEnumerationCompleted(const WDE::DeviceWatcher &,
                               const WF::IInspectable &) {
-    Log::debug("MIDI {} Enumeration completed", winport<P>::direction);
-
-    stopWatching();
+    Log::debug("MIDI {} Enumeration completed", P::direction);
   }
 
   void onStopped(const WDE::DeviceWatcher &,
                  const WF::IInspectable &) {
-    Log::debug("MIDI {} Stopped", winport<P>::direction);
+    Log::debug("MIDI {} Watcher stopped", P::direction);
   }
 
   WDE::DeviceWatcher _watcher;
+  std::vector<PortInfo> _ports;
 };
 
-template class PortManager<midi::InputPort>;
-template class PortManager<midi::OutputPort>;
+template class PortManager<InputPort>;
+template class PortManager<OutputPort>;
 
 } // namespace a8::midi_impl::uwp
 
 namespace a8::midi {
 
 template<> template<>
-auto PortManager<InputPort>::create<Backend::UWP>() -> future_type {
-  return midi_impl::uwp::PortManager<InputPort>::create();
+auto PortManager<InputPort>::create<Backend::UWP>() noexcept
+  -> std::unique_ptr<PortManager>
+{
+  namespace impl = midi_impl::uwp;
+  return util::make_unique_nothrow<impl::PortManager<impl::InputPort>>();
 }
 
 template<> template<>
-auto PortManager<OutputPort>::create<Backend::UWP>() -> future_type {
-  return midi_impl::uwp::PortManager<OutputPort>::create();
+auto PortManager<OutputPort>::create<Backend::UWP>() noexcept
+  -> std::unique_ptr<PortManager>
+{
+  namespace impl = midi_impl::uwp;
+  return util::make_unique_nothrow<impl::PortManager<impl::OutputPort>>();
 }
 
 void uwpMidiInitWinRT() {

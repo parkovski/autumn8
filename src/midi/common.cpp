@@ -1,6 +1,6 @@
 #include "a8/midi/midi.h"
 
-using namespace a8::midi;
+namespace a8::midi {
 
 InputPort::~InputPort() {}
 OutputPort::~OutputPort() {}
@@ -8,7 +8,7 @@ OutputPort::~OutputPort() {}
 template<typename P> PortManager<P>::~PortManager() {}
 
 template<typename P>
-auto PortManager<P>::create(Backend backend) -> future_type {
+auto PortManager<P>::create(Backend backend) -> std::unique_ptr<PortManager> {
   switch (backend) {
 #define BACKEND(b)   \
     case Backend::b: \
@@ -20,12 +20,12 @@ auto PortManager<P>::create(Backend backend) -> future_type {
 #endif
 
 #undef BACKEND
-    // default:
-    //   throw something...
+    default:
+      throw BackendException(backend);
   }
 }
 
-namespace a8::midi {
-  template class PortManager<InputPort>;
-  template class PortManager<OutputPort>;
-}
+template class PortManager<InputPort>;
+template class PortManager<OutputPort>;
+
+} // namespace a8::midi

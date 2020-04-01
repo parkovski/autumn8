@@ -20,8 +20,14 @@ int a8main(int argc, char *argv[]) {
     backend = Backend::Default;
   }
 
-  PortManager<InputPort>::create(backend).wait();
-  PortManager<OutputPort>::create(backend).wait();
+  auto inMan = PortManager<InputPort>::create(backend);
+  auto outMan = PortManager<OutputPort>::create(backend);
+
+  auto inf = inMan->scan();
+  auto outf = outMan->scan();
+
+  inf.wait();
+  outf.wait();
 
   return 0;
 }
