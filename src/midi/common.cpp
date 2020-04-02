@@ -2,8 +2,7 @@
 
 namespace a8::midi {
 
-InputPort::~InputPort() {}
-OutputPort::~OutputPort() {}
+Port::~Port() {}
 
 template<typename P> PortManager<P>::~PortManager() {}
 

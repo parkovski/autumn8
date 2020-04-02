@@ -27,14 +27,63 @@ static std::ostream &operator<<(std::ostream &os, const GUID &guid) {
 
 namespace a8::midi_impl::winmm {
 
+struct PortInfo {
+  PortInfo(UINT id, const MIDIINCAPS2W &caps)
+    : id(id), nameGuid(caps.NameGuid), name(caps.szPname)
+  {}
+
+  PortInfo(UINT id, const MIDIOUTCAPS2W &caps)
+    : id(id), nameGuid(caps.NameGuid), name(caps.szPname)
+  {}
+
+  UINT id;
+  GUID nameGuid;
+  std::wstring name;
+};
+
 class InputPort final : public midi::InputPort {
 public:
   using base = midi::InputPort;
   using typename base::promise_type;
   using typename base::future_type;
 
+  InputPort(std::string name, UINT deviceId)
+    : midi::InputPort(std::move(name)),
+      _hdr1{},
+      _hdr2{}
+  {
+    auto result = midiInOpen(
+      &_handle, deviceId,
+      reinterpret_cast<DWORD_PTR>(&InputPort::midiInProc),
+      reinterpret_cast<DWORD_PTR>(this),
+      CALLBACK_FUNCTION | MIDI_IO_STATUS
+    );
+
+    _hdr1.lpData = _buf1;
+    _hdr2.lpData = _buf2;
+    _hdr1.dwBufferLength = _hdr2.dwBufferLength = _bufferSize;
+    midiInPrepareHeader(_handle, &_hdr1, sizeof(MIDIHDR));
+    midiInPrepareHeader(_handle, &_hdr2, sizeof(MIDIHDR));
+    midiInAddBuffer(_handle, &_hdr1, sizeof(MIDIHDR));
+    midiInAddBuffer(_handle, &_hdr2, sizeof(MIDIHDR));
+
+    switch (result) {
+      case MMSYSERR_NOERROR:
+        switch (midiInStart(_handle)) {
+          case MMSYSERR_NOERROR:
+            break;
+          default:
+            throw std::runtime_error("midiInStart");
+        }
+        break;
+      default:
+        throw std::runtime_error("midiInOpen");
+    }
+  }
+
   ~InputPort() {
     if (_handle) {
+      midiInStop(_handle);
       midiInClose(_handle);
     }
   }
@@ -43,34 +92,59 @@ public:
     HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance,
     DWORD_PTR dwParam1, DWORD_PTR dwParam2
   ) {
-    // auto port = reinterpret_cast<InputPort *>(dwInstance);
-  }
-
-  static future_type create(UINT deviceId) {
-    promise_type promise;
-    auto unique_self = std::make_unique<InputPort>();
-    auto result = midiInOpen(
-      &unique_self->_handle, deviceId,
-      reinterpret_cast<DWORD_PTR>(&InputPort::midiInProc),
-      reinterpret_cast<DWORD_PTR>(unique_self.get()),
-      CALLBACK_FUNCTION | MIDI_IO_STATUS
-    );
-    switch (result) {
-      case MMSYSERR_NOERROR:
-        promise.set_value(std::move(unique_self));
+    auto port = reinterpret_cast<InputPort *>(dwInstance);
+    switch (wMsg) {
+      case MIM_OPEN:
+        Log::trace("{}: MIM_OPEN", port->name());
+        break;
+      case MIM_CLOSE:
+        Log::trace("{}: MIM_CLOSE", port->name());
+        break;
+      case MIM_ERROR:
+        Log::trace("{}: MIM_ERROR", port->name());
+        break;
+      case MIM_LONGERROR:
+        Log::trace("{}: MIM_LONGERROR", port->name());
+        break;
+      case MIM_DATA:
+        Log::trace("{}: MIM_DATA", port->name());
+        break;
+      case MIM_LONGDATA:
+        {
+          auto hdr = reinterpret_cast<MIDIHDR *>(dwParam1);
+          hdr->dwBytesRecorded = 0;
+          hdr->dwOffset = 0;
+          midiInAddBuffer(port->_handle, hdr, sizeof(MIDIHDR));
+        }
+        Log::trace("{}: MIM_LONGDATA", port->name());
+        break;
+      case MIM_MOREDATA:
+        Log::trace("{}: MIM_MOREDATA", port->name());
         break;
       default:
-        promise.set_exception(
-          std::make_exception_ptr(std::runtime_error("midiInOpen"))
-        );
-        break;
+        Log::trace("{}: Unknown ({})", port->name(), wMsg);
+    }
+  }
+
+  static future_type create(const PortInfo &pi) noexcept {
+    promise_type promise;
+    try {
+      promise.set_value(std::make_unique<InputPort>(to_utf8(pi.name), pi.id));
+    } catch (...) {
+      promise.set_exception(std::current_exception());
     }
 
     return promise.get_future();
   }
 
 private:
+  static constexpr size_t _bufferSize = 128;
+
   HMIDIIN _handle = nullptr;
+  MIDIHDR _hdr1;
+  MIDIHDR _hdr2;
+  char _buf1[_bufferSize];
+  char _buf2[_bufferSize];
 };
 
 class OutputPort final : public midi::OutputPort {
@@ -78,6 +152,24 @@ public:
   using base = midi::OutputPort;
   using typename base::promise_type;
   using typename base::future_type;
+
+  OutputPort(std::string name, UINT deviceId)
+    : midi::OutputPort(std::move(name))
+  {
+    auto result = midiOutOpen(
+      &_handle, deviceId,
+      reinterpret_cast<DWORD_PTR>(&OutputPort::midiOutProc),
+      reinterpret_cast<DWORD_PTR>(this),
+      CALLBACK_FUNCTION
+    );
+
+    switch (result) {
+      case MMSYSERR_NOERROR:
+        break;
+      default:
+        throw std::runtime_error("midiOutOpen");
+    }
+  }
 
   ~OutputPort() {
     if (_handle) {
@@ -89,26 +181,29 @@ public:
     HMIDIOUT hMidiOut, UINT wMsg, DWORD_PTR dwInstance,
     DWORD_PTR dwParam1, DWORD_PTR dwParam2
   ) {
-    // auto port = reinterpret_cast<OutputPort *>(dwInstance);
+    auto port = reinterpret_cast<OutputPort *>(dwInstance);
+    switch (wMsg) {
+      case MOM_OPEN:
+        Log::trace("{}: MOM_OPEN", port->name());
+        break;
+      case MOM_CLOSE:
+        Log::trace("{}: MOM_CLOSE", port->name());
+        break;
+      case MOM_DONE:
+        Log::trace("{}: MOM_DONE", port->name());
+        break;
+      case MOM_POSITIONCB:
+        Log::trace("{}: MOM_POSITIONCB", port->name());
+        break;
+    }
   }
 
-  static future_type create(UINT deviceId) {
+  static future_type create(const PortInfo &pi) noexcept {
     promise_type promise;
-    auto unique_self = std::make_unique<OutputPort>();
-    auto result = midiOutOpen(
-      &unique_self->_handle, deviceId,
-      reinterpret_cast<DWORD_PTR>(&OutputPort::midiOutProc),
-      reinterpret_cast<DWORD_PTR>(unique_self.get()),
-      CALLBACK_FUNCTION
-    );
-    switch (result) {
-      case MMSYSERR_NOERROR:
-        promise.set_value(std::move(unique_self));
-        break;
-      default:
-        promise.set_exception(
-          std::make_exception_ptr(std::runtime_error("midiOutOpen"))
-        );
+    try {
+      promise.set_value(std::make_unique<OutputPort>(to_utf8(pi.name), pi.id));
+    } catch (...) {
+      promise.set_exception(std::current_exception());
     }
 
     return promise.get_future();
@@ -116,20 +211,6 @@ public:
 
 private:
   HMIDIOUT _handle = nullptr;
-};
-
-struct PortInfo {
-  PortInfo(UINT id, const MIDIINCAPS2W &caps)
-    : id(id), nameGuid(caps.NameGuid), name(to_utf8(caps.szPname))
-  {}
-
-  PortInfo(UINT id, const MIDIOUTCAPS2W &caps)
-    : id(id), nameGuid(caps.NameGuid), name(to_utf8(caps.szPname))
-  {}
-
-  UINT id;
-  GUID nameGuid;
-  std::string name;
 };
 
 template<typename P>
@@ -163,24 +244,13 @@ public:
     Log::warn("winmm watcher APIs not implemented");
   }
 
-  bool hasNext(size_t index) const noexcept override {
-    return index < _ports.size();
-  }
-
   size_t size() const noexcept override {
     return _ports.size();
   }
 
-  iterator begin() const noexcept override {
-    if (_ports.empty()) {
-      return {this};
-    }
-    return {this, 0};
-  }
-
   typename P::future_type open(const iterator &it) override {
     // TODO: Check to make sure device indexes haven't changed.
-    return P::create(base::iteratorIndex(it));
+    return P::create(_ports[base::iteratorIndex(it)]);
   }
 
 private:
@@ -199,7 +269,7 @@ void PortManager<InputPort>::realScan() {
     _ports.emplace_back(i, caps);
     Log::debug("MIDI In: {} / Mfg: {} / Name: {} / Product: {} /"
                "Support: {} / DriverVer: {} / Mid: {} / Pid: {}",
-               _ports.back().name, caps.ManufacturerGuid,
+               to_utf8(caps.szPname), caps.ManufacturerGuid,
                caps.NameGuid, caps.ProductGuid, caps.dwSupport,
                caps.vDriverVersion, caps.wMid, caps.wPid);
   }
@@ -221,7 +291,7 @@ void PortManager<OutputPort>::realScan() {
       Log::debug("MIDI Out: {} / Mfg: {} / Name: {} / Product: {} /"
                  "Support: {} / DriverVer: {} / Mid: {} / Pid: {} /"
                  "ChMask: {} / Notes: {} / Tech: {} / Voices: {}",
-                 _ports.back().name, caps.ManufacturerGuid,
+                 to_utf8(caps.szPname), caps.ManufacturerGuid,
                  caps.NameGuid, caps.ProductGuid, caps.dwSupport,
                  caps.vDriverVersion, caps.wMid, caps.wPid,
                  caps.wChannelMask, caps.wNotes, caps.wTechnology,
@@ -238,19 +308,19 @@ template class PortManager<OutputPort>;
 namespace a8::midi {
 
 template<> template<>
-auto PortManager<InputPort>::create<Backend::Winmm>() noexcept
+auto PortManager<InputPort>::create<Backend::Winmm>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::winmm;
-  return util::make_unique_nothrow<impl::PortManager<impl::InputPort>>();
+  return std::make_unique<impl::PortManager<impl::InputPort>>();
 }
 
 template<> template<>
-auto PortManager<OutputPort>::create<Backend::Winmm>() noexcept
+auto PortManager<OutputPort>::create<Backend::Winmm>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::winmm;
-  return util::make_unique_nothrow<impl::PortManager<impl::OutputPort>>();
+  return std::make_unique<impl::PortManager<impl::OutputPort>>();
 }
 
 } // namespace a8::midi

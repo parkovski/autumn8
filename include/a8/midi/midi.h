@@ -43,10 +43,17 @@ private:
 
 class Port {
 protected:
-  explicit Port() {}
+  explicit Port(std::string name)
+    : _name{std::move(name)}
+  {}
 
 public:
-  std::string_view name() const { return "???"; }
+  virtual ~Port() = 0;
+
+  std::string_view name() const { return _name; }
+
+private:
+  std::string _name;
 };
 
 class InputPort : public Port {
@@ -54,7 +61,7 @@ public:
   using promise_type = unique_promise<InputPort>;
   using future_type = unique_future<InputPort>;
 
-  virtual ~InputPort() = 0;
+  using Port::Port;
 };
 
 class OutputPort : public Port {
@@ -62,7 +69,7 @@ public:
   using promise_type = unique_promise<OutputPort>;
   using future_type = unique_future<OutputPort>;
 
-  virtual ~OutputPort() = 0;
+  using Port::Port;
 };
 
 template<typename P>
@@ -91,8 +98,10 @@ public:
     }
 
     iterator &operator++() noexcept {
-      if (manager->hasNext(index)) {
+      if (index < manager->size() - 1) {
         ++index;
+      } else {
+        index = -1;
       }
       return *this;
     }
@@ -116,17 +125,15 @@ public:
 protected:
   PortManager() = default;
 
-  static size_t iteratorIndex(const iterator &it) noexcept {
+  static size_t iteratorIndex(const iterator &it) {
     return it.index;
   }
-
-  virtual bool hasNext(size_t index) const noexcept = 0;
 
 public:
   virtual ~PortManager();
 
   template<Backend B>
-  static std::unique_ptr<PortManager> create() noexcept;
+  static std::unique_ptr<PortManager> create();
 
   // \throws BackendException
   static std::unique_ptr<PortManager>
@@ -139,8 +146,21 @@ public:
   virtual size_t size() const noexcept = 0;
   bool empty() const noexcept { return size() == 0; }
   // Iterator acquires a lock. Don't keep it around.
-  virtual iterator begin() const = 0;
+  iterator begin() const noexcept {
+    if (empty()) {
+      return {this};
+    } else {
+      return {this, 0};
+    }
+  }
   iterator end() const noexcept { return {this}; }
+  iterator get(size_t i) const noexcept {
+    if (i < size()) {
+      return {this, i};
+    } else {
+      return {this};
+    }
+  }
 
   virtual typename P::future_type open(const iterator &it) = 0;
 

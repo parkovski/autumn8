@@ -7,6 +7,7 @@
 #include <mutex>
 #include <string>
 #include <string_view>
+#include <sstream>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Devices.Midi.h>
@@ -21,6 +22,22 @@ using namespace a8::util::utfconv;
 
 namespace a8::midi_impl::uwp {
 
+static std::string to_string(const WF::IPropertyValue &pv) {
+  if (!pv) {
+    return "<null>";
+  }
+  switch (pv.Type()) {
+    case WF::PropertyType::String:
+      return to_utf8(pv.GetString());
+    case WF::PropertyType::Guid:
+      return to_utf8(winrt::to_hstring(pv.GetGuid()));
+    case WF::PropertyType::Boolean:
+      return pv.GetBoolean() ? "true" : "false";
+    default:
+      return "???";
+  }
+}
+
 class InputPort : public midi::InputPort {
 public:
   using base = midi::InputPort;
@@ -28,16 +45,23 @@ public:
   using typename base::future_type;
   using winrt_type = WDM::MidiInPort;
   static constexpr const char *direction = "In";
+  static constexpr const char *baseName = "MIDIIN";
 
-  explicit InputPort(WDM::IMidiInPort port)
-    : _port(std::move(port))
-  {}
+  explicit InputPort(std::string name, WDM::MidiInPort port)
+    : midi::InputPort(std::move(name)),
+      _port(std::move(port))
+  {
+    _port.MessageReceived({this, &InputPort::onMessage});
+    Log::debug("Initialized input port for {}", this->name());
+  }
 
-  void foobar() {
+  void onMessage(const WDM::MidiInPort &port,
+                 const WDM::MidiMessageReceivedEventArgs &args) {
+    Log::trace("MIDI Message: {}: {}", name(), (int)args.Message().Type());
   }
 
 private:
-  WDM::IMidiInPort _port;
+  WDM::MidiInPort _port;
 };
 
 class OutputPort : public midi::OutputPort {
@@ -47,18 +71,29 @@ public:
   using typename base::future_type;
   using winrt_type = WDM::MidiOutPort;
   static constexpr const char *direction = "Out";
+  static constexpr const char *baseName = "MIDIOUT";
 
-  explicit OutputPort(WDM::IMidiOutPort port)
-    : _port(std::move(port))
-  {}
+  explicit OutputPort(std::string name, WDM::IMidiOutPort port)
+    : midi::OutputPort(std::move(name)),
+      _port(std::move(port))
+  {
+    Log::debug("Initialized output port for {}", this->name());
+  }
 
 private:
   WDM::IMidiOutPort _port;
 };
 
 struct PortInfo {
-  explicit PortInfo(const WDE::DeviceInformation &info)
-    : id{info.Id()}, kind{info.Kind()}
+  explicit PortInfo(
+    const WDE::DeviceInformation &info,
+    const winrt::guid &containerGuid,
+    std::string name
+  )
+    : id{info.Id()},
+      kind{info.Kind()},
+      containerGuid{containerGuid},
+      name{std::move(name)}
   {}
 
   bool operator==(const WDE::DeviceInformation &info) const {
@@ -77,6 +112,32 @@ struct PortInfo {
 
   std::wstring id;
   WDE::DeviceInformationKind kind;
+  winrt::guid containerGuid;
+  std::string name;
+};
+
+struct ContainerInfo {
+  // This is the container GUID for the GS Wavetable Synth.
+  static constexpr const winrt::guid wackyGuid = {
+    0, 0, 0, {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+  };
+  ContainerInfo(std::string name, size_t firstDeviceIndex)
+    : name{std::move(name)},
+      devices{{firstDeviceIndex}}
+  {
+  }
+
+  // Create a winmm compatible name.
+  template<typename P>
+  std::string nextDeviceName() const {
+    std::stringstream name;
+    name << P::baseName << (devices.size() + 1)
+         << " (" << this->name << ")";
+    return name.str();
+  }
+
+  std::string name;
+  std::vector<size_t> devices;
 };
 
 template<typename P>
@@ -129,28 +190,20 @@ public:
     _watcher.Stop();
   }
 
-  bool hasNext(size_t index) const noexcept override {
-    return false;
-  }
-
   size_t size() const noexcept override {
     return _ports.size();
-  }
-
-  iterator begin() const noexcept override {
-    if (this->empty()) {
-      return {this};
-    }
-    return {this, 0};
   }
 
   typename P::future_type open(const iterator &it) override {
     typename P::promise_type promise;
     auto future = promise.get_future();
-    auto const &id = _ports[this->iteratorIndex(it)].id;
+    auto const &pi = _ports[this->iteratorIndex(it)];
+    auto const &id = pi.id;
     P::winrt_type::FromIdAsync(id).Completed(
-      [promise = std::move(promise)](auto &&sender, auto &&status) mutable {
-        promise.set_value(std::make_unique<P>(sender.GetResults()));
+      [promise = std::move(promise), name = pi.name]
+      (auto &&sender, auto &&status) mutable {
+        promise.set_value(std::make_unique<P>(std::move(name),
+                                              sender.GetResults()));
       }
     );
     return future;
@@ -161,12 +214,35 @@ private:
                      const WDE::DeviceInformation &info) {
     std::lock_guard<std::mutex> lock{this->_mutex};
 
-    _ports.emplace_back(info);
+    auto containerIdProp
+      = info.Properties().Lookup(L"System.Devices.ContainerId");
+    if (containerIdProp) {
+      auto const &containerId =
+        containerIdProp.as<WF::IPropertyValue>().GetGuid();
+
+      if (containerId == ContainerInfo::wackyGuid) {
+        _ports.emplace_back(info, containerId, to_utf8(info.Name()));
+      } else if (auto it = _containers.find(containerId);
+                 it != _containers.end()) {
+        _ports.emplace_back(info, containerId, it->second.nextDeviceName<P>());
+        it->second.devices.push_back(_ports.size() - 1);
+      } else {
+        auto const &dev = WDE::DeviceInformation::CreateFromIdAsync(
+          winrt::to_hstring(containerId),
+          nullptr,
+          WDE::DeviceInformationKind::DeviceContainer
+        ).get();
+        auto containerName = to_utf8(dev.Name());
+        _ports.emplace_back(info, containerId, containerName);
+        _containers.try_emplace(containerId, std::move(containerName),
+                            _ports.size() - 1);
+      }
+    }
 
     Log::debug(
-      "MIDI {} Added: {} / Id: {} / Kind: {}",
-      P::direction, to_utf8(info.Name()), to_utf8(info.Id()),
-      (int)info.Kind()
+      "MIDI {} Added: {} / Name: {} / Id: {} / Kind: {}",
+      P::direction, _ports.back().name, to_utf8(info.Name()),
+      to_utf8(info.Id()), (int)info.Kind()
     );
   }
 
@@ -193,6 +269,7 @@ private:
           "MIDI {} Removed: Id {} / Kind {}",
           P::direction, to_utf8(info.Id()), (int)info.Kind()
         );
+        // TODO: Fix container references.
         return;
       }
     }
@@ -213,8 +290,15 @@ private:
     Log::debug("MIDI {} Watcher stopped", P::direction);
   }
 
+  struct guid_hash {
+    size_t operator()(const winrt::guid &value) const noexcept {
+      return winrt::impl::hash_data(&value, sizeof(value));
+    }
+  };
+
   WDE::DeviceWatcher _watcher;
   std::vector<PortInfo> _ports;
+  std::unordered_map<winrt::guid, ContainerInfo, guid_hash> _containers;
 };
 
 template class PortManager<InputPort>;
@@ -225,19 +309,19 @@ template class PortManager<OutputPort>;
 namespace a8::midi {
 
 template<> template<>
-auto PortManager<InputPort>::create<Backend::UWP>() noexcept
+auto PortManager<InputPort>::create<Backend::UWP>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::uwp;
-  return util::make_unique_nothrow<impl::PortManager<impl::InputPort>>();
+  return std::make_unique<impl::PortManager<impl::InputPort>>();
 }
 
 template<> template<>
-auto PortManager<OutputPort>::create<Backend::UWP>() noexcept
+auto PortManager<OutputPort>::create<Backend::UWP>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::uwp;
-  return util::make_unique_nothrow<impl::PortManager<impl::OutputPort>>();
+  return std::make_unique<impl::PortManager<impl::OutputPort>>();
 }
 
 void uwpMidiInitWinRT() {

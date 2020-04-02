@@ -1,6 +1,10 @@
 #include "a8/a8.h"
 #include "a8/midi/midi.h"
 
+#include <iostream>
+#include <cstdlib>
+#include <thread>
+
 using namespace a8;
 using namespace a8::midi;
 
@@ -23,12 +27,17 @@ int a8main(int argc, char *argv[]) {
   auto inMan = PortManager<InputPort>::create(backend);
   auto outMan = PortManager<OutputPort>::create(backend);
 
-  auto inf = inMan->scan();
-  auto outf = outMan->scan();
+  inMan->scan().wait();
+  outMan->scan().wait();
 
-  inf.wait();
-  outf.wait();
+  std::string sel;
+  std::getline(std::cin, sel);
+  int n = atoi(sel.c_str());
+  if (auto it = inMan->get(n); it != inMan->end()) {
+    auto inp = inMan->open(it).get();
+    // Now what?
+    std::getline(std::cin, sel);
+  }
 
   return 0;
 }
-
