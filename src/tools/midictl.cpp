@@ -29,14 +29,17 @@ int a8main(int argc, char *argv[]) {
 
   inMan->scan().wait();
   outMan->scan().wait();
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   std::string sel;
+  std::cout << "input device number: ";
   std::getline(std::cin, sel);
   int n = atoi(sel.c_str());
   if (auto it = inMan->get(n); it != inMan->end()) {
     auto inp = inMan->open(it).get();
-    // Now what?
+    std::cout << "Press enter to exit.\n";
     std::getline(std::cin, sel);
+    Port::destroy(std::move(inp)).wait();
   }
 
   return 0;

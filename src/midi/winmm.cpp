@@ -81,10 +81,13 @@ public:
     }
   }
 
-  ~InputPort() {
+  void destroy() override {
+    Log::debug("winmm::InputPort::destroy({})", name());
     if (_handle) {
       midiInStop(_handle);
+      midiInReset(_handle);
       midiInClose(_handle);
+      _handle = nullptr;
     }
   }
 
@@ -97,44 +100,62 @@ public:
       case MIM_OPEN:
         Log::trace("{}: MIM_OPEN", port->name());
         break;
+
       case MIM_CLOSE:
         Log::trace("{}: MIM_CLOSE", port->name());
+        delete port;
         break;
-      case MIM_ERROR:
-        Log::trace("{}: MIM_ERROR", port->name());
-        break;
-      case MIM_LONGERROR:
-        Log::trace("{}: MIM_LONGERROR", port->name());
-        break;
+
       case MIM_DATA:
-        Log::trace("{}: MIM_DATA", port->name());
+        {
+          // timestamp = dwParam2
+          unsigned char messageId = (unsigned char)(dwParam1);
+          unsigned char data1 = (unsigned char)(dwParam1 >> 8);
+          unsigned char data2 = (unsigned char)(dwParam1 >> 16);
+          Log::trace("{}: MIM_DATA: {:X} {:X} {:X}", port->name(),
+                     messageId, data1, data2);
+        }
         break;
+
+      case MIM_MOREDATA:
+        {
+          // timestamp = dwParam2
+          unsigned char messageId = (unsigned char)(dwParam1);
+          unsigned char data1 = (unsigned char)(dwParam1 >> 8);
+          unsigned char data2 = (unsigned char)(dwParam1 >> 16);
+          Log::trace("{}: MIM_MOREDATA: {:X} {:X} {:X}", port->name(),
+                     messageId, data1, data2);
+        }
+        break;
+
       case MIM_LONGDATA:
         {
           auto hdr = reinterpret_cast<MIDIHDR *>(dwParam1);
-          hdr->dwBytesRecorded = 0;
-          hdr->dwOffset = 0;
-          midiInAddBuffer(port->_handle, hdr, sizeof(MIDIHDR));
+          // timestamp = dwParam2
+          Log::trace("{}: MIM_LONGDATA: {} bytes", port->name(),
+                     hdr->dwBytesRecorded);
+
+          if (hdr->dwFlags & MHDR_DONE) {
+            midiInUnprepareHeader(hMidiIn, hdr, sizeof(MIDIHDR));
+          } else if (port->_handle) {
+            hdr->dwBytesRecorded = 0;
+            hdr->dwOffset = 0;
+            midiInAddBuffer(port->_handle, hdr, sizeof(MIDIHDR));
+          }
         }
-        Log::trace("{}: MIM_LONGDATA", port->name());
         break;
-      case MIM_MOREDATA:
-        Log::trace("{}: MIM_MOREDATA", port->name());
+
+      case MIM_ERROR:
+        Log::trace("{}: MIM_ERROR", port->name());
         break;
+
+      case MIM_LONGERROR:
+        Log::trace("{}: MIM_LONGERROR", port->name());
+        break;
+
       default:
         Log::trace("{}: Unknown ({})", port->name(), wMsg);
     }
-  }
-
-  static future_type create(const PortInfo &pi) noexcept {
-    promise_type promise;
-    try {
-      promise.set_value(std::make_unique<InputPort>(to_utf8(pi.name), pi.id));
-    } catch (...) {
-      promise.set_exception(std::current_exception());
-    }
-
-    return promise.get_future();
   }
 
 private:
@@ -171,7 +192,7 @@ public:
     }
   }
 
-  ~OutputPort() {
+  void destroy() override {
     if (_handle) {
       midiOutClose(_handle);
     }
@@ -186,27 +207,20 @@ public:
       case MOM_OPEN:
         Log::trace("{}: MOM_OPEN", port->name());
         break;
+
       case MOM_CLOSE:
         Log::trace("{}: MOM_CLOSE", port->name());
+        delete port;
         break;
+
       case MOM_DONE:
         Log::trace("{}: MOM_DONE", port->name());
         break;
+
       case MOM_POSITIONCB:
         Log::trace("{}: MOM_POSITIONCB", port->name());
         break;
     }
-  }
-
-  static future_type create(const PortInfo &pi) noexcept {
-    promise_type promise;
-    try {
-      promise.set_value(std::make_unique<OutputPort>(to_utf8(pi.name), pi.id));
-    } catch (...) {
-      promise.set_exception(std::current_exception());
-    }
-
-    return promise.get_future();
   }
 
 private:
@@ -250,7 +264,14 @@ public:
 
   typename P::future_type open(const iterator &it) override {
     // TODO: Check to make sure device indexes haven't changed.
-    return P::create(_ports[base::iteratorIndex(it)]);
+    auto const &pi = _ports[base::iteratorIndex(it)];
+    typename P::promise_type promise;
+    try {
+      promise.set_value(midi::Port::make_unique<P>(to_utf8(pi.name), pi.id));
+    } catch (...) {
+      promise.set_exception(std::current_exception());
+    }
+    return promise.get_future();
   }
 
 private:

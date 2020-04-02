@@ -12,7 +12,7 @@
 #    define A8_IMPORT __declspec(dllimport)
 #    define A8_EXPORT __declspec(dllexport)
 #    if !defined(_MSC_VER)
-#      warning "Unknown compiler."
+#      warning "Unknown compiler; assuming MSVC-like."
 #    endif
 #  endif
 #else
@@ -20,7 +20,7 @@
 #  define A8_EXPORT __attribute__((visibility("default")))
 #  define A8_PRIVATE __attribute__((visibility("hidden")))
 #  if !defined(__GNUC__) && !defined(__clang__)
-#    warning "Unknown compiler."
+#    warning "Unknown compiler; assuming GCC-like."
 #  endif
 #endif
 
@@ -36,9 +36,26 @@
 #  define A8_PRAGMA_MS(s) __pragma(s)
 #  define A8_PRAGMA(s) __pragma(s)
 #  define A8_ATTR_MS(a) __declspec(a)
+#  define A8_UNREACHABLE __assume(0)
 #else
 #  define A8_PRAGMA_MS(s)
 #  define A8_ATTR_MS(a)
+#
+#  ifndef __has_builtin
+#    define __has_builtin(b) 0
+#    define A8_PLEASE_UNDEFINE_HAS_BUILTIN
+#  endif
+#
+#  if __has_builtin(__builtin_unreachable)
+#    define A8_UNREACHABLE __builtin_unreachable()
+#  else
+#    define A8_UNREACHABLE ((void)0)
+#  endif
+#
+#  ifdef A8_PLEASE_UNDEFINE_HAS_BUILTIN
+#    undef __has_builtin
+#    undef A8_PLEASE_UNDEFINE_HAS_BUILTIN
+#  endif
 #endif
 
 #ifdef __GNUC__

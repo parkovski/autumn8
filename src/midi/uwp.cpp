@@ -11,6 +11,7 @@
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Devices.Midi.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 #pragma comment(lib, "windowsapp")
 
@@ -55,9 +56,24 @@ public:
     Log::debug("Initialized input port for {}", this->name());
   }
 
+  void destroy() override {
+    delete this;
+  }
+
   void onMessage(const WDM::MidiInPort &port,
                  const WDM::MidiMessageReceivedEventArgs &args) {
-    Log::trace("MIDI Message: {}: {}", name(), (int)args.Message().Type());
+    auto len = args.Message().RawData().Length();
+    auto const *data = args.Message().RawData().data();
+    unsigned char messageId = data[0];
+    unsigned char data1 = 0;
+    unsigned char data2 = 0;
+    if (len > 1) data1 = data[1];
+    if (len > 2) data2 = data[2];
+    if (len > 3) {
+      Log::trace("{}: Input: {:X} / {} bytes", name(), messageId, len);
+    } else {
+      Log::trace("{}: Input: {:X} {:X} {:X}", name(), messageId, data1, data2);
+    }
   }
 
 private:
@@ -78,6 +94,10 @@ public:
       _port(std::move(port))
   {
     Log::debug("Initialized output port for {}", this->name());
+  }
+
+  void destroy() override {
+    delete this;
   }
 
 private:
@@ -123,17 +143,28 @@ struct ContainerInfo {
   };
   ContainerInfo(std::string name, size_t firstDeviceIndex)
     : name{std::move(name)},
-      devices{{firstDeviceIndex}}
+      devices{firstDeviceIndex}
   {
   }
 
   // Create a winmm compatible name.
   template<typename P>
-  std::string nextDeviceName() const {
+  std::string winmmName(size_t index) const {
+    if (index == 0) {
+      return this->name;
+    }
     std::stringstream name;
-    name << P::baseName << (devices.size() + 1)
-         << " (" << this->name << ")";
+    name << P::baseName << (index + 1) << " (" << this->name << ")";
     return name.str();
+  }
+
+  std::string compoundName(std::string_view ifName) const {
+    std::string name;
+    name.reserve(name.length() + ifName.length() + 3);
+    name = this->name;
+    name.append(" - ");
+    name.append(ifName);
+    return name;
   }
 
   std::string name;
@@ -202,8 +233,9 @@ public:
     P::winrt_type::FromIdAsync(id).Completed(
       [promise = std::move(promise), name = pi.name]
       (auto &&sender, auto &&status) mutable {
-        promise.set_value(std::make_unique<P>(std::move(name),
-                                              sender.GetResults()));
+        promise.set_value(
+          midi::Port::make_unique<P>(std::move(name), sender.GetResults())
+        );
       }
     );
     return future;
@@ -216,15 +248,19 @@ private:
 
     auto containerIdProp
       = info.Properties().Lookup(L"System.Devices.ContainerId");
+    std::string_view containerName = "?";
     if (containerIdProp) {
       auto const &containerId =
         containerIdProp.as<WF::IPropertyValue>().GetGuid();
 
       if (containerId == ContainerInfo::wackyGuid) {
+        containerName = "(This computer)";
         _ports.emplace_back(info, containerId, to_utf8(info.Name()));
       } else if (auto it = _containers.find(containerId);
                  it != _containers.end()) {
-        _ports.emplace_back(info, containerId, it->second.nextDeviceName<P>());
+        containerName = it->second.name;
+        _ports.emplace_back(info, containerId,
+                            it->second.compoundName(to_utf8(info.Name())));
         it->second.devices.push_back(_ports.size() - 1);
       } else {
         auto const &dev = WDE::DeviceInformation::CreateFromIdAsync(
@@ -232,17 +268,21 @@ private:
           nullptr,
           WDE::DeviceInformationKind::DeviceContainer
         ).get();
-        auto containerName = to_utf8(dev.Name());
-        _ports.emplace_back(info, containerId, containerName);
-        _containers.try_emplace(containerId, std::move(containerName),
-                            _ports.size() - 1);
+        auto const &container = _containers.try_emplace(
+          containerId,
+          to_utf8(dev.Name()),
+          _ports.size() - 1
+        ).first->second;
+        containerName = container.name;
+        _ports.emplace_back(info, containerId,
+                            container.compoundName(to_utf8(info.Name())));
       }
     }
 
     Log::debug(
-      "MIDI {} Added: {} / Name: {} / Id: {} / Kind: {}",
+      "MIDI {} Added: {} / Name: {} / Id: {} / Kind: {} / Container: {}",
       P::direction, _ports.back().name, to_utf8(info.Name()),
-      to_utf8(info.Id()), (int)info.Kind()
+      to_utf8(info.Id()), (int)info.Kind(), containerName
     );
   }
 
@@ -322,10 +362,6 @@ auto PortManager<OutputPort>::create<Backend::UWP>()
 {
   namespace impl = midi_impl::uwp;
   return std::make_unique<impl::PortManager<impl::OutputPort>>();
-}
-
-void uwpMidiInitWinRT() {
-  winrt::init_apartment();
 }
 
 } // namespace a8::midi

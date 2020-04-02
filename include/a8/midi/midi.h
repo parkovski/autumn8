@@ -11,19 +11,22 @@
 
 namespace a8::midi {
 
-template<typename T>
-using unique_promise = std::promise<std::unique_ptr<T>>;
-
-template<typename T>
-using unique_future = std::future<std::unique_ptr<T>>;
-
-enum class Backend {
-  Winmm,
-  UWP,
-
-#ifdef _WIN32
-  Default = Winmm
+#if defined(_WIN32)
+# define A8_MIDI_BACKENDS(M) \
+    M(Winmm) \
+    M(UWP)
+# define A8_MIDI_DEFAULT_BACKEND Winmm
+#elif defined(__ANDROID__)
+# define A8_MIDI_BACKENDS(M) M(Android)
+# define A8_MIDI_DEFAULT_BACKEND Android
 #endif
+
+// MIDI backends available on this platform.
+enum class Backend {
+#define A8_MIDI_BE(be) be,
+  A8_MIDI_BACKENDS(A8_MIDI_BE)
+#undef A8_MIDI_BE
+  Default = A8_MIDI_DEFAULT_BACKEND
 };
 
 class BackendException : public std::runtime_error {
@@ -41,33 +44,59 @@ private:
   Backend _backend;
 };
 
+// Common MIDI port base type.
 class Port {
+public:
+  friend struct async_destroy;
+  struct async_destroy {
+    void operator()(Port *port) const {
+      port->destroy();
+    }
+  };
+
+  // Specialization of \c std::unique_ptr for async destruction.
+  template<typename T = Port>
+  using unique_ptr = std::unique_ptr<T, async_destroy>;
+
+  // Substitute for \c std::make_unique using the \c async_destroy deleter.
+  template<typename T, typename... Args>
+  static unique_ptr<T> make_unique(Args &&...args) {
+    return unique_ptr<T>(new T(std::forward<Args>(args)...));
+  }
+
 protected:
   explicit Port(std::string name)
     : _name{std::move(name)}
   {}
 
-public:
-  virtual ~Port() = 0;
+  virtual ~Port();
+  virtual void destroy() = 0;
 
+public:
+  static std::future<void> destroy(unique_ptr<> self) {
+    return self->_destroyPromise.get_future();
+  }
   std::string_view name() const { return _name; }
 
 private:
+  std::promise<void> _destroyPromise;
   std::string _name;
 };
 
 class InputPort : public Port {
 public:
-  using promise_type = unique_promise<InputPort>;
-  using future_type = unique_future<InputPort>;
+  using pointer = Port::unique_ptr<InputPort>;
+  using promise_type = std::promise<pointer>;
+  using future_type = std::future<pointer>;
 
   using Port::Port;
 };
 
 class OutputPort : public Port {
 public:
-  using promise_type = unique_promise<OutputPort>;
-  using future_type = unique_future<OutputPort>;
+  using pointer = Port::unique_ptr<OutputPort>;
+  using promise_type = std::promise<pointer>;
+  using future_type = std::future<pointer>;
 
   using Port::Port;
 };
@@ -75,8 +104,8 @@ public:
 template<typename P>
 class PortManager {
 public:
-  using promise_type = unique_promise<PortManager>;
-  using future_type = unique_future<PortManager>;
+  using promise_type = std::promise<std::unique_ptr<PortManager>>;
+  using future_type = std::future<std::unique_ptr<PortManager>>;
 
   friend struct iterator;
   struct iterator {
@@ -167,8 +196,6 @@ public:
 protected:
   std::mutex _mutex;
 };
-
-void uwpMidiInitWinRT();
 
 } // namespace a8::midi
 
