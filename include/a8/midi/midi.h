@@ -2,12 +2,16 @@
 #define A8_MIDI_H_
 
 #include "a8/a8.h"
+#include "control.h"
+#include "message.h"
 
 #include <string_view>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <exception>
+#include <iosfwd>
+#include <optional>
 
 namespace a8::midi {
 
@@ -29,6 +33,8 @@ enum class Backend {
   Default = A8_MIDI_DEFAULT_BACKEND
 };
 
+std::ostream &operator<<(std::ostream &os, Backend be);
+
 class BackendException : public std::runtime_error {
 public:
   BackendException(Backend backend) noexcept
@@ -43,6 +49,7 @@ public:
 private:
   Backend _backend;
 };
+
 
 // Common MIDI port base type.
 class Port {
@@ -88,8 +95,35 @@ public:
   using pointer = Port::unique_ptr<InputPort>;
   using promise_type = std::promise<pointer>;
   using future_type = std::future<pointer>;
+  using sink_type = std::function<void(const IMessage &, uint32_t)>;
 
   using Port::Port;
+
+  void sink(sink_type sink) {
+    if (sink) {
+      _sink = std::move(sink);
+    } else {
+      _sink = &InputPort::nop;
+    }
+  }
+
+  void start(sink_type sink) {
+    this->sink(std::move(sink));
+    start();
+  }
+
+  virtual void start() = 0;
+  virtual void stop() = 0;
+
+protected:
+  void emit(const IMessage &message, uint32_t timestamp) const {
+    _sink(message, timestamp);
+  }
+
+private:
+  static void nop(const IMessage &, uint32_t) {}
+
+  sink_type _sink = &InputPort::nop;
 };
 
 class OutputPort : public Port {
@@ -99,6 +133,8 @@ public:
   using future_type = std::future<pointer>;
 
   using Port::Port;
+
+  //virtual void operator()(unsigned char *data, size_t length) = 0;
 };
 
 template<typename P>
@@ -111,17 +147,29 @@ public:
   struct iterator {
     friend class PortManager;
 
+  private:
+    // End iterator - does not hold a lock.
+    iterator() noexcept
+      : iterator(nullptr, -1)
+    {}
+
+    // Important! Must have a lock before calling this.
     iterator(const PortManager *manager, size_t index) noexcept
       : manager(manager), index(index)
     {}
 
-    iterator(const PortManager *manager) noexcept
-      : iterator(manager, -1)
-    {}
+  public:
+    // Releases the lock held on the \c PortManager if needed.
+    ~iterator() {
+      if (manager) manager->_mutex.unlock();
+    }
 
+    // Comparisons are only valid for iterators from the same container.
     bool operator==(const iterator &other) const noexcept {
       return index == other.index;
     }
+
+    // Comparisons are only valid for iterators from the same container.
     bool operator!=(const iterator &other) const noexcept {
       return !(*this == other);
     }
@@ -133,11 +181,6 @@ public:
         index = -1;
       }
       return *this;
-    }
-    iterator operator++(int) noexcept {
-      iterator current = *this;
-      ++*this;
-      return current;
     }
     /*const Info &operator*() const noexcept {
       return manager->info(id);
@@ -154,6 +197,23 @@ public:
 protected:
   PortManager() = default;
 
+  /// Acquires a lock and returns an iterator for port at \c index.
+  iterator lockedIterator(size_t index) const {
+    _mutex.lock();
+    return iterator{this, index};
+  }
+
+  /// Tries to acquire a lock and returns an iterator for port at \c index,
+  /// or \c std::nullopt if the lock was not successful.
+  std::optional<iterator> tryLockedIterator(size_t index) const {
+    if (_mutex.try_lock()) {
+      return iterator{this, index};
+    }
+    return std::nullopt;
+  }
+
+  /// \returns The index pointed to by \c it. The index is -1 if \c it
+  /// is an end iterator.
   static size_t iteratorIndex(const iterator &it) {
     return it.index;
   }
@@ -164,7 +224,7 @@ public:
   template<Backend B>
   static std::unique_ptr<PortManager> create();
 
-  // \throws BackendException
+  /// \throws BackendException
   static std::unique_ptr<PortManager>
   create(Backend backend = Backend::Default);
 
@@ -172,29 +232,62 @@ public:
   virtual void startWatching() = 0;
   virtual void stopWatching() = 0;
 
+  // Returns the current number of accessible ports. The size may change if a
+  // locked iterator is not held.
   virtual size_t size() const noexcept = 0;
+
+  /// Returns true if the port collection is currently empty. \see size().
   bool empty() const noexcept { return size() == 0; }
-  // Iterator acquires a lock. Don't keep it around.
-  iterator begin() const noexcept {
+
+  /// If there are no ports, returns an end iterator. Otherwise, locks the
+  /// \c PortManager and returns an iterator to the first element.
+  iterator begin() const {
     if (empty()) {
-      return {this};
+      return end();
     } else {
-      return {this, 0};
-    }
-  }
-  iterator end() const noexcept { return {this}; }
-  iterator get(size_t i) const noexcept {
-    if (i < size()) {
-      return {this, i};
-    } else {
-      return {this};
+      return lockedIterator(0);
     }
   }
 
+  /// If there are no ports, returns an end iterator. Otherwise, tries to lock
+  /// the \c PortManager. If the lock was successful, returns an iterator to
+  /// the first element. If not, returns \c std::nullopt.
+  std::optional<iterator> tryBegin() const {
+    if (empty()) {
+      return end();
+    } else {
+      return tryLockedIterator(0);
+    }
+  }
+
+  /// \returns End iterator. Does not hold a lock.
+  iterator end() const noexcept { return {}; }
+
+  /// Returns an iterator to element \c i. The iterator holds a lock on the
+  /// \c PortManager.
+  iterator get(size_t i) const {
+    if (i < size()) {
+      return lockedIterator(i);
+    } else {
+      return end();
+    }
+  }
+
+  /// Returns an iterator to element \c i, or \c std::nullopt if a lock could
+  /// not be acquired.
+  std::optional<iterator> tryGet(size_t i) const {
+    if (i < size()) {
+      return tryLockedIterator(i);
+    } else {
+      return end();
+    }
+  }
+
+  /// Opens the port pointed to by \c it.
   virtual typename P::future_type open(const iterator &it) = 0;
 
 protected:
-  std::mutex _mutex;
+  mutable std::mutex _mutex;
 };
 
 } // namespace a8::midi

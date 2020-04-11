@@ -20,7 +20,7 @@ class Log {
   static std::shared_ptr<spdlog::logger> g_logger;
 
 public:
-  explicit Log(int argc, char *argv[]) noexcept;
+  explicit Log(int argc, char *argv[]);
   ~Log();
 
   template<typename... Args>

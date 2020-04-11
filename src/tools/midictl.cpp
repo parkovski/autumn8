@@ -37,6 +37,10 @@ int a8main(int argc, char *argv[]) {
   int n = atoi(sel.c_str());
   if (auto it = inMan->get(n); it != inMan->end()) {
     auto inp = inMan->open(it).get();
+    inp->sink([](auto const &m, auto ts) {
+      Log::debug("in: size={}", m.size());
+    });
+    inp->start();
     std::cout << "Press enter to exit.\n";
     std::getline(std::cin, sel);
     Port::destroy(std::move(inp)).wait();

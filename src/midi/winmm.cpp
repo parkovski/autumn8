@@ -1,4 +1,5 @@
 #include "a8/midi/midi.h"
+#include "a8/midi/message.h"
 #include "a8/util/utfconv.h"
 
 #include <exception>
@@ -91,6 +92,19 @@ public:
     }
   }
 
+  void start() override {
+    switch (midiInStart(_handle)) {
+      case MMSYSERR_NOERROR:
+        break;
+      default:
+        break;
+    }
+  }
+
+  void stop() override {
+    midiInStop(_handle);
+  }
+
   static void CALLBACK midiInProc(
     HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance,
     DWORD_PTR dwParam1, DWORD_PTR dwParam2
@@ -106,25 +120,18 @@ public:
         delete port;
         break;
 
+      case MIM_MOREDATA:
+        // Anything else to do for this?
       case MIM_DATA:
         {
           // timestamp = dwParam2
-          unsigned char messageId = (unsigned char)(dwParam1);
-          unsigned char data1 = (unsigned char)(dwParam1 >> 8);
-          unsigned char data2 = (unsigned char)(dwParam1 >> 16);
-          Log::trace("{}: MIM_DATA: {:X} {:X} {:X}", port->name(),
-                     messageId, data1, data2);
-        }
-        break;
-
-      case MIM_MOREDATA:
-        {
-          // timestamp = dwParam2
-          unsigned char messageId = (unsigned char)(dwParam1);
-          unsigned char data1 = (unsigned char)(dwParam1 >> 8);
-          unsigned char data2 = (unsigned char)(dwParam1 >> 16);
-          Log::trace("{}: MIM_MOREDATA: {:X} {:X} {:X}", port->name(),
-                     messageId, data1, data2);
+          unsigned char data[3];
+          data[0] = (unsigned char)(dwParam1);
+          data[1] = (unsigned char)(dwParam1 >> 8);
+          data[2] = (unsigned char)(dwParam1 >> 16);
+          Log::trace("{}: MIM_DATA: {:X}", port->name(), data[0]);
+          midi::NonSysExMessage message{data[0], data[1], data[2]};
+          port->emit(message, (uint32_t)dwParam2);
         }
         break;
 
@@ -132,8 +139,10 @@ public:
         {
           auto hdr = reinterpret_cast<MIDIHDR *>(dwParam1);
           // timestamp = dwParam2
-          Log::trace("{}: MIM_LONGDATA: {} bytes", port->name(),
+          Log::trace("{}: MIM_LONGDATA: {}B", port->name(),
                      hdr->dwBytesRecorded);
+          // port->emit(reinterpret_cast<unsigned char *>(hdr->lpData),
+          //            hdr->dwBytesRecorded);
 
           if (hdr->dwFlags & MHDR_DONE) {
             midiInUnprepareHeader(hMidiIn, hdr, sizeof(MIDIHDR));
@@ -299,7 +308,7 @@ void PortManager<InputPort>::realScan() {
 template<>
 void PortManager<OutputPort>::realScan() {
   _ports.clear();
-  auto count = midiInGetNumDevs();
+  auto count = midiOutGetNumDevs();
   _ports.reserve(count);
   for(decltype(count) i = 0; i < count; ++i) {
     MIDIOUTCAPS2W caps;

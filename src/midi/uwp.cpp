@@ -52,7 +52,6 @@ public:
     : midi::InputPort(std::move(name)),
       _port(std::move(port))
   {
-    _port.MessageReceived({this, &InputPort::onMessage});
     Log::debug("Initialized input port for {}", this->name());
   }
 
@@ -60,23 +59,26 @@ public:
     delete this;
   }
 
+  void start() override {
+    _messageEvent = _port.MessageReceived({this, &InputPort::onMessage});
+  }
+
+  void stop() override {
+    _port.MessageReceived(_messageEvent);
+  }
+
   void onMessage(const WDM::MidiInPort &port,
                  const WDM::MidiMessageReceivedEventArgs &args) {
     auto len = args.Message().RawData().Length();
     auto const *data = args.Message().RawData().data();
-    unsigned char messageId = data[0];
-    unsigned char data1 = 0;
-    unsigned char data2 = 0;
-    if (len > 1) data1 = data[1];
-    if (len > 2) data2 = data[2];
-    if (len > 3) {
-      Log::trace("{}: Input: {:X} / {} bytes", name(), messageId, len);
-    } else {
-      Log::trace("{}: Input: {:X} {:X} {:X}", name(), messageId, data1, data2);
-    }
+    unsigned char messageId = len > 0 ? data[0] : 0;
+    Log::trace("{}: Input: {:X} / {} bytes", name(), messageId, len);
+    midi::Message message{data, len};
+    this->emit(message, 0);
   }
 
 private:
+  winrt::event_token _messageEvent;
   WDM::MidiInPort _port;
 };
 

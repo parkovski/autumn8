@@ -2,14 +2,8 @@
 #include "a8/platform/Windows/platform.h"
 #include "a8/util/utfconv.h"
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <fmt/ostream.h>
-
 #include <Windows.h>
 #include <shellapi.h>
-#include <string_view>
-#include <optional>
 #include <string>
 #include <memory>
 
@@ -19,23 +13,13 @@ using a8::Log;
 using namespace a8::platform::windows;
 using a8::util::utfconv::to_utf8;
 
-std::shared_ptr<spdlog::logger> Log::g_logger;
-
-Log::Log(int argc, char *argv[]) noexcept {
-  g_logger = spdlog::stdout_color_mt("autumn8");
-  g_logger->set_level(spdlog::level::trace);
-}
-
-Log::~Log() {
-  spdlog::drop_all();
-}
-
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   int argc;
   wchar_t **argv16 = CommandLineToArgvW(GetCommandLineW(), &argc);
   std::string buffer{};
   std::string temp;
   auto argv8{std::make_unique<char *[]>(argc)};
+  bool usingConsole = false;
   for (int i = 0; i < argc; ++i) {
     temp = to_utf8(argv16[i]);
     argv8[i] = reinterpret_cast<char *>(temp.length() + 1);
@@ -44,7 +28,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
     }
     buffer.append(temp).push_back('\0');
 
-    if (i > 0 && temp == "--console") {
+    if (i > 0 && temp == "--console" && !usingConsole) {
+      usingConsole = true;
       if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
         AllocConsole();
       }
@@ -59,10 +44,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
 
   Log log{argc, argv8.get()};
 
-  Log::trace("WinMain: command line: {}", buffer);
-
   setThreadName(L"Message thread");
-  Log::trace("Message thread: {}", enableThreadDpiAwareness());
+  auto dpiAwareness = enableThreadDpiAwareness();
+  if (usingConsole) {
+    Log::trace("DPI Awareness: {}.", dpiAwareness);
+  }
 
   WNDCLASSEXW cls{};
   cls.cbSize = sizeof(WNDCLASSEXW);
@@ -75,6 +61,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   cls.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 
   if (!RegisterClassExW(&cls)) {
+    Log::critical("RegisterClassExW failed.");
     return 1;
   }
 
