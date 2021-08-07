@@ -18,7 +18,7 @@ namespace a8::midi {
 #if defined(_WIN32)
 # define A8_MIDI_BACKENDS(M) \
     M(Winmm) \
-    M(UWP)
+    //M(UWP)
 # define A8_MIDI_DEFAULT_BACKEND Winmm
 #elif defined(__ANDROID__)
 # define A8_MIDI_BACKENDS(M) M(Android)

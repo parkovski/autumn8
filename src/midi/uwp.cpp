@@ -19,7 +19,7 @@ namespace WF = winrt::Windows::Foundation;
 namespace WDM = winrt::Windows::Devices::Midi;
 namespace WDE = winrt::Windows::Devices::Enumeration;
 
-using namespace a8::util::utfconv;
+using namespace a8;
 
 namespace a8::midi_impl::uwp {
 

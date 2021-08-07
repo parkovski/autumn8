@@ -11,7 +11,7 @@
 
 using a8::Log;
 using namespace a8::platform::windows;
-using a8::util::utfconv::to_utf8;
+using a8::to_utf8;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   int argc;

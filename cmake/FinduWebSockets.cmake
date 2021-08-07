@@ -1,12 +1,12 @@
-find_path(uWebSockets_INCLUDE_DIR uwebsockets/WebSocket.h)
+find_path(uWebSockets_INCLUDE_DIRS uwebsockets/App.h)
 find_library(uSockets_LIBRARY NAMES uSockets)
 
-if(NOT EXISTS "${uWebSockets_INCLUDE_DIR}/libusockets.h")
+if(NOT EXISTS "${uWebSockets_INCLUDE_DIRS}/libusockets.h")
   message(FATAL_ERROR "Missing libusockets.h")
 endif()
 
 add_library(uWebSockets INTERFACE IMPORTED)
-target_include_directories(uWebSockets INTERFACE ${uWebSockets_INCLUDE_DIR})
+target_include_directories(uWebSockets INTERFACE ${uWebSockets_INCLUDE_DIRS})
 target_link_libraries(uWebSockets INTERFACE ${uSockets_LIBRARY})
 
 find_package(ZLIB)
@@ -18,5 +18,5 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(uWebSockets
-  REQUIRED_VARS uWebSockets_INCLUDE_DIR uSockets_LIBRARY
+  REQUIRED_VARS uWebSockets_INCLUDE_DIRS uSockets_LIBRARY
 )

@@ -17,7 +17,7 @@ int wmain(int argc, wchar_t *argv16[]) {
   // Temp conversion string.
   std::string _temp;
   for (int i = 0; i < argc; ++i) {
-    _temp = a8::util::utfconv::to_utf8(argv16[i]);
+    _temp = a8::to_utf8(argv16[i]);
     // Set each pointer to its end offset in `_buffer` (offset of next arg).
     // This offset is the length of the current string plus the previous
     // argument's offset.

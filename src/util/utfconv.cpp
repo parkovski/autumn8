@@ -4,7 +4,7 @@
 
 #include <codecvt>
 
-namespace a8::util::utfconv {
+namespace a8 {
 
 std::string to_utf8(std::wstring_view utf16str) {
   return std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
@@ -26,5 +26,4 @@ void to_utf16(std::string_view utf8str, std::wstring &utf16str) {
   utf16str = to_utf16(utf8str);
 }
 
-} // namespace a8::util::utfconv
-
+} // namespace a8

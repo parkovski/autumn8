@@ -1,18 +1,20 @@
 #ifndef A8_A8_H_
 #define A8_A8_H_
 
-#include "a8config.h"
+#include "config.h"
 #include "compiler.h"
 #include "util/inline.h"
 
-#include <memory>
-#include <utility>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#ifdef _WIN32
-# define SPDLOG_WCHAR_TO_UTF8_SUPPORT
-#endif
+
 #include <spdlog/spdlog.h>
+#if defined(_WIN32) && !defined(SPDLOG_WCHAR_TO_UTF8_SUPPORT)
+# error "Windows needs SPDLOG_WCHAR_TO_UTF8_SUPPORT"
+#endif
+
+#include <memory>
+#include <utility>
 
 namespace a8 {
 

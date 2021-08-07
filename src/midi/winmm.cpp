@@ -13,7 +13,6 @@
 #pragma comment(lib, "winmm")
 
 using namespace a8;
-using namespace a8::util::utfconv;
 
 static std::ostream &operator<<(std::ostream &os, const GUID &guid) {
   os << std::hex

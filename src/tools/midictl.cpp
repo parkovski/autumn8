@@ -14,8 +14,8 @@ int a8main(int argc, char *argv[]) {
     std::string_view backend_arg{argv[1]};
     if (backend_arg == "winmm") {
       backend = Backend::Winmm;
-    } else if (backend_arg == "uwp") {
-      backend = Backend::UWP;
+    // } else if (backend_arg == "uwp") {
+    //   backend = Backend::UWP;
     } else {
       Log::error("Invalid backend {}", backend_arg);
       return 1;

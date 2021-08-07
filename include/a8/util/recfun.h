@@ -3,6 +3,8 @@
 
 #include <utility>
 
+namespace a8 {
+
 template<typename ...TArgs>
 struct recfun {
   using function = recfun (*)(TArgs...);
@@ -59,5 +61,7 @@ struct memrecfun {
 private:
   function f;
 };
+
+} // namespace a8
 
 #endif /* A8_UTIL_RECFUN_H_ */
