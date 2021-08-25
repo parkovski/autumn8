@@ -5,8 +5,6 @@
 #include "a8/gfx/window.h"
 #include "a8/util/utfconv.h"
 
-#include <bgfx/bgfx.h>
-#include <bgfx/platform.h>
 #include "fmt/ostream.h"
 
 #include <Windows.h>
@@ -21,7 +19,6 @@
 using a8::Log;
 using namespace a8::platform::windows;
 using namespace a8::gfx;
-using namespace a8::util::utfconv;
 
 namespace a8::platform::windows {
 
@@ -59,92 +56,87 @@ namespace {
   constexpr int InitialCoordMultiplier = 60;
 }
 
-Window *Window::create(std::string_view title, Point pos, Size size) {
-  Log::info("Creating window at {}, size {}", pos, size);
-
-  auto win = new Window();
-  auto handle = CreateWindowExW(
-    WS_EX_ACCEPTFILES,
-    A8WindowClass,
-    to_utf16(title).c_str(),
-    WS_OVERLAPPEDWINDOW,
-    int(pos.x * InitialCoordMultiplier),
-    int(pos.y * InitialCoordMultiplier),
-    int(size.width * InitialCoordMultiplier),
-    int(size.height * InitialCoordMultiplier),
-    nullptr,
-    nullptr,
-    g_platformInit.hInstance,
-    win
-  );
-  if (!handle) {
-    delete win;
-    return nullptr;
-  }
-  win->_nativeHandle = handle;
-  return win;
-}
-
-Window::Window() noexcept
-  : _events{QueueSize}, _nvg{}, _nativeHandle{}, _zoom{1}
-{
-}
-
 Window::~Window() {
   if (auto hWnd = MY_HWND; hWnd) {
     DestroyWindow(hWnd);
   }
 }
 
-namespace {
-  struct MainThreadState {
-    Window *window;
-    bool running;
+bool Window::open(std::string_view title) noexcept {
+  _nativeHandle = CreateWindowExW(
+    WS_EX_ACCEPTFILES,
+    A8WindowClass,
+    to_utf16(title).c_str(),
+    WS_OVERLAPPEDWINDOW,
+    int(_pos.x * InitialCoordMultiplier),
+    int(_pos.y * InitialCoordMultiplier),
+    int(_size.width * InitialCoordMultiplier),
+    int(_size.height * InitialCoordMultiplier),
+    nullptr,
+    nullptr,
+    g_platformInit.hInstance,
+    this
+  );
 
-    MainThreadState(Window *window) noexcept
-      : window(window), running(true)
-    {}
-  };
-
-  void mainThread(MainThreadState &state) {
-    setThreadName(L"Event thread");
-    Log::trace("Main thread: {}", enableThreadDpiAwareness());
-
-    RECT rc;
-    GetClientRect(HWND_OF(*state.window), &rc);
-    auto width = rc.right - rc.left;
-    auto height = rc.bottom - rc.top;
-
-    bgfx::Init init;
-    init.deviceId = 0;
-    init.resolution.width = width;
-    init.resolution.height = height;
-    init.resolution.reset = BGFX_RESET_VSYNC | BGFX_RESET_HIDPI;
-    init.type = bgfx::RendererType::Count;
-    init.vendorId = BGFX_PCI_ID_NONE;
-    if (bgfx::init(init)) {
-      if (!state.window->nvgInit()) {
-        bgfx::shutdown();
-        return;
-      }
-    } else {
-      return;
-    }
-
-    bgfx::setDebug(BGFX_DEBUG_TEXT);
-    bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
-    bgfx::setViewRect(0, 0, 0, (uint16_t)width, (uint16_t)height);
-    bgfx::touch(0);
-    bgfx::frame();
-
-    while (state.running) {
-      state.window->render();
-      bgfx::frame();
-    }
-
-    state.window->nvgDestroy();
-    bgfx::shutdown();
+  if (!_nativeHandle) {
+    return false;
   }
+
+  ShowWindow(MY_HWND, g_platformInit.nCmdShow);
+  UpdateWindow(MY_HWND);
+  return true;
+}
+
+void Window::close() noexcept {
+  CloseWindow(MY_HWND);
+}
+
+void Window::zoom(float newZoom) {
+  _zoom = newZoom;
+}
+
+void Window::size(Size newSize) {
+  auto rawNewSize = RawSize(newSize * _scale);
+  if (_size == rawNewSize) {
+    return;
+  }
+  _size = rawNewSize;
+  if (!_nativeHandle) {
+    return;
+  }
+  SetWindowPos(MY_HWND, nullptr, 0, 0, _size.width, _size.height,
+               SWP_ASYNCWINDOWPOS | SWP_NOMOVE | SWP_NOZORDER
+                | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+}
+
+void Window::position(Point newPosition) {
+  auto rawNewPosition = RawPoint(newPosition * _scale);
+  if (_pos == rawNewPosition) {
+    return;
+  }
+  _pos = rawNewPosition;
+  if (!_nativeHandle) {
+    return;
+  }
+  SetWindowPos(MY_HWND, nullptr, _pos.x, _pos.y, 0, 0,
+               SWP_ASYNCWINDOWPOS | SWP_NOSIZE | SWP_NOZORDER
+                | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
+}
+
+void Window::resize(Point newPosition, Size newSize) {
+  auto rawNewSize = RawSize(newSize * _scale);
+  auto rawNewPosition = RawPoint(newPosition * _scale);
+  if (_size == rawNewSize && _pos == rawNewPosition) {
+    return;
+  }
+  _size = rawNewSize;
+  _pos = rawNewPosition;
+  if (!_nativeHandle) {
+    return;
+  }
+  SetWindowPos(MY_HWND, nullptr, _pos.x, _pos.y, _size.width, _size.height,
+               SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_NOOWNERZORDER
+                | SWP_NOACTIVATE);
 }
 
 static RawSize toSize(LPRECT rect) {
@@ -163,12 +155,18 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
   auto *window = reinterpret_cast<Window *>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 
   switch (msg) {
-  case WM_CREATE:
-    {
+  case WM_NCCREATE: {
       auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
       window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
+      window->_eventThread = std::thread{[window]() {
+        while (window->processEvents());
+      }};
       SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+    }
+    break;
 
+  case WM_CREATE: {
+      auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
       float scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
       window->_scale = scale;
       window->_pos = RawPoint{
@@ -182,19 +180,24 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       SetWindowPos(hWnd, nullptr, window->_pos.x, window->_pos.y,
                    window->_size.width, window->_size.height,
                    SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+
       window->postEvent(SystemEvent::Initialize);
     }
     break;
 
   case WM_CLOSE:
     window->postEvent(SystemEvent::Close);
+    DestroyWindow(hWnd);
     return 0;
 
   case WM_DESTROY:
     window->postEvent(SystemEvent::Destroy);
+    // TODO: If this is the last window:
+    PostThreadMessage(g_platformInit.dwMsgThreadId, WM_QUIT, /*exitCode*/0, 0);
     return 0;
 
   case WM_NCDESTROY:
+    window->_nativeHandle = nullptr;
     return 0;
 
   case WM_MOUSEMOVE:
@@ -214,14 +217,8 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     return 0;
 
   case WM_PAINT:
-      /*if (window->_nvg) {
-        PAINTSTRUCT ps;
-        BeginPaint(hWnd, &ps);
-        window->render();
-        EndPaint(hWnd, &ps);
-        return 0;
-      }*/
     break;
+
 #if 0
   case WM_SIZE:
     {
@@ -400,61 +397,48 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
   return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
-int a8::gfx::runMessageLoop(Window &window) {
+int a8::gfx::runMessageLoop() {
   g_platformInit.dwMsgThreadId = GetCurrentThreadId();
 
-  bgfx::PlatformData platformData{};
-  platformData.nwh = window.nativeHandle();
-  bgfx::setPlatformData(platformData);
-
-  ShowWindow(HWND_OF(window), g_platformInit.nCmdShow);
-  UpdateWindow(HWND_OF(window));
-
-  // Tell it we're going to use our own render thread.
-  bgfx::renderFrame();
-
-  MainThreadState state{&window};
-  std::thread thread(mainThread, std::ref(state));
-
-  constexpr ULONGLONG interval = 160'000;
-  ULONGLONG currentTime;
-  QueryInterruptTime(&currentTime);
-  ULONGLONG nextTime = currentTime + interval;
-
-  bgfx::renderFrame((int32_t)(interval / 10'000ULL));
-
   MSG msg;
-  while (true) {
-    QueryInterruptTime(&currentTime);
-    if (currentTime < nextTime) {
-      auto ms = (DWORD)((nextTime - currentTime) / 10'000ULL);
-      if (MsgWaitForMultipleObjects(0, nullptr, false, ms, QS_ALLINPUT) != WAIT_TIMEOUT) {
-        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
-          TranslateMessage(&msg);
-          DispatchMessageW(&msg);
-          if (msg.message == WM_QUIT) {
-            goto break_message_loop;
-          }
-        }
-      }
-      QueryInterruptTime(&currentTime);
-    }
-    if (currentTime > nextTime) {
-      nextTime = currentTime + interval;
-      bgfx::renderFrame((int32_t)(interval / 10'000ULL));
-    }
+  while (GetMessage(&msg, nullptr, 0, 0) > 0) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
   }
-break_message_loop:
-
-  state.running = false;
-
-  while (bgfx::renderFrame() != bgfx::RenderFrame::NoContext) {}
-
-  thread.join();
 
   return (int)msg.wParam;
 }
 
-void a8::gfx::postQuitEvent(int exitCode) {
-  PostThreadMessageW(g_platformInit.dwMsgThreadId, WM_QUIT, exitCode, 0);
+int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
+  g_platformInit.dwMsgThreadId = GetCurrentThreadId();
+
+  // Units are 100ns intervals. There are 10 million of these in a second.
+  const ULONGLONG interval = 10'000'000 / fps;
+  ULONGLONG currentTime;
+  MSG msg;
+
+  while (true) {
+    QueryInterruptTime(&currentTime);
+    ULONGLONG nextTime = currentTime + interval;
+    if (currentTime < nextTime) {
+      // 10,000 "intervals" per millisecond.
+      auto ms = (DWORD)((nextTime - currentTime) / 10'000ULL);
+      if (MsgWaitForMultipleObjects(0, nullptr, false, ms, QS_ALLINPUT) != WAIT_TIMEOUT) {
+        if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+          TranslateMessage(&msg);
+          DispatchMessageW(&msg);
+          if (msg.message == WM_QUIT) {
+            break;
+          }
+        }
+        continue;
+      }
+    }
+
+    // Either currentTime >= nextTime or MsgWaitForMultipleObjects returned
+    // WAIT_TIMEOUT, either way it is time to process per-FPS events.
+    callback();
+  }
+
+  return (int)msg.wParam;
 }

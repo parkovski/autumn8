@@ -51,29 +51,34 @@ else()
 endif()
 
 #
+# Targets
+#
+set(Autumn8_INCLUDE_DIRS
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
+
+#
 # External libraries
 #
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
-find_package(bgfx QUIET)
-if(bgfx_FOUND)
-  get_target_property(bx_INCLUDE_DIRS bgfx::bx INTERFACE_INCLUDE_DIRECTORIES)
-  if(MSVC)
-    set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${bx_INCLUDE_DIRS};${bx_INCLUDE_DIRS}/compat/msvc")
-  endif()
-  find_package(NanoVG_bgfx REQUIRED)
+find_package(Boost QUIET)
+if(Boost_FOUND)
   set(A8_HAS_GUI ON)
-  message(STATUS "GUI targets are enabled.")
-  add_subdirectory(src/gfx gfx)
+  find_package(bgfx QUIET)
+  if(bgfx_FOUND)
+    get_target_property(bx_INCLUDE_DIRS bgfx::bx INTERFACE_INCLUDE_DIRECTORIES)
+    if(MSVC)
+      set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${bx_INCLUDE_DIRS};${bx_INCLUDE_DIRS}/compat/msvc")
+    endif()
+    find_package(NanoVG_bgfx REQUIRED)
+    set(A8_HAS_BGFX ON)
+  endif()
 
-  # find_package(fpsdk)
-  # if(fpsdk_FOUND)
-  #   message(STATUS "FL Studio plugin target is enabled.")
-  #   add_subdirectory(src/fls fls)
-  # endif()
+  find_package(fpsdk QUIET)
 else()
   set(A8_HAS_GUI OFF)
-  message(STATUS "GUI targets are disabled.")
 endif()
 
 add_library(concurrentqueue INTERFACE IMPORTED)
@@ -81,13 +86,6 @@ target_include_directories(concurrentqueue INTERFACE
   "${PROJECT_SOURCE_DIR}/contrib/moodycamel/include"
 )
 
-#
-# Targets
-#
-set(Autumn8_INCLUDE_DIRS
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}>
-  $<INSTALL_INTERFACE:include>
-)
 include_directories(${Autumn8_INCLUDE_DIRS})
 link_libraries(spdlog::spdlog_header_only fmt::fmt-header-only)
 
@@ -96,7 +94,22 @@ add_subdirectory(src/midi midi)
 add_subdirectory(src/tools tools)
 add_subdirectory(src/util util)
 
+if(A8_HAS_GUI)
+  if(A8_HAS_BGFX)
+    message(STATUS "GUI targets are enabled (with bgfx).")
+  else()
+    message(STATUS "GUI targets are enabled (no bgfx).")
+  endif()
+  add_subdirectory(src/gfx gfx)
+
+  if(fpsdk_FOUND)
+    message(STATUS "FL Studio plugin target is enabled.")
+    #add_subdirectory(src/fls fls)
+  endif()
+endif()
+
 if(A8_BUILD_TESTS)
+  message(STATUS "Test targets are enabled.")
   add_subdirectory(test)
 endif()
 

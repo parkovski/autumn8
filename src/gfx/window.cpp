@@ -1,22 +1,21 @@
 #include "a8/a8.h"
 #include "a8/gfx/window.h"
-#include "a8/gfx/view.h"
-#include "a8/gfx/renderer.h"
-
-#include "nanovg.h"
-#include "nanovg_bgfx.h"
 
 using a8::Log;
 using namespace a8::gfx;
 
+View *Window::setView(View *view) {
+  View *oldView = _view;
+  _view = view;
+  return oldView;
+}
+
 bool Window::processEvents() {
   RawEvent e;
-  bool hadEvent = false;
-  while (_events.try_dequeue(e)) {
-    hadEvent = true;
-    std::visit([this](auto &&e) { this->process(e); }, e);
-  }
-  return hadEvent;
+  _events.wait_dequeue(e);
+  std::visit([this](auto &&e) { this->process(e); }, e);
+  return !(std::holds_alternative<SystemEvent>(e)
+    && std::get<SystemEvent>(e) != SystemEvent::Destroy);
 }
 
 void Window::process(const RawPointerEvent &e) {
@@ -40,7 +39,6 @@ void Window::process(const RawSizingEvent &e) {
   if (_size == e.size) {
     return;
   }
-  bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
   _size = e.size;
   auto scaledSize = Size{e.size} * _scale;
   Log::trace("Sizing ({}, {})", scaledSize.width, scaledSize.height);
@@ -61,9 +59,6 @@ void Window::process(const RawResizeEvent &e) {
   // if (_size == e.size) {
   //   return;
   // }
-  if (_size != e.size) {
-    bgfx::reset(e.size.width, e.size.height, BGFX_RESET_VSYNC | BGFX_RESET_HIDPI);
-  }
   _size = e.size;
   auto scaledSize = Size{e.size} * _scale;
   Log::trace("Resize ({}, {})", scaledSize.width, scaledSize.height);
@@ -78,9 +73,6 @@ void Window::process(const DisplayScaleEvent &e) {
 
 void Window::process(const SystemEvent &e) {
   _signals.system(*this, e);
-  if (e == SystemEvent::Close) {
-    postQuitEvent();
-  }
 }
 
 void Window::process(const StyleChangeEvent &e) {
@@ -93,39 +85,4 @@ void Window::process(const DragDropEvent &e) {
 
 void Window::process(const DataEvent &e) {
   _signals.data(*this, e);
-}
-
-View *Window::setView(View *view) {
-  View *oldView = _view;
-  _view = view;
-  return oldView;
-}
-
-bool Window::nvgInit() {
-  if (!(_nvg = nvgCreate(1, 0))) {
-    return false;
-  }
-  nvgCreateFont(_nvg, "foo", "C:\\Users\\parker\\Documents\\GitHub\\autumn8\\res\\Roboto-Regular.ttf");
-  return true;
-}
-
-void Window::nvgDestroy() {
-  if (_nvg) {
-    nvgDelete(_nvg);
-  }
-}
-
-bool Window::render() {
-  if (!processEvents() || !_view) {
-    return false;
-  }
-
-  //bgfx::setViewRect(0, 0, 0, _size.width, _size.height);
-  bgfx::touch(0);
-  NvgRenderer renderer{_nvg};
-  static_cast<Renderer &>(renderer).beginFrame(size(), scale());
-  _view->render(renderer);
-  renderer.endFrame();
-
-  return true;
 }
