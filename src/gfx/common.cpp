@@ -1,4 +1,5 @@
 #include "a8/gfx/common.h"
+#include "a8/gfx/events.h"
 
 #include <ostream>
 
@@ -60,6 +61,27 @@ std::ostream &operator<<(std::ostream &os, Anchor a) {
   case Anchor::Expand: os << "Expand"; break;
   default: os << "None"; break;
   }
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, SystemEvent e) {
+#define CASE(evt) case SystemEvent::evt: os << #evt; break
+  switch (e) {
+    CASE(Initialize);
+    CASE(Destroy);
+    CASE(Close);
+    CASE(Minimize);
+    CASE(Maximize);
+    CASE(RestoreSize);
+    CASE(FullScreen);
+    CASE(Pause);
+    CASE(Resume);
+    CASE(Focus);
+    CASE(Unfocus);
+    CASE(Back);
+    default: break;
+  }
+#undef CASE
   return os;
 }
 

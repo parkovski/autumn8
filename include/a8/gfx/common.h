@@ -56,7 +56,7 @@ constexpr Anchor operator^(Anchor a1, Anchor a2) {
 }
 /// Inverse: Changes all points to the opposite state.
 constexpr Anchor operator~(Anchor a) {
-  return static_cast<Anchor>(~static_cast<int>(a));
+  return static_cast<Anchor>(~static_cast<int>(a) & 0xF);
 }
 /// Reflection: Flips left/right, top/bottom, but when both are set, both remain.
 constexpr Anchor operator-(Anchor a) {

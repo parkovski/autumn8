@@ -56,11 +56,7 @@ namespace {
   constexpr int InitialCoordMultiplier = 60;
 }
 
-Window::~Window() {
-  if (auto hWnd = MY_HWND; hWnd) {
-    DestroyWindow(hWnd);
-  }
-}
+Window::~Window() {}
 
 bool Window::open(std::string_view title) noexcept {
   _nativeHandle = CreateWindowExW(
@@ -88,7 +84,7 @@ bool Window::open(std::string_view title) noexcept {
 }
 
 void Window::close() noexcept {
-  CloseWindow(MY_HWND);
+  PostMessage(MY_HWND, WM_USER, 0, 0);
 }
 
 void Window::zoom(float newZoom) {
@@ -156,62 +152,72 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
   switch (msg) {
   case WM_NCCREATE: {
-      auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
-      window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
-      window->_eventThread = std::thread{[window]() {
-        while (window->processEvents());
-      }};
-      SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
-    }
-    break;
+    Log::trace("WM_NCCREATE");
+    auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
+    window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
+    window->_eventThread = std::thread{[window]() {
+      window->processEvents();
+      Log::debug("Event thread done!");
+    }};
+    SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+  }
+    return true;
 
   case WM_CREATE: {
-      auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
-      float scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
-      window->_scale = scale;
-      window->_pos = RawPoint{
-        int(createStruct->x * scale / InitialCoordMultiplier),
-        int(createStruct->y * scale / InitialCoordMultiplier)
-      };
-      window->_size = RawSize{
-        int(createStruct->cx * scale / InitialCoordMultiplier),
-        int(createStruct->cy * scale / InitialCoordMultiplier)
-      };
-      SetWindowPos(hWnd, nullptr, window->_pos.x, window->_pos.y,
-                   window->_size.width, window->_size.height,
-                   SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-
-      window->postEvent(SystemEvent::Initialize);
-    }
-    break;
+    Log::trace("WM_CREATE");
+    auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
+    float scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
+    window->_scale = scale;
+    window->_pos = RawPoint{
+      int(createStruct->x * scale / InitialCoordMultiplier),
+      int(createStruct->y * scale / InitialCoordMultiplier)
+    };
+    window->_size = RawSize{
+      int(createStruct->cx * scale / InitialCoordMultiplier),
+      int(createStruct->cy * scale / InitialCoordMultiplier)
+    };
+    window->postEvent(SystemEvent::Initialize);
+    SetWindowPos(hWnd, nullptr, window->_pos.x, window->_pos.y,
+                 window->_size.width, window->_size.height,
+                 SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING
+                  | SWP_NOACTIVATE);
+  }
+    return 0;
 
   case WM_CLOSE:
+    Log::trace("WM_CLOSE");
     window->postEvent(SystemEvent::Close);
+    return 0;
+
+  case WM_USER:
+    Log::trace("WM_USER (A8 Async Destroy)");
     DestroyWindow(hWnd);
     return 0;
 
   case WM_DESTROY:
+    Log::trace("WM_DESTROY");
     window->postEvent(SystemEvent::Destroy);
-    // TODO: If this is the last window:
-    PostThreadMessage(g_platformInit.dwMsgThreadId, WM_QUIT, /*exitCode*/0, 0);
     return 0;
 
   case WM_NCDESTROY:
+    Log::trace("WM_NCDESTROY");
     window->_nativeHandle = nullptr;
+    // TODO: If this is the last window:
+    window->_eventThread.join();
+    PostThreadMessage(g_platformInit.dwMsgThreadId, WM_QUIT, /*exitCode*/0, 0);
     return 0;
 
-  case WM_MOUSEMOVE:
-    {
-      int x = LOWORD(lParam);
-      int y = HIWORD(lParam);
-      // TODO: Are any buttons down?
-      window->postEvent(
-        RawPointerEvent(
-          {x, y}, 1, PointerKind::Mouse, PointerAction::Moved, false, 0, 0
-        )
-      );
-    }
-    break;
+  case WM_MOUSEMOVE: {
+    int x = LOWORD(lParam);
+    int y = HIWORD(lParam);
+    // TODO: Are any buttons down?
+    window->postEvent(
+      RawPointerEvent(
+        {x, y}, 1, PointerKind::Mouse, PointerAction::Moved, false, 0, 0
+      )
+    );
+  }
+    return 0;
 
   case WM_ERASEBKGND:
     return 0;
@@ -219,83 +225,71 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
   case WM_PAINT:
     break;
 
-#if 0
-  case WM_SIZE:
-    {
-      RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
-      Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
-      switch (wParam) {
-      case SIZE_MINIMIZED:
-        window->postEvent(SystemEvent::Minimize);
-        break;
-      case SIZE_MAXIMIZED:
-        window->postEvents(RawResizeEvent{size}, SystemEvent::Maximize);
-        break;
-      // case SIZE_RESTORED:
-      //   window->postEvents(RawResizeEvent{size}, SystemEvent::RestoreSize);
-      //   break;
-      default:
-        window->postEvent(RawResizeEvent{size});
-        break;
-      }
+  case WM_SIZE: {
+    RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
+    Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
+    switch (wParam) {
+    case SIZE_MINIMIZED:
+      window->postEvent(SystemEvent::Minimize);
+      break;
+    case SIZE_MAXIMIZED:
+      window->postEvent(SystemEvent::Maximize);
+      break;
+    // case SIZE_RESTORED:
+    //   window->postEvent(SystemEvent::RestoreSize);
+    //   break;
+    default:
+      break;
     }
+    window->postEvent(RawResizeEvent{size});
+  }
     return 0;
 
-  case WM_SIZING:
-    Log::trace("WM_SIZING");
-    {
-      Anchor side;
-      switch (wParam) {
-      case WMSZ_LEFT:
-        side = Anchor::Left;
-        break;
-      case WMSZ_TOPLEFT:
-        side = Anchor::TopLeft;
-        break;
-      case WMSZ_TOP:
-        side = Anchor::Top;
-        break;
-      case WMSZ_TOPRIGHT:
-        side = Anchor::TopRight;
-        break;
-      case WMSZ_RIGHT:
-        side = Anchor::Right;
-        break;
-      case WMSZ_BOTTOMRIGHT:
-        side = Anchor::BottomRight;
-        break;
-      case WMSZ_BOTTOM:
-        side = Anchor::Bottom;
-        break;
-      case WMSZ_BOTTOMLEFT:
-        side = Anchor::BottomLeft;
-        break;
-      default:
-        side = Anchor::None;
-        break;
-      }
-
-      RECT *rc = reinterpret_cast<RECT *>(lParam);
-      auto size = toSize(rc) - getNonClientBorders(hWnd);
-      //window->postEvent(RawSizingEvent{size, side});
+  case WM_SIZING: {
+    Anchor side;
+    switch (wParam) {
+    case WMSZ_LEFT:
+      side = Anchor::Left;
+      break;
+    case WMSZ_TOPLEFT:
+      side = Anchor::TopLeft;
+      break;
+    case WMSZ_TOP:
+      side = Anchor::Top;
+      break;
+    case WMSZ_TOPRIGHT:
+      side = Anchor::TopRight;
+      break;
+    case WMSZ_RIGHT:
+      side = Anchor::Right;
+      break;
+    case WMSZ_BOTTOMRIGHT:
+      side = Anchor::BottomRight;
+      break;
+    case WMSZ_BOTTOM:
+      side = Anchor::Bottom;
+      break;
+    case WMSZ_BOTTOMLEFT:
+      side = Anchor::BottomLeft;
+      break;
+    default:
+      side = Anchor::None;
+      break;
     }
+    Log::trace("WM_SIZING {}", side);
+
+    RECT *rc = reinterpret_cast<RECT *>(lParam);
+    auto size = toSize(rc) - getNonClientBorders(hWnd);
+    window->postEvent(RawSizingEvent{size, side});
+  }
     return true;
 
-  case WM_MOVE:
-    {
-      int x = (int)(short)LOWORD(lParam);
-      int y = (int)(short)HIWORD(lParam);
-      window->postEvent(RawMovingEvent{RawPoint{x, y}});
-    }
-    return 0;
-
-  case WM_MOVING:
-    {
-      auto rc = reinterpret_cast<LPRECT>(lParam);
-      window->postEvent(RawMovingEvent{{rc->left, rc->top}});
-    }
+  case WM_MOVING: {
+    auto rc = reinterpret_cast<LPRECT>(lParam);
+    window->postEvent(RawMovingEvent{{rc->left, rc->top}});
+  }
     return true;
-#endif
+
   case WM_ENTERSIZEMOVE:
     Log::trace("WM_ENTERSIZEMOVE");
     break;
@@ -304,94 +298,88 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     Log::trace("WM_EXITSIZEMOVE");
     break;
 
-  case WM_WINDOWPOSCHANGING:
-    {
-      auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
-      const RawPoint point{pos->x, pos->y};
-      const RawSize borderSize = getNonClientBorders(hWnd);
-      RawSize size{pos->cx, pos->cy};
-      if (size.width > 0 && size.height > 0) {
-        size -= borderSize;
-      }
-      Log::trace("WM_WINDOWPOSCHANGING: {}, {} : {}x{}, flags=0x{:X}",
-                 pos->x, pos->y, pos->cx, pos->cy, pos->flags);
-      switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
-      case 0:
-        window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
-        break;
-      case SWP_NOMOVE:
-        window->postEvent(RawSizingEvent{size, Anchor::None});
-        break;
-      case SWP_NOSIZE:
-        window->postEvent(RawMovingEvent{point});
-        break;
-      default:
-        break;
-      }
+  /*case WM_WINDOWPOSCHANGING: {
+    auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
+    const RawPoint point{pos->x, pos->y};
+    const RawSize borderSize = getNonClientBorders(hWnd);
+    RawSize size{pos->cx, pos->cy};
+    if (size.width > 0 && size.height > 0) {
+      size -= borderSize;
     }
+    Log::trace("WM_WINDOWPOSCHANGING: {}, {} : {}x{}, flags=0x{:X}",
+               pos->x, pos->y, pos->cx, pos->cy, pos->flags);
+    switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
+    case 0:
+      window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
+      break;
+    case SWP_NOMOVE:
+      window->postEvent(RawSizingEvent{size, Anchor::None});
+      break;
+    case SWP_NOSIZE:
+      window->postEvent(RawMovingEvent{point});
+      break;
+    default:
+      break;
+    }
+  }
     return 0;
 
-  case WM_WINDOWPOSCHANGED:
-    {
-      auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
-      const RawSize size{
-        RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
-      };
-      const RawPoint point{pos->x, pos->y};
-      Log::trace("WM_WINDOWPOSCHANGED: {}, {} : {}x{}; flags=0x{:X}",
-                 pos->x, pos->y, pos->cx, pos->cy, pos->flags);
-      switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
-      case 0:
-        window->postEvents(RawResizeEvent{size}, RawMovingEvent{point});
-        break;
-      case SWP_NOMOVE:
-        //Log::trace("WindowPos: {}, {}", pos->cx, pos->cy);
-        window->postEvents(RawResizeEvent{size});
-        break;
-      case SWP_NOSIZE:
-        //Log::trace("WindowPos: {}x{}", pos->x, pos->y);
-        window->postEvent(RawMovingEvent{point});
-        break;
-      default:
-        //Log::trace("WindowPos");
-        break;
-      }
+  case WM_WINDOWPOSCHANGED: {
+    auto pos = reinterpret_cast<LPWINDOWPOS>(lParam);
+    const RawSize size{
+      RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
+    };
+    const RawPoint point{pos->x, pos->y};
+    Log::trace("WM_WINDOWPOSCHANGED: {}, {} : {}x{}; flags=0x{:X}",
+               pos->x, pos->y, pos->cx, pos->cy, pos->flags);
+    switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
+    case 0:
+      window->postEvents(RawResizeEvent{size}, RawMovingEvent{point});
+      break;
+    case SWP_NOMOVE:
+      //Log::trace("WindowPos: {}, {}", pos->cx, pos->cy);
+      window->postEvents(RawResizeEvent{size});
+      break;
+    case SWP_NOSIZE:
+      //Log::trace("WindowPos: {}x{}", pos->x, pos->y);
+      window->postEvent(RawMovingEvent{point});
+      break;
+    default:
+      //Log::trace("WindowPos");
+      break;
     }
-    return 0;
+  }
+    return 0;*/
 
   case WM_SETFOCUS:
+    Log::trace("WM_SETFOCUS");
     window->postEvent(SystemEvent::Focus);
     break;
 
   case WM_KILLFOCUS:
+    Log::trace("WM_KILLFOCUS");
     window->postEvent(SystemEvent::Unfocus);
     break;
 
-  case WM_DPICHANGED:
-    {
-      auto scale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
-      auto rect = reinterpret_cast<LPRECT>(lParam);
-      auto x = rect->left;
-      auto y = rect->top;
-      auto w = rect->right - x;
-      auto h = rect->bottom - y;
-      SetWindowPos(hWnd, nullptr, x, y, w, h, SWP_NOZORDER | SWP_NOSENDCHANGING);
-      auto monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-      MONITORINFO mi{};
-      mi.cbSize = sizeof(MONITORINFO);
-      GetMonitorInfoW(monitor, &mi);
-      auto xres = mi.rcMonitor.right - mi.rcMonitor.left;
-      auto yres = mi.rcMonitor.bottom - mi.rcMonitor.top;
-      auto borders = getNonClientBorders(hWnd);
-      w -= borders.width;
-      h -= borders.height;
-      window->postEvents(
-        DisplayScaleEvent{scale, {(uint32_t)xres, (uint32_t)yres}},
-        RawMovingEvent{{x, y}},
-        RawResizeEvent{{w, h}}
-      );
-    }
-    break;
+  case WM_DPICHANGED: {
+    window->_scale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
+    auto rect = reinterpret_cast<LPRECT>(lParam);
+    auto x = rect->left;
+    auto y = rect->top;
+    auto w = rect->right - x;
+    auto h = rect->bottom - y;
+    SetWindowPos(hWnd, nullptr, x, y, w, h, SWP_NOZORDER | SWP_NOSENDCHANGING);
+    auto monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi{};
+    mi.cbSize = sizeof(MONITORINFO);
+    GetMonitorInfoW(monitor, &mi);
+    auto xres = mi.rcMonitor.right - mi.rcMonitor.left;
+    auto yres = mi.rcMonitor.bottom - mi.rcMonitor.top;
+    window->postEvent(
+      DisplayScaleEvent{window->_scale, {(uint32_t)xres, (uint32_t)yres}}
+    );
+  }
+    return 0;
   }
 
   return DefWindowProcW(hWnd, msg, wParam, lParam);

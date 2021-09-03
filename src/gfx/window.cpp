@@ -11,11 +11,15 @@ View *Window::setView(View *view) {
 }
 
 bool Window::processEvents() {
-  RawEvent e;
-  _events.wait_dequeue(e);
-  std::visit([this](auto &&e) { this->process(e); }, e);
-  return !(std::holds_alternative<SystemEvent>(e)
-    && std::get<SystemEvent>(e) != SystemEvent::Destroy);
+  while (true) {
+    RawEvent e;
+    _events.wait_dequeue(e);
+    std::visit([this](auto &&e) { this->process(e); }, e);
+    if (std::holds_alternative<SystemEvent>(e)
+        && std::get<SystemEvent>(e) == SystemEvent::Destroy) {
+      return true;
+    }
+  }
 }
 
 void Window::process(const RawPointerEvent &e) {
@@ -72,7 +76,12 @@ void Window::process(const DisplayScaleEvent &e) {
 }
 
 void Window::process(const SystemEvent &e) {
-  _signals.system(*this, e);
+  Log::trace("System {}", e);
+  if (_signals.system(*this, e)) {
+    if (e == SystemEvent::Close) {
+      close();
+    }
+  }
 }
 
 void Window::process(const StyleChangeEvent &e) {

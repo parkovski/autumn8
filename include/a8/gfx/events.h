@@ -6,6 +6,7 @@
 #include <variant>
 #include <cstdint>
 #include <cassert>
+#include <ostream>
 #include <boost/signals2.hpp>
 
 namespace a8::gfx {
@@ -489,58 +490,74 @@ using EventS = std::variant<
 using RawEvent = EventS<false>;
 using Event = EventS<true>;
 
+// Signals can return false to stop the event from propogating further. If no
+// signals are present or all return true, a default behavior may be invoked.
+struct ShortCircuit {
+  using result_type = bool;
+
+  template<class InputIterator>
+  bool operator()(InputIterator first, InputIterator last) const {
+    while (first != last) {
+      if (!*first++) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
 template<typename E>
 using WindowEventHandler =
-  boost::signals2::signal<bool (class Window &, const E &)>;
+  boost::signals2::signal<bool (class Window &, const E &), ShortCircuit>;
 
 template<typename E>
 using ViewEventHandler =
-  boost::signals2::signal<bool (class View &, const E &)>;
+  boost::signals2::signal<bool (class View &, const E &), ShortCircuit>;
 
 template<template<typename> class EventKind>
 struct EventSignals {
   // Let you refer to the signals here by type.
-  template<typename E> E &get();
+  template<typename E> EventKind<E> &get();
 
-  template<typename E> const E &get() const {
-    return const_cast<EventSignals *>(this)->get<E>();
-  }
+  // template<typename E> const E &get() const {
+  //   return const_cast<EventSignals *>(this)->get<E>();
+  // }
 
   EventKind<PointerEvent> pointer;
-  template<> PointerEvent &get<PointerEvent>() { return pointer; }
+  template<> EventKind<PointerEvent> &get<PointerEvent>() { return pointer; }
 
   EventKind<KeyboardEvent> keyboard;
-  template<> KeyboardEvent &get<KeyboardEvent>() { return keyboard; }
+  template<> EventKind<KeyboardEvent> &get<KeyboardEvent>() { return keyboard; }
 
   EventKind<GamepadEvent> gamepad;
-  template<> GamepadEvent &get<GamepadEvent>() { return gamepad; }
+  template<> EventKind<GamepadEvent> &get<GamepadEvent>() { return gamepad; }
 
   EventKind<MidiEvent> midi;
-  template<> MidiEvent &get<MidiEvent>() { return midi; }
+  template<> EventKind<MidiEvent> &get<MidiEvent>() { return midi; }
 
   EventKind<SizingEvent> sizing;
-  template<> SizingEvent &get<SizingEvent>() { return sizing; }
+  template<> EventKind<SizingEvent> &get<SizingEvent>() { return sizing; }
 
   EventKind<MovingEvent> moving;
-  template<> MovingEvent &get<MovingEvent>() { return moving; }
+  template<> EventKind<MovingEvent> &get<MovingEvent>() { return moving; }
 
   EventKind<ResizeEvent> resize;
-  template<> ResizeEvent &get<ResizeEvent>() { return resize; }
+  template<> EventKind<ResizeEvent> &get<ResizeEvent>() { return resize; }
 
   EventKind<DisplayScaleEvent> displayScale;
-  template<> DisplayScaleEvent &get<DisplayScaleEvent>() { return displayScale; }
+  template<> EventKind<DisplayScaleEvent> &get<DisplayScaleEvent>() { return displayScale; }
 
   EventKind<SystemEvent> system;
-  template<> SystemEvent &get<SystemEvent>() { return system; }
+  template<> EventKind<SystemEvent> &get<SystemEvent>() { return system; }
 
   EventKind<StyleChangeEvent> styleChange;
-  template<> StyleChangeEvent &get<StyleChangeEvent>() { return styleChange; }
+  template<> EventKind<StyleChangeEvent> &get<StyleChangeEvent>() { return styleChange; }
 
   EventKind<DragDropEvent> dragDrop;
-  template<> DragDropEvent &get<DragDropEvent>() { return dragDrop; }
+  template<> EventKind<DragDropEvent> &get<DragDropEvent>() { return dragDrop; }
 
   EventKind<DataEvent> data;
-  template<> DataEvent &get<DataEvent>() { return data; }
+  template<> EventKind<DataEvent> &get<DataEvent>() { return data; }
 };
 
 } // namespace a8::gfx
