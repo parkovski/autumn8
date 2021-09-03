@@ -485,4 +485,3 @@ public:
 } // namespace a8::gfx
 
 #endif // A8_GFX_RENDERER_H_
-

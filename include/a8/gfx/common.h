@@ -383,4 +383,3 @@ using Rect = RectS<true>;
 } // namespace a8::gfx
 
 #endif /* A8_GFX_COMMON_H_ */
-

@@ -73,4 +73,3 @@ extern const wchar_t *A8WindowClass;
 } // namespace a8::platform::windows
 
 #endif // A8_GFX_PLATFORM_WINDOWS_H_
-

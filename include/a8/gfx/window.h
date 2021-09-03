@@ -3,8 +3,6 @@
 
 #include "events.h"
 
-//#include "yoga/yoga.h"
-
 #include "concurrentqueue/blockingconcurrentqueue.h"
 
 #include <boost/signals2.hpp>
@@ -22,8 +20,11 @@ class Window {
   static constexpr int QueueSize = 64;
 
 public:
-  template<typename E>
-  using winsig_t = boost::signals2::signal<bool (Window &, const E &)>;
+  template<class E>
+  using Signal = ::a8::gfx::Signal<Window, E>;
+
+  template<class E>
+  using Slot = ::a8::gfx::Slot<Window, E>;
 
   Window() = default;
 
@@ -65,9 +66,9 @@ public:
 
   /// @type E The event type.
   /// @param slot The callback function.
-  template<typename E>
-  auto connect(boost::signals2::slot<bool (Window &, const E &)> slot) {
-    return _signals.get<E>().connect(slot);
+  template<class E>
+  auto connect(Slot<E> slot) {
+    return _signals.get<E>().connect(std::move(slot));
   }
 
   bool postEvent(const RawEvent &event) {
@@ -112,7 +113,7 @@ private:
 #endif
 
   moodycamel::BlockingConcurrentQueue<RawEvent> _events;
-  EventSignals<WindowEventHandler> _signals;
+  EventSignals<Signal> _signals;
   std::thread _eventThread;
 
   void *_nativeHandle = nullptr;

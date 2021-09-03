@@ -3,7 +3,7 @@ project(Autumn8Graphics)
 set(SOURCES
   common.cpp
   #nvgrenderer.cpp
-  #view.cpp
+  view.cpp
   window.cpp
 )
 
@@ -19,5 +19,6 @@ target_include_directories(a8gfx PUBLIC ${Boost_INCLUDE_DIRS})
 if(${A8_GFXBACKEND} STREQUAL "Win32")
   target_sources(a8gfx PRIVATE
     backend/Win32/messageloop.cpp
+    backend/Win32/webview.cpp
   )
 endif()

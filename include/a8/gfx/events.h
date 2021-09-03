@@ -506,61 +506,41 @@ struct ShortCircuit {
   }
 };
 
-template<typename E>
-using WindowEventHandler =
-  boost::signals2::signal<bool (class Window &, const E &), ShortCircuit>;
+template<class R, class E>
+using Signal = boost::signals2::signal<bool (R &, const E &), ShortCircuit>;
 
-template<typename E>
-using ViewEventHandler =
-  boost::signals2::signal<bool (class View &, const E &), ShortCircuit>;
+template<class R, class E>
+using Slot = boost::signals2::slot<bool (R &, const E &)>;
 
-template<template<typename> class EventKind>
+template<template<class> class EventKind>
 struct EventSignals {
   // Let you refer to the signals here by type.
-  template<typename E> EventKind<E> &get();
+  template<class E> EventKind<E> &get();
 
   // template<typename E> const E &get() const {
   //   return const_cast<EventSignals *>(this)->get<E>();
   // }
 
-  EventKind<PointerEvent> pointer;
-  template<> EventKind<PointerEvent> &get<PointerEvent>() { return pointer; }
+#define DEFEVENT(Class, Name) \
+  EventKind<Class> Name; \
+  template<> EventKind<Class> &get<Class>() { return Name; }
 
-  EventKind<KeyboardEvent> keyboard;
-  template<> EventKind<KeyboardEvent> &get<KeyboardEvent>() { return keyboard; }
+  DEFEVENT(PointerEvent, pointer)
+  DEFEVENT(KeyboardEvent, keyboard)
+  DEFEVENT(GamepadEvent, gamepad)
+  DEFEVENT(MidiEvent, midi)
+  DEFEVENT(SizingEvent, sizing)
+  DEFEVENT(MovingEvent, moving)
+  DEFEVENT(ResizeEvent, resize)
+  DEFEVENT(DisplayScaleEvent, displayScale)
+  DEFEVENT(SystemEvent, system)
+  DEFEVENT(StyleChangeEvent, styleChange)
+  DEFEVENT(DragDropEvent, dragDrop)
+  DEFEVENT(DataEvent, data)
 
-  EventKind<GamepadEvent> gamepad;
-  template<> EventKind<GamepadEvent> &get<GamepadEvent>() { return gamepad; }
-
-  EventKind<MidiEvent> midi;
-  template<> EventKind<MidiEvent> &get<MidiEvent>() { return midi; }
-
-  EventKind<SizingEvent> sizing;
-  template<> EventKind<SizingEvent> &get<SizingEvent>() { return sizing; }
-
-  EventKind<MovingEvent> moving;
-  template<> EventKind<MovingEvent> &get<MovingEvent>() { return moving; }
-
-  EventKind<ResizeEvent> resize;
-  template<> EventKind<ResizeEvent> &get<ResizeEvent>() { return resize; }
-
-  EventKind<DisplayScaleEvent> displayScale;
-  template<> EventKind<DisplayScaleEvent> &get<DisplayScaleEvent>() { return displayScale; }
-
-  EventKind<SystemEvent> system;
-  template<> EventKind<SystemEvent> &get<SystemEvent>() { return system; }
-
-  EventKind<StyleChangeEvent> styleChange;
-  template<> EventKind<StyleChangeEvent> &get<StyleChangeEvent>() { return styleChange; }
-
-  EventKind<DragDropEvent> dragDrop;
-  template<> EventKind<DragDropEvent> &get<DragDropEvent>() { return dragDrop; }
-
-  EventKind<DataEvent> data;
-  template<> EventKind<DataEvent> &get<DataEvent>() { return data; }
+#undef DEFEVENT
 };
 
 } // namespace a8::gfx
 
 #endif // A8_GFX_EVENTS_H_
-

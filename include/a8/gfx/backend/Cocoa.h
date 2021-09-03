@@ -4,4 +4,3 @@
 
 
 #endif /* A8_GFX_BACKEND_COCOA_H_ */
-
