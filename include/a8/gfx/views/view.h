@@ -7,6 +7,8 @@
 
 namespace a8::gfx {
 
+class Window;
+
 class View {
 public:
   template<class E>
@@ -24,6 +26,9 @@ public:
   View &operator=(View &&) = delete;
 
   virtual ~View() = 0;
+
+  virtual void init(Window *window) = 0;
+  virtual void resize(RawPoint pos, RawSize size) = 0;
 };
 
 } // namespace a8::gfx

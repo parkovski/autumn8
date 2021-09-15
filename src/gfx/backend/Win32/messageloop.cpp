@@ -3,6 +3,7 @@
 #include "a8/a8.h"
 #include "a8/platform/Windows/platform.h"
 #include "a8/gfx/window.h"
+#include "a8/gfx/views/view.h"
 #include "a8/util/utfconv.h"
 
 #include "fmt/ostream.h"
@@ -155,6 +156,7 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     Log::trace("WM_NCCREATE");
     auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
     window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
+    window->_nativeHandle = hWnd;
     window->_eventThread = std::thread{[window]() {
       window->processEvents();
       Log::debug("Event thread done!");
@@ -181,6 +183,10 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                  window->_size.width, window->_size.height,
                  SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING
                   | SWP_NOACTIVATE);
+    // TODO: Probably do this after Initialize event.
+    if (window->_view) {
+      window->_view->init(window);
+    }
   }
     return 0;
 
@@ -196,6 +202,10 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
   case WM_DESTROY:
     Log::trace("WM_DESTROY");
+    // TODO: OMG
+    if (window->_view) {
+      delete window->_view;
+    }
     window->postEvent(SystemEvent::Destroy);
     return 0;
 
@@ -219,12 +229,6 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
   }
     return 0;
 
-  case WM_ERASEBKGND:
-    return 0;
-
-  case WM_PAINT:
-    break;
-
   case WM_SIZE: {
     RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
     Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
@@ -240,6 +244,9 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     //   break;
     default:
       break;
+    }
+    if (window->_view) {
+      window->_view->resize({0, 0}, size);
     }
     window->postEvent(RawResizeEvent{size});
   }

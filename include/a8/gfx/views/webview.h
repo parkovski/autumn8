@@ -7,14 +7,17 @@
 namespace a8::gfx {
 
 class WebView : public View {
-  void *_a;
-  void *_b;
+  void *_a = nullptr;
+  void *_b = nullptr;
+
+  void initFinished();
 
 public:
   WebView();
-  WebView(std::string_view url);
-
   ~WebView();
+
+  void init(Window *window) override;
+  void resize(RawPoint pos, RawSize size) override;
 };
 
 } // namespace a8::gfx

@@ -1,8 +1,27 @@
 #ifndef A8_GFX_PLATFORM_WINDOWS_H_
 #define A8_GFX_PLATFORM_WINDOWS_H_
 
-#include <ostream>
+#ifndef _UNICODE
+# define _UNICODE
+#endif
+
+#ifndef UNICODE
+# define UNICODE
+#endif
+
+#ifndef WIN32
+# define WIN32
+#endif
+
+#ifndef _WINDOWS
+# define _WINDOWS
+#endif
+
+#ifndef NOMINMAX
+# define NOMINMAX
+#endif
 #include <Windows.h>
+#include <ostream>
 
 namespace a8::platform::windows {
 
