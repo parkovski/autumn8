@@ -3,6 +3,12 @@
 
 #include "config.h"
 #include "compiler.h"
+#ifdef A8_INCLUDE_PLATFORM
+# include A8_PLATFORM_HEADER
+#endif
+#ifdef A8_INCLUDE_GFX_PLATFORM
+# include A8_GFX_PLATFORM_HEADER
+#endif
 #include "util/inline.h"
 
 #include <fmt/format.h>
@@ -22,37 +28,61 @@ class Log {
   static std::shared_ptr<spdlog::logger> g_logger;
 
 public:
+  static constexpr const char *pattern_no_color = "[%T.%e #%-5t] %5l: %v";
+  static constexpr const char *pattern_no_color_explicit = "[%Y-%m-%d %T.%e #%-5t] %5l: %v";
+  static constexpr const char *pattern_color = "\033[90m[%T.%e #%-5t]\033[m %^%5l:%$ %v";
+  static constexpr const char *pattern_color_explicit = "\033[90m[%Y-%m-%d %T.%e #%-5t]\033[m %^%5l:%$ %v";
+
+  explicit Log(std::shared_ptr<spdlog::logger> logger) {
+    g_logger = std::move(logger);
+  }
+
   explicit Log(int argc, char *argv[]);
-  ~Log();
+
+  ~Log() {
+    spdlog::drop_all();
+  }
 
   template<typename... Args>
   static inline void debug(Args &&...args) {
-    g_logger->log(::spdlog::level::debug, std::forward<Args>(args)...);
+    if (g_logger) {
+      g_logger->log(::spdlog::level::debug, std::forward<Args>(args)...);
+    }
   }
 
   template<typename... Args>
   static inline void trace(Args &&...args) {
-    g_logger->log(::spdlog::level::trace, std::forward<Args>(args)...);
+    if (g_logger) {
+      g_logger->log(::spdlog::level::trace, std::forward<Args>(args)...);
+    }
   }
 
   template<typename... Args>
   static inline void info(Args &&...args) {
-    g_logger->log(::spdlog::level::info, std::forward<Args>(args)...);
+    if (g_logger) {
+      g_logger->log(::spdlog::level::info, std::forward<Args>(args)...);
+    }
   }
 
   template<typename... Args>
   static inline void warn(Args &&...args) {
-    g_logger->log(::spdlog::level::warn, std::forward<Args>(args)...);
+    if (g_logger) {
+      g_logger->log(::spdlog::level::warn, std::forward<Args>(args)...);
+    }
   }
 
   template<typename... Args>
   static inline void error(Args &&...args) {
-    g_logger->log(::spdlog::level::err, std::forward<Args>(args)...);
+    if (g_logger) {
+      g_logger->log(::spdlog::level::err, std::forward<Args>(args)...);
+    }
   }
 
   template<typename... Args>
   static inline void critical(Args &&...args) {
-    g_logger->log(::spdlog::level::critical, std::forward<Args>(args)...);
+    if (g_logger) {
+      g_logger->log(::spdlog::level::critical, std::forward<Args>(args)...);
+    }
   }
 
   template<typename... Args>

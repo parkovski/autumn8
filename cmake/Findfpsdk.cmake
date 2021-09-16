@@ -1,4 +1,4 @@
-if(EXISTS "${PROJECT_SOURCE_DIR}/contrib/fpsdk/fp_cplug.cpp")
+if(EXISTS "${PROJECT_SOURCE_DIR}/contrib/fpsdk/fp_cplug.h")
   file(GLOB fpsdk_SOURCES ${PROJECT_SOURCE_DIR}/contrib/fpsdk *.cpp)
   add_library(fpsdk INTERFACE IMPORTED)
   target_sources(fpsdk INTERFACE ${fpsdk_SOURCES})

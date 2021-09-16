@@ -1,8 +1,7 @@
+#define A8_INCLUDE_PLATFORM
 #include "a8/a8.h"
-#include "a8/platform/Windows/platform.h"
 #include "a8/util/utfconv.h"
 
-#include <Windows.h>
 #include <shellapi.h>
 #include <string>
 #include <memory>
@@ -24,7 +23,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   std::string buffer{};
   std::string temp;
   auto argv8{std::make_unique<char *[]>(argc)};
-  bool usingConsole = false;
   for (int i = 0; i < argc; ++i) {
     temp = to_utf8(argv16[i]);
     argv8[i] = reinterpret_cast<char *>(temp.length() + 1);
@@ -33,11 +31,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
     }
     buffer.append(temp).push_back('\0');
 
-    if (i > 0 && temp == "--console" && !usingConsole) {
-      usingConsole = true;
-      if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
-        AllocConsole();
-      }
+    if (i > 0 && temp == "--console") {
+      g_platformInit.wantsConsole = true;
     }
   }
   LocalFree(argv16);
@@ -47,31 +42,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   }
   argv8[0] = buffer.data();
 
+  g_platformInit.init(hInstance, nCmdShow);
+
   Log log{argc, argv8.get()};
-
-  setThreadName(L"Message thread");
-  auto dpiAwareness = enableThreadDpiAwareness();
-  if (usingConsole) {
-    Log::trace("DPI Awareness: {}.", dpiAwareness);
-  }
-
-  WNDCLASSEXW cls{};
-  cls.cbSize = sizeof(WNDCLASSEXW);
-  cls.style = CS_HREDRAW | CS_VREDRAW;
-  cls.lpfnWndProc = mainWndProc;
-  cls.hInstance = hInstance;
-  cls.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-  cls.hCursor = LoadCursor(nullptr, IDC_ARROW);
-  cls.lpszClassName = A8WindowClass;
-  cls.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
-
-  if (!RegisterClassExW(&cls)) {
-    Log::critical("RegisterClassExW failed.");
-    return 1;
-  }
-
-  g_platformInit.hInstance = hInstance;
-  g_platformInit.nCmdShow = nCmdShow;
 
   return a8main(argc, argv8.get());
 }

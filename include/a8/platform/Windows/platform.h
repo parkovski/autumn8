@@ -1,5 +1,5 @@
-#ifndef A8_GFX_PLATFORM_WINDOWS_H_
-#define A8_GFX_PLATFORM_WINDOWS_H_
+#ifndef A8_PLATFORM_WINDOWS_H_
+#define A8_PLATFORM_WINDOWS_H_
 
 #ifndef _UNICODE
 # define _UNICODE
@@ -21,22 +21,15 @@
 # define NOMINMAX
 #endif
 #include <Windows.h>
-#include <ostream>
 
-namespace a8::platform::windows {
+#include <optional>
+
+namespace a8::platform {
+inline namespace windows {
 
 bool setThreadName(const wchar_t *name);
 
 enum class DpiStatus { Error = 0, Ok, Fallback };
-inline std::ostream &operator<<(std::ostream &os, DpiStatus status) {
-  switch (status) {
-  case DpiStatus::Error: os << "DpiStatus::Error"; break;
-  case DpiStatus::Ok: os << "DpiStatus::Ok"; break;
-  case DpiStatus::Fallback: os << "DpiStatus::Fallback"; break;
-  default: os << "DpiStatus::???"; break;
-  }
-  return os;
-}
 DpiStatus enableThreadDpiAwareness();
 
 LRESULT CALLBACK mainWndProc(HWND, UINT, WPARAM, LPARAM);
@@ -51,15 +44,6 @@ public:
     }
   }
 
-  CallSite(const CallSite<F> &other) noexcept
-    : _cachedFunction(other._cachedFunction)
-  {}
-
-  CallSite<F> &operator=(const CallSite<F> &other) noexcept {
-    _cachedFunction = other._cachedFunction;
-    return *this;
-  }
-
   bool operator==(const CallSite<F> &other) noexcept {
     return _cachedFunction == other._cachedFunction;
   }
@@ -68,12 +52,14 @@ public:
     return !(*this == other);
   }
 
-  operator bool() const {
+  explicit operator bool() const noexcept {
     return !!_cachedFunction;
   }
 
   template<typename... Args>
-  decltype(auto) operator()(Args &&...args) const {
+  decltype(auto) operator()(Args &&...args) const
+    noexcept(noexcept(_cachedFunction(std::forward<Args>(args)...)))
+  {
     return _cachedFunction(std::forward<Args>(args)...);
   }
 
@@ -81,14 +67,22 @@ private:
   F _cachedFunction;
 };
 
-extern struct GlobalPlatformInit {
-  int nCmdShow;
-  HINSTANCE hInstance;
-  DWORD dwMsgThreadId;
-} g_platformInit;
-
 extern const wchar_t *A8WindowClass;
 
-} // namespace a8::platform::windows
+extern struct GlobalPlatformInit {
+  int nCmdShow = SW_HIDE;
+  HINSTANCE hInstance = nullptr;
+  DWORD dwMainThreadId = 0;
+  DpiStatus mainThreadDpiStatus = DpiStatus::Error;
+  bool wantsConsole = false;
 
-#endif // A8_GFX_PLATFORM_WINDOWS_H_
+  void init(HINSTANCE hInstance, int nCmdShow = SW_NORMAL) noexcept;
+
+  // For DLLs.
+  void deinit() const noexcept;
+} g_platformInit;
+
+} // inline namespace windows
+} // namespace a8::platform
+
+#endif // A8_PLATFORM_WINDOWS_H_

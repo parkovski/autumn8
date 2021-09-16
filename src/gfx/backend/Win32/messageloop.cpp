@@ -1,14 +1,14 @@
 #define A8_PLATFORM_WINDOWS_IMPL
 
+#define A8_INCLUDE_PLATFORM
 #include "a8/a8.h"
-#include "a8/platform/Windows/platform.h"
+
 #include "a8/gfx/window.h"
 #include "a8/gfx/views/view.h"
 #include "a8/util/utfconv.h"
 
 #include "fmt/ostream.h"
 
-#include <Windows.h>
 #include <string>
 #include <future>
 #include <atomic>
@@ -21,10 +21,10 @@ using a8::Log;
 using namespace a8::platform::windows;
 using namespace a8::gfx;
 
-namespace a8::platform::windows {
+namespace a8::platform {
+inline namespace windows {
 
 const wchar_t *A8WindowClass = L"Autumn8WndClass";
-GlobalPlatformInit g_platformInit;
 
 bool setThreadName(const wchar_t *name) {
   static CallSite<decltype(&SetThreadDescription)> fn(
@@ -50,7 +50,46 @@ DpiStatus enableThreadDpiAwareness() {
   return DpiStatus::Error;
 }
 
-} // namespace a8::platform::windows
+void GlobalPlatformInit::init(HINSTANCE hInstance, int nCmdShow) noexcept {
+  if (this->hInstance) {
+    return;
+  }
+
+  this->hInstance = hInstance;
+  this->nCmdShow = nCmdShow;
+  this->dwMainThreadId = GetCurrentThreadId();
+  setThreadName(L"Main");
+  this->mainThreadDpiStatus = enableThreadDpiAwareness();
+
+  if (wantsConsole) {
+    if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+      AllocConsole();
+    }
+  }
+
+  WNDCLASSEXW cls{};
+  cls.cbSize = sizeof(WNDCLASSEXW);
+  cls.style = CS_HREDRAW | CS_VREDRAW;
+  cls.lpfnWndProc = mainWndProc;
+  cls.hInstance = hInstance;
+  cls.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+  cls.hCursor = LoadCursor(nullptr, IDC_ARROW);
+  cls.lpszClassName = A8WindowClass;
+  cls.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
+
+  if (!RegisterClassEx(&cls)) {
+    Log::error("RegisterClassExW failed.");
+  }
+}
+
+void GlobalPlatformInit::deinit() const noexcept {
+  UnregisterClass(A8WindowClass, hInstance);
+}
+
+GlobalPlatformInit g_platformInit;
+
+} // inline namespace windows
+} // namespace a8::platform
 
 namespace {
   // To not lose precision by storing coordinates as int.
@@ -59,17 +98,22 @@ namespace {
 
 Window::~Window() {}
 
-bool Window::open(std::string_view title) noexcept {
-  _nativeHandle = CreateWindowExW(
+bool Window::open(std::string_view title, void *parent) noexcept {
+  DWORD style = parent
+    ? WS_CHILD | WS_VISIBLE
+    : WS_OVERLAPPEDWINDOW;
+
+  auto u16title = to_utf16(title);
+  _nativeHandle = CreateWindowEx(
     WS_EX_ACCEPTFILES,
     A8WindowClass,
-    to_utf16(title).c_str(),
-    WS_OVERLAPPEDWINDOW,
-    int(_pos.x * InitialCoordMultiplier),
-    int(_pos.y * InitialCoordMultiplier),
-    int(_size.width * InitialCoordMultiplier),
-    int(_size.height * InitialCoordMultiplier),
-    nullptr,
+    u16title.c_str(),
+    style,
+    _pos.x,
+    _pos.y,
+    _size.width,
+    _size.height,
+    (HWND)parent,
     nullptr,
     g_platformInit.hInstance,
     this
@@ -79,13 +123,24 @@ bool Window::open(std::string_view title) noexcept {
     return false;
   }
 
-  ShowWindow(MY_HWND, g_platformInit.nCmdShow);
-  UpdateWindow(MY_HWND);
+  if (!parent) {
+    ShowWindow(MY_HWND, g_platformInit.nCmdShow);
+    UpdateWindow(MY_HWND);
+  }
   return true;
 }
 
 void Window::close() noexcept {
   PostMessage(MY_HWND, WM_USER, 0, 0);
+}
+
+void Window::show(bool show) noexcept {
+  if (show) {
+    ShowWindow(MY_HWND, SW_SHOW);
+    UpdateWindow(MY_HWND);
+  } else {
+    ShowWindow(MY_HWND, SW_HIDE);
+  }
 }
 
 void Window::zoom(float newZoom) {
@@ -149,7 +204,7 @@ static RawSize getNonClientBorders(HWND hWnd) {
 
 LRESULT CALLBACK
 a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-  auto *window = reinterpret_cast<Window *>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+  auto *window = reinterpret_cast<Window *>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
   switch (msg) {
   case WM_NCCREATE: {
@@ -158,10 +213,10 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
     window->_nativeHandle = hWnd;
     window->_eventThread = std::thread{[window]() {
-      window->processEvents();
-      Log::debug("Event thread done!");
+      auto result = window->processEvents();
+      Log::debug("Event thread returned {}.", result);
     }};
-    SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
   }
     return true;
 
@@ -171,12 +226,12 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     float scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
     window->_scale = scale;
     window->_pos = RawPoint{
-      int(createStruct->x * scale / InitialCoordMultiplier),
-      int(createStruct->y * scale / InitialCoordMultiplier)
+      int(createStruct->x * scale),
+      int(createStruct->y * scale)
     };
     window->_size = RawSize{
-      int(createStruct->cx * scale / InitialCoordMultiplier),
-      int(createStruct->cy * scale / InitialCoordMultiplier)
+      int(createStruct->cx * scale),
+      int(createStruct->cy * scale)
     };
     window->postEvent(SystemEvent::Initialize);
     SetWindowPos(hWnd, nullptr, window->_pos.x, window->_pos.y,
@@ -200,22 +255,26 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     DestroyWindow(hWnd);
     return 0;
 
-  case WM_DESTROY:
+  case WM_DESTROY: {
     Log::trace("WM_DESTROY");
     // TODO: OMG
     if (window->_view) {
       delete window->_view;
+      window->_view = nullptr;
     }
-    window->postEvent(SystemEvent::Destroy);
+    window->postEvents(SystemEvent::Destroy, EventLoopQuitEvent{});
     return 0;
+  }
 
-  case WM_NCDESTROY:
+  case WM_NCDESTROY: {
     Log::trace("WM_NCDESTROY");
-    window->_nativeHandle = nullptr;
-    // TODO: If this is the last window:
+    if (window->_quitOnClose) {
+      PostQuitMessage(0);
+    }
     window->_eventThread.join();
-    PostThreadMessage(g_platformInit.dwMsgThreadId, WM_QUIT, /*exitCode*/0, 0);
+    delete window;
     return 0;
+  }
 
   case WM_MOUSEMOVE: {
     int x = LOWORD(lParam);
@@ -379,7 +438,7 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     auto monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO mi{};
     mi.cbSize = sizeof(MONITORINFO);
-    GetMonitorInfoW(monitor, &mi);
+    GetMonitorInfo(monitor, &mi);
     auto xres = mi.rcMonitor.right - mi.rcMonitor.left;
     auto yres = mi.rcMonitor.bottom - mi.rcMonitor.top;
     window->postEvent(
@@ -389,11 +448,14 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     return 0;
   }
 
-  return DefWindowProcW(hWnd, msg, wParam, lParam);
+  return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 int a8::gfx::runMessageLoop() {
-  g_platformInit.dwMsgThreadId = GetCurrentThreadId();
+  if (g_platformInit.dwMainThreadId != GetCurrentThreadId()) {
+    Log::warn("Expected runMessageLoop() on thread {}",
+              g_platformInit.dwMainThreadId);
+  }
 
   MSG msg;
   while (GetMessage(&msg, nullptr, 0, 0) > 0) {
@@ -405,7 +467,10 @@ int a8::gfx::runMessageLoop() {
 }
 
 int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
-  g_platformInit.dwMsgThreadId = GetCurrentThreadId();
+  if (g_platformInit.dwMainThreadId != GetCurrentThreadId()) {
+    Log::warn("Expected runConstantFPSMessageLoop() on thread {}",
+              g_platformInit.dwMainThreadId);
+  }
 
   // Units are 100ns intervals. There are 10 million of these in a second.
   const ULONGLONG interval = 10'000'000 / fps;
@@ -419,9 +484,9 @@ int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
       // 10,000 "intervals" per millisecond.
       auto ms = (DWORD)((nextTime - currentTime) / 10'000ULL);
       if (MsgWaitForMultipleObjects(0, nullptr, false, ms, QS_ALLINPUT) != WAIT_TIMEOUT) {
-        if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
           TranslateMessage(&msg);
-          DispatchMessageW(&msg);
+          DispatchMessage(&msg);
           if (msg.message == WM_QUIT) {
             break;
           }
@@ -436,4 +501,8 @@ int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
   }
 
   return (int)msg.wParam;
+}
+
+void a8::gfx::postQuitMessage(int exitCode) {
+  PostQuitMessage(exitCode);
 }

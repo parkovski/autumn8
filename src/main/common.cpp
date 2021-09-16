@@ -54,6 +54,12 @@ Log::Log(int argc, char *argv[]) {
   getTermCaps(vt, ttyout, ttyerr);
 
   std::string pattern;
+  if (ttyerr && vt) {
+    pattern = pattern_color;
+  } else {
+    pattern = pattern_no_color;
+  }
+
   spdlog::level::level_enum level =
 #ifdef NDEBUG
     spdlog::level::warn
@@ -66,6 +72,8 @@ Log::Log(int argc, char *argv[]) {
     if (argv[i][0] == '-' && argv[i][1] == 'V') {
       switch (argv[i][2]) {
         case '0':
+        case '-':
+        case 'o':
           level = spdlog::level::off;
           break;
         case '1':
@@ -84,7 +92,6 @@ Log::Log(int argc, char *argv[]) {
         case 'i':
           level = spdlog::level::info;
           break;
-        case '\0':
         case '5':
         case 'd':
           level = spdlog::level::debug;
@@ -93,20 +100,57 @@ Log::Log(int argc, char *argv[]) {
         case 't':
           level = spdlog::level::trace;
           break;
+        case '\0': {
+          if (i + 1 == argc) {
+#ifdef NDEBUG
+            level = spdlog::level::info;
+#else
+            level = spdlog::level::trace;
+#endif
+            break;
+          }
+
+          std::string_view next{argv[i + 1]};
+          if (next == "off") {
+            level = spdlog::level::off;
+          } else if (next == "critical") {
+            level = spdlog::level::critical;
+          } else if (next == "error") {
+            level = spdlog::level::err;
+          } else if (next == "warn" || next == "warning") {
+            level = spdlog::level::warn;
+          } else if (next == "info") {
+            level = spdlog::level::info;
+          } else if (next == "debug") {
+            level = spdlog::level::debug;
+          } else if (next == "trace") {
+            level = spdlog::level::trace;
+          } else {
+#ifdef NDEBUG
+            level = spdlog::level::info;
+#else
+            level = spdlog::level::trace;
+#endif
+            continue;
+          }
+
+          ++i;
+          break;
+        }
       }
     } else if (std::string_view{argv[i]} == "--log-format" && i + 1 < argc) {
       pattern = argv[++i];
-      if (pattern.find("%v") == std::string::npos) {
+      if (pattern == "no-color") {
+        pattern = pattern_no_color;
+      } else if (pattern == "color") {
+        pattern = pattern_color;
+      } else if (pattern == "no-color-explicit") {
+        pattern = pattern_no_color_explicit;
+      } else if (pattern == "color-explicit") {
+        pattern = pattern_color_explicit;
+      } else if (pattern.find("%v") == std::string::npos) {
         pattern += " %v";
       }
-    }
-  }
-
-  if (pattern.empty()) {
-    if (ttyerr && vt) {
-      pattern = "\033[90m[%T.%e] T#%-5t\033[m %^%5l:%$ %v";
-    } else {
-      pattern = "[%Y-%m-%d %T.%e] T#%-5t %5l: %v";
     }
   }
 
@@ -117,9 +161,5 @@ Log::Log(int argc, char *argv[]) {
   } else {
     g_logger = spdlog::stderr_logger_mt("autumn8");
   }
-  g_logger->trace("Hello :)");
-}
-
-Log::~Log() {
-  spdlog::drop_all();
+  g_logger->info("Hello from A8 😀");
 }

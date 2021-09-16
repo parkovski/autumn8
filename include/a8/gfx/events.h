@@ -418,6 +418,8 @@ enum class SystemEvent {
 
 std::ostream &operator<<(std::ostream &os, SystemEvent e);
 
+struct EventLoopQuitEvent {};
+
 struct StyleChangeEvent {
   int todo;
 };
@@ -473,6 +475,7 @@ static_assert(sizeof(DataEvent) == 2 * sizeof(int64_t));
 template<bool scaled>
 using EventS = std::variant<
   std::monostate,
+  EventLoopQuitEvent,
   PointerEventS<scaled>,
   KeyboardEvent,
   GamepadEvent,

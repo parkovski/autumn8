@@ -14,6 +14,8 @@
 
 namespace a8::gfx {
 
+void postQuitMessage(int exitCode);
+
 class View;
 
 class Window {
@@ -35,27 +37,29 @@ public:
 
   ~Window();
 
-  bool open(std::string_view title) noexcept;
+  bool open(std::string_view title, void *parent = nullptr) noexcept;
   void close() noexcept;
 
+  void show(bool show) noexcept;
+
   View *setView(View *view);
-  View *view() {
+  View *view() noexcept {
     return _view;
   }
-  const View *view() const {
+  const View *view() const noexcept {
     return _view;
   }
 
-  float zoom() const { return _zoom; }
+  float zoom() const noexcept { return _zoom; }
   void zoom(float newZoom);
 
-  float scale() const { return _scale; }
+  float scale() const noexcept { return _scale; }
 
-  Size size() const { return Size(_size) / _scale; }
+  Size size() const noexcept { return Size(_size) / _scale; }
   void size(Size newSize);
   void size(float width, float height) { size({width, height}); }
 
-  Point position() const { return Point(_pos) / _scale; }
+  Point position() const noexcept { return Point(_pos) / _scale; }
   void position(Point newPosition);
   void position(float x, float y) { position({x, y}); }
 
@@ -69,6 +73,10 @@ public:
   template<class E>
   auto connect(Slot<E> slot) {
     return _signals.get<E>().connect(std::move(slot));
+  }
+
+  void quitOnClose(bool quit = true) noexcept {
+    _quitOnClose = quit;
   }
 
   bool postEvent(const RawEvent &event) {
@@ -88,11 +96,12 @@ public:
     return _events.enqueue_bulk(eventsArray.begin(), eventsArray.size());
   }
 
-  void *nativeHandle() const { return _nativeHandle; }
+  void *nativeHandle() const noexcept { return _nativeHandle; }
 
 private:
   bool processEvents();
   void process(const std::monostate &) {}
+  void process(const EventLoopQuitEvent &);
   void process(const RawPointerEvent &);
   void process(const KeyboardEvent &);
   void process(const GamepadEvent &);
@@ -122,6 +131,7 @@ private:
   RawPoint _pos{};
   RawSize _size{};
   View *_view = nullptr;
+  bool _quitOnClose = false;
 };
 
 int runMessageLoop();

@@ -14,12 +14,17 @@ bool Window::processEvents() {
   while (true) {
     RawEvent e;
     _events.wait_dequeue(e);
-    std::visit([this](auto &&e) { this->process(e); }, e);
-    if (std::holds_alternative<SystemEvent>(e)
-        && std::get<SystemEvent>(e) == SystemEvent::Destroy) {
-      return true;
+    if (std::holds_alternative<EventLoopQuitEvent>(e)) {
+      // Return true if the queue is empty, false if there are pending events
+      // that will not be handled.
+      return !_events.try_dequeue(e);
     }
+    std::visit([this](auto &&e) { this->process(e); }, e);
   }
+}
+
+void Window::process(const EventLoopQuitEvent &) {
+  A8_UNREACHABLE;
 }
 
 void Window::process(const RawPointerEvent &e) {
