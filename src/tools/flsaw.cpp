@@ -1,8 +1,10 @@
+#include "a8/a8.h"
 #include "a8/flp/flplug.h"
 
 #include "a8/gfx/views/webview.h"
 
 using namespace a8::flp;
+using a8::Log;
 
 struct TVoice {
   intptr_t HostTag = 0;
@@ -43,12 +45,15 @@ public:
 
   struct ParamId { enum {
     Volume,
+    WaveTable,
     END,
   }; };
   static constexpr int DefaultParamCount = ParamId::END;
 
+  static constexpr int WaveTableCount = 6;
+
 private:
-  int _params[DefaultParamCount];
+  int _params[DefaultParamCount] = { 80, 3 };
   TVoice _voices[DefaultPolyVoices];
 
   void clearVoices() noexcept {
@@ -100,9 +105,25 @@ public:
 A8_DECLARE_FL_PLUGIN(FLSaw)
 
 void FLAPI FLSaw::GetName(int section, int index, int value, char *name) {
-  if (section == FPN_Param && index == ParamId::Volume) {
+  const char *s = nullptr;
+
+  switch (section) {
+    case FPN_Param:
+      switch (index) {
+        case ParamId::Volume:
+          s = "Volume";
+          break;
+        case ParamId::WaveTable:
+          s = "Wave Table";
+          break;
+      }
+      break;
+  }
+
+  if (s) {
     // name is at least 256 bytes.
-    memcpy(name, "Volume", 7);
+    //strncpy_s(name, 256, s, 255);
+    strcpy(name, s);
   }
 }
 
@@ -111,6 +132,21 @@ int FLAPI FLSaw::ProcessEvent(int eventId, int value, int flags) {
 }
 
 int FLAPI FLSaw::ProcessParam(int index, int value, int recflags) {
+  auto fn = [recflags](int flag, const char *name) -> const char * {
+    if (recflags & flag) return name;
+    return "";
+  };
+  Log::debug("ProcessParam({}, {}, 0x{:X} ={}{}{}{}{}{}{}{})",
+             index, value, recflags,
+             fn(REC_GetValue,      " GetValue"),
+             fn(REC_UpdateValue,   " UpdateValue"),
+             fn(REC_UpdateControl, " UpdateControl"),
+             fn(REC_InternalCtrl,  " InternalCtrl"),
+             fn(REC_FromMIDI,      " FromMIDI"),
+             fn(REC_NoLink,        " NoLink"),
+             fn(REC_PlugReserved,  " PlugReserved"),
+             fn(REC_ShowHint,      " ShowHint"));
+
   if (recflags & REC_FromMIDI) {
     value = value * 100 / 65536;
   }
@@ -136,6 +172,7 @@ void FLAPI FLSaw::Gen_Render(PWAV32FS destBuffer, int &length) {
 
   PWAV32FM buffer = (PWAV32FM)PlugHost->TempBuffers[0];
   PWaveT sawTable = PlugHost->WaveTables[3];
+  //PWaveT sawTable = PlugHost->WaveTables[_params[ParamId::WaveTable]];
 
   for (auto &&voice : _voices) {
     if (!voice) {

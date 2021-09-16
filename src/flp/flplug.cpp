@@ -8,6 +8,7 @@
 
 #pragma comment(lib, "mincore.lib")
 
+using a8::Log;
 using namespace a8::flp;
 
 static struct A8FLPlugInfo {
@@ -15,30 +16,53 @@ static struct A8FLPlugInfo {
   TFruityPlugHost *host = nullptr;
   int hostTag = 0;
   int version = 0;
-  char moduleName[64];
+  char moduleName[64 + 1];
+  char modulePath[MAX_PATH + 1];
+
+  // Returns true if the real module path was found, false if using a temp dir.
+  bool loadModulePath() noexcept;
 } gs_PlugInfo;
 
-std::shared_ptr<spdlog::logger> a8::Log::g_logger;
+std::shared_ptr<spdlog::logger> Log::g_logger;
 
 extern "C" __declspec(dllexport)
 TFruityPlug * FLAPI
 CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
-  char x[sizeof(a8::Log)];
-  new (x) a8::Log(spdlog::basic_logger_mt("A8", "C:\\Users\\parker\\a8fl.txt"));
+  char x[sizeof(Log)];
+  new (x) Log(spdlog::basic_logger_mt("A8", "C:\\Users\\parker\\a8fl.txt"));
   spdlog::set_level(spdlog::level::trace);
   spdlog::set_pattern(a8::Log::pattern_no_color_explicit);
   spdlog::flush_on(spdlog::level::trace);
 
-  a8::Log::info("In CreatePlugInstance: Host=0x{:X}; Tag={}", (size_t)Host, Tag);
   a8::platform::g_platformInit.init(HInstance);
-  a8::Log::info("Platform init finished.");
 
   gs_PlugInfo.host = Host;
   gs_PlugInfo.hostTag = Tag;
+  if (!gs_PlugInfo.loadModulePath()) {
+    Log::warn("Using temp dir '{}' as module path.", gs_PlugInfo.modulePath);
+  }
 
-  wchar_t modulePath[MAX_PATH];
+  return FLPlugin::create(gs_PlugInfo.moduleName);
+}
+
+BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID) {
+  switch (fdwReason) {
+    case DLL_PROCESS_ATTACH:
+      HInstance = hInstDLL;
+      break;
+
+    case DLL_PROCESS_DETACH:
+      a8::platform::g_platformInit.deinit();
+      break;
+  }
+
+  return TRUE;
+}
+
+bool A8FLPlugInfo::loadModulePath() noexcept {
+  wchar_t modulePath[MAX_PATH + 1];
   auto length = GetModuleFileName(HInstance, modulePath, MAX_PATH);
-  if (length && length < MAX_PATH) {
+  if (length && length <= MAX_PATH) {
     // See https://stackoverflow.com/a/28056007
     // Basically GetModuleFileName is wack. We'll copy the short name over
     // later if there are problems.
@@ -69,21 +93,32 @@ CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
     }
     memcpy(gs_PlugInfo.moduleName, &u8path[nameStart], u8length);
     gs_PlugInfo.moduleName[u8length + 1] = 0;
+
+    if (nameStart + 1 < sizeof(gs_PlugInfo.modulePath) - 1) {
+      memcpy(gs_PlugInfo.modulePath, &u8path[0], nameStart + 1);
+      gs_PlugInfo.modulePath[nameStart + 1] = 0;
+    } else {
+      gs_PlugInfo.modulePath[0] = 0;
+    }
   } else {
     gs_PlugInfo.moduleName[0] = 0;
+    gs_PlugInfo.modulePath[0] = 0;
   }
 
-  return FLPlugin::create(gs_PlugInfo.moduleName);
-}
-
-BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID) {
-  switch (fdwReason) {
-    case DLL_PROCESS_ATTACH:
-      HInstance = hInstDLL;
-      break;
+  if (!gs_PlugInfo.modulePath[0]) {
+    a8::platform::CallSite<DWORD (*)(DWORD, LPSTR)> call_GetTempPath2A{
+      L"kernel32.dll", "GetTempPath2A"
+    };
+    if (call_GetTempPath2A) {
+      call_GetTempPath2A((DWORD)sizeof(gs_PlugInfo.modulePath),
+                         gs_PlugInfo.modulePath);
+    } else {
+      GetTempPathA((DWORD)sizeof(gs_PlugInfo.modulePath),
+                   gs_PlugInfo.modulePath);
+    }
+    return false;
   }
-
-  return TRUE;
+  return true;
 }
 
 void FLPlugin::fillPlugInfo(int version, const char *name, int flags,
