@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.21.1 FATAL_ERROR)
 
 project(Autumn8 LANGUAGES C CXX)
 set(A8_VERSION_MAJOR 0)
@@ -13,6 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # option(A8_BUILD_TESTS "Build tests" OFF)
+option(A8_BUILD_TOOLS "Build tools" ON)
 
 if(APPLE)
   if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -88,7 +89,6 @@ link_libraries(spdlog::spdlog_header_only fmt::fmt-header-only)
 
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
-add_subdirectory(src/tools tools)
 add_subdirectory(src/util util)
 
 if(A8_HAS_GUI)
@@ -103,6 +103,11 @@ if(A8_HAS_GUI)
     message(STATUS "FL Studio plugin target is enabled.")
     add_subdirectory(src/flp flp)
   endif()
+endif()
+
+if(A8_BUILD_TOOLS)
+  message(STATUS "Tools targets are enabled.")
+  add_subdirectory(src/tools tools)
 endif()
 
 if(A8_BUILD_TESTS)

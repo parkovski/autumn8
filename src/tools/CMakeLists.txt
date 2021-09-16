@@ -9,3 +9,8 @@ if(WIN32)
   add_executable(midictl midictl.cpp)
   target_link_libraries(midictl a8main a8midi)
 endif()
+
+if(fpsdk_FOUND)
+  add_library(flsaw MODULE flsaw.cpp)
+  a8_fl_plugin(flsaw A8Saw)
+endif()

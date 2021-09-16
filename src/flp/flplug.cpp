@@ -2,7 +2,7 @@
 #include "a8/a8.h"
 
 #include "a8/flp/flplug.h"
-#include "a8/gfx/views/webview.h"
+#include "a8/util/utfconv.h"
 
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -10,20 +10,18 @@
 
 using namespace a8::flp;
 
-constexpr int PlugVersion = 1;
-static TFruityPlugInfo gs_PlugInfo = {
-  CurrentSDKVersion,
-  "A8Saw",
-  "A8Saw",
-  FPF_Type_FullGen,
-  FLPlugin::Param::count,
-  FLPlugin::MaxVoices,
-  0 // Internal controllers
-};
+static struct A8FLPlugInfo {
+  TFruityPlugInfo fruityPlugInfo{};
+  TFruityPlugHost *host = nullptr;
+  int hostTag = 0;
+  int version = 0;
+  char moduleName[64];
+} gs_PlugInfo;
 
 std::shared_ptr<spdlog::logger> a8::Log::g_logger;
 
-extern "C" __declspec(dllexport) TFruityPlug * __stdcall
+extern "C" __declspec(dllexport)
+TFruityPlug * FLAPI
 CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
   char x[sizeof(a8::Log)];
   new (x) a8::Log(spdlog::basic_logger_mt("A8", "C:\\Users\\parker\\a8fl.txt"));
@@ -35,7 +33,47 @@ CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
   a8::platform::g_platformInit.init(HInstance);
   a8::Log::info("Platform init finished.");
 
-  return new FLPlugin(Host, Tag);
+  gs_PlugInfo.host = Host;
+  gs_PlugInfo.hostTag = Tag;
+
+  wchar_t modulePath[MAX_PATH];
+  auto length = GetModuleFileName(HInstance, modulePath, MAX_PATH);
+  if (length && length < MAX_PATH) {
+    // See https://stackoverflow.com/a/28056007
+    // Basically GetModuleFileName is wack. We'll copy the short name over
+    // later if there are problems.
+    auto u8path = a8::to_utf8(modulePath);
+    size_t u8length = u8path.length();
+    size_t nameStart = 0;
+    size_t extStart = u8length;
+    // This looks weird but unsigned math wraps, so when this gets to -1 it
+    // compares greater than the length.
+    for (size_t i = u8length - 2; i < u8length; --i) {
+      char c = u8path[i];
+      if (c == '/' || c == '\\') {
+        nameStart = i + 1;
+        break;
+      }
+      if (c == '.' && extStart == u8length) {
+        extStart = i;
+        if (i > 5 && u8path[i - 4] == '_' && (u8path[i - 3] | 0x20) == 'x' &&
+            u8path[i - 2] == '6' && u8path[i - 1] == '4') {
+          extStart -= 4;
+        }
+      }
+    }
+
+    u8length = extStart - nameStart;
+    if (u8length >= sizeof(gs_PlugInfo.moduleName) - 1) {
+      u8length = sizeof(gs_PlugInfo.moduleName) - 2;
+    }
+    memcpy(gs_PlugInfo.moduleName, &u8path[nameStart], u8length);
+    gs_PlugInfo.moduleName[u8length + 1] = 0;
+  } else {
+    gs_PlugInfo.moduleName[0] = 0;
+  }
+
+  return FLPlugin::create(gs_PlugInfo.moduleName);
 }
 
 BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID) {
@@ -48,11 +86,45 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID) {
   return TRUE;
 }
 
-FLPlugin::FLPlugin(TFruityPlugHost *host, int tag)
-  : TCPPFruityPlug(tag, host, HInstance)
+void FLPlugin::fillPlugInfo(int version, const char *name, int flags,
+                            int params, int polyVoices, int outControls,
+                            int outVoices) noexcept {
+  if (gs_PlugInfo.fruityPlugInfo.ShortName) {
+    Log::warn("Plugin info already initialized");
+  }
+
+  assert(version > 0 &&
+         name && name[0] &&
+         flags &&
+         params >= 0 &&
+         polyVoices > 0 &&
+         outControls >= 0 &&
+         outVoices >= 0);
+
+  gs_PlugInfo.version = version;
+  gs_PlugInfo.fruityPlugInfo.SDKVersion = CurrentSDKVersion;
+  gs_PlugInfo.fruityPlugInfo.ShortName = const_cast<char *>(name);
+  gs_PlugInfo.fruityPlugInfo.Flags = flags;
+  gs_PlugInfo.fruityPlugInfo.NumParams = params;
+  gs_PlugInfo.fruityPlugInfo.DefPoly = polyVoices;
+  gs_PlugInfo.fruityPlugInfo.NumOutCtrls = outControls;
+  gs_PlugInfo.fruityPlugInfo.NumOutVoices = outVoices;
+
+  if (!gs_PlugInfo.moduleName[0]) {
+    // Something went wrong, just use the short name.
+    gs_PlugInfo.fruityPlugInfo.LongName = const_cast<char *>(name);
+    Log::warn("Plugin '{}' long name missing; using short name.", name);
+  } else {
+    gs_PlugInfo.fruityPlugInfo.LongName = gs_PlugInfo.moduleName;
+    Log::debug("Plugin '{}' (module {}) info initialized.", name,
+               gs_PlugInfo.moduleName);
+  }
+}
+
+FLPlugin::FLPlugin()
+  : TCPPFruityPlug(gs_PlugInfo.hostTag, gs_PlugInfo.host, HInstance)
 {
-  Info = &gs_PlugInfo;
-  _params[Param::volume] = 80;
+  Info = &gs_PlugInfo.fruityPlugInfo;
 }
 
 FLPlugin::~FLPlugin() {
@@ -61,7 +133,7 @@ FLPlugin::~FLPlugin() {
   }
 }
 
-intptr_t __stdcall FLPlugin::Dispatcher(intptr_t id, intptr_t index, intptr_t value) {
+intptr_t FLAPI FLPlugin::Dispatcher(intptr_t id, intptr_t index, intptr_t value) {
   if (auto r = TCPPFruityPlug::Dispatcher(id, index, value)) {
     return r;
   }
@@ -69,11 +141,8 @@ intptr_t __stdcall FLPlugin::Dispatcher(intptr_t id, intptr_t index, intptr_t va
   switch (id) {
     case FPD_ShowEditor:
       if (value) {
-        using a8::gfx::SystemEvent;
-        _window = new a8::gfx::Window();
-        _window->resize(0, 0, 400, 400);
-        _window->setView(new a8::gfx::WebView);
-        _window->open("A8.FLP.Saw", (void *)value);
+        _window = createEditor();
+        _window->open(gs_PlugInfo.fruityPlugInfo.ShortName, (void *)value);
         EditorHandle = (HWND)_window->nativeHandle();
       } else {
         _window->close();
@@ -94,124 +163,13 @@ intptr_t __stdcall FLPlugin::Dispatcher(intptr_t id, intptr_t index, intptr_t va
   return 0;
 }
 
-void __stdcall FLPlugin::SaveRestoreState(IStream *stream, BOOL save) {
+void FLAPI FLPlugin::SaveRestoreState(IStream *stream, BOOL save) {
   if (save) {
-    stream->Write(&PlugVersion, sizeof(int), nullptr);
-    stream->Write(_params, sizeof(_params), nullptr);
+    stream->Write(&gs_PlugInfo.version, sizeof(int), nullptr);
+    saveState(stream);
   } else {
     int version = std::numeric_limits<int>::max();
     stream->Read(&version, sizeof(int), nullptr);
-    if (version <= PlugVersion) {
-      stream->Read(_params, sizeof(_params), nullptr);
-    }
+    restoreState(version, stream);
   }
-}
-
-void __stdcall FLPlugin::GetName(int section, int index, int value, char *name) {
-  if (section == FPN_Param && index == Param::volume) {
-    // name is at least 256 bytes.
-    memcpy(name, "Volume", 7);
-  }
-}
-
-int __stdcall FLPlugin::ProcessEvent(int eventId, int value, int flags) {
-  return value;
-}
-
-int __stdcall FLPlugin::ProcessParam(int index, int value, int recflags) {
-  if (recflags & REC_FromMIDI) {
-    value = value * 100 / 65536;
-  }
-
-  if (recflags & REC_GetValue) {
-    value = _params[index];
-  }
-
-  if (recflags & REC_UpdateValue) {
-    _params[index] = value;
-  }
-
-  if (recflags & REC_UpdateControl) {
-    // Update GUI control.
-  }
-
-  return value;
-}
-
-void __stdcall FLPlugin::Gen_Render(PWAV32FS destBuffer, int &length) {
-  float volume = _params[Param::volume] / 100.f;
-  float lvol, rvol;
-
-  PWAV32FM buffer = (PWAV32FM)PlugHost->TempBuffers[0];
-  PWaveT sawTable = PlugHost->WaveTables[3];
-
-  for (auto &&voice : _voices) {
-    if (!voice) {
-      continue;
-    }
-    if (voice.IsReleased) {
-      lvol = 0;
-      rvol = 0;
-    } else {
-      PlugHost->ComputeLRVol(lvol, rvol, voice.Params->FinalLevels.Pan,
-                             voice.Params->FinalLevels.Vol);
-    }
-
-    if (voice.Params->FinalLevels.Pitch != voice.CurrentPitch) {
-      voice.CurrentPitch = voice.Params->FinalLevels.Pitch;
-      voice.Speed = (int)GetStep_Cents(voice.CurrentPitch);
-    }
-
-    for (int i = 0; i < length; ++i) {
-      int pos = voice.Position >> WaveT_Shift;
-      buffer[i] = (*sawTable)[pos] * volume;
-      // May overflow
-      voice.Position += static_cast<unsigned>(voice.Speed);
-    }
-
-    PlugHost->AddWave_32FM_32FS_Ramp(buffer, destBuffer, length, lvol, rvol,
-                                     voice.LastLVol, voice.LastRVol);
-
-    if (voice.IsReleased) {
-      PlugHost->Voice_Kill(voice.HostTag, TRUE);
-    }
-  }
-}
-
-//void __stdcall FLPlugin::Eff_Render(PWAV32FS src, PWAV32FS dst, int length) {
-//}
-
-TVoiceHandle __stdcall FLPlugin::TriggerVoice(PVoiceParams params, intptr_t tag) {
-  auto index = nextVoice();
-  if (index == -1) {
-    return 0;
-  }
-
-  auto &voice = _voices[index];
-
-  voice.HostTag = tag;
-  voice.Params = params;
-  voice.IsReleased = false;
-  voice.CurrentPitch = voice.Params->FinalLevels.Pitch;
-  voice.Speed = (int)GetStep_Cents(voice.CurrentPitch);
-
-  return (TVoiceHandle)&voice;
-}
-
-void __stdcall FLPlugin::Voice_Release(TVoiceHandle handle) {
-  if (!handle) {
-    return;
-  }
-  ((TVoice *)handle)->IsReleased = true;
-}
-
-void __stdcall FLPlugin::Voice_Kill(TVoiceHandle handle) {
-  if (!handle) {
-    return;
-  }
-  ((TVoice *)handle)->clear();
-}
-
-int __stdcall FLPlugin::Voice_ProcessEvent(TVoiceHandle handle, int eventId, int value, int flags) {
-  return 0;
 }

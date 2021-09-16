@@ -19,6 +19,7 @@
 # error "Windows needs SPDLOG_WCHAR_TO_UTF8_SUPPORT"
 #endif
 
+#include <cassert>
 #include <memory>
 #include <utility>
 
