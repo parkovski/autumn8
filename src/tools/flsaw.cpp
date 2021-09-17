@@ -122,8 +122,7 @@ void FLAPI FLSaw::GetName(int section, int index, int value, char *name) {
 
   if (s) {
     // name is at least 256 bytes.
-    //strncpy_s(name, 256, s, 255);
-    strcpy(name, s);
+    strcpy_s(name, 256, s);
   }
 }
 

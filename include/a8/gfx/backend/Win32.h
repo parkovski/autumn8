@@ -1,6 +1,16 @@
-#ifndef A8_GFX_BACKEND_WIN32_H_
-#define A8_GFX_BACKEND_WIN32_H_
+#if !defined(A8_A8_H_) || !defined(A8_INCLUDE_GFX_BACKEND)
+# error "Do not include this file directly; use a8/a8.h and A8_INCLUDE_GFX_BACKEND"
+#endif
 
+namespace a8::platform {
+inline namespace windows {
 
+enum class DpiStatus { Error = 0, Ok, Fallback };
+DpiStatus enableThreadDpiAwareness();
 
-#endif /* A8_GFX_BACKEND_WIN32_H_ */
+extern const wchar_t *const A8WindowClass;
+
+LRESULT CALLBACK mainWndProc(HWND, UINT, WPARAM, LPARAM);
+
+} // inline namespace windows
+} // namespace a8::platform

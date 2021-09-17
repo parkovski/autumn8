@@ -1,6 +1,4 @@
-#define A8_PLATFORM_WINDOWS_IMPL
-
-#define A8_INCLUDE_PLATFORM
+#define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 
 #include "a8/gfx/window.h"
@@ -20,76 +18,6 @@
 using a8::Log;
 using namespace a8::platform::windows;
 using namespace a8::gfx;
-
-namespace a8::platform {
-inline namespace windows {
-
-const wchar_t *A8WindowClass = L"Autumn8WndClass";
-
-bool setThreadName(const wchar_t *name) {
-  static CallSite<decltype(&SetThreadDescription)> fn(
-    L"kernel32.dll", "SetThreadDescription"
-  );
-  return fn && fn(GetCurrentThread(), name) == S_OK;
-}
-
-DpiStatus enableThreadDpiAwareness() {
-  static CallSite<decltype(&SetThreadDpiAwarenessContext)> fn(
-    L"user32.dll", "SetThreadDpiAwarenessContext"
-  );
-  if (fn && fn(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-    return DpiStatus::Ok;
-  }
-
-  static CallSite<HRESULT (WINAPI *)(int)> fnFallback(
-    L"shcore.dll", "SetProcessDpiAwareness"
-  );
-  if (fnFallback && fnFallback(2 /* PROCESS_PER_MONITOR_DPI_AWARE */)) {
-    return DpiStatus::Fallback;
-  };
-  return DpiStatus::Error;
-}
-
-void GlobalPlatformInit::init(HINSTANCE hInstance, int nCmdShow) noexcept {
-  if (this->hInstance) {
-    return;
-  }
-
-  this->hInstance = hInstance;
-  this->nCmdShow = nCmdShow;
-  this->dwMainThreadId = GetCurrentThreadId();
-  setThreadName(L"Main");
-  this->mainThreadDpiStatus = enableThreadDpiAwareness();
-
-  if (wantsConsole) {
-    if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
-      AllocConsole();
-    }
-  }
-
-  WNDCLASSEXW cls{};
-  cls.cbSize = sizeof(WNDCLASSEXW);
-  cls.style = CS_HREDRAW | CS_VREDRAW;
-  cls.lpfnWndProc = mainWndProc;
-  cls.hInstance = hInstance;
-  cls.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-  cls.hCursor = LoadCursor(nullptr, IDC_ARROW);
-  cls.lpszClassName = A8WindowClass;
-  cls.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
-
-  if (!RegisterClassEx(&cls)) {
-    Log::error("RegisterClassExW failed.");
-  }
-}
-
-void GlobalPlatformInit::deinit() const noexcept {
-  UnregisterClass(A8WindowClass, hInstance);
-}
-
-GlobalPlatformInit g_platformInit;
-
-} // inline namespace windows
-} // namespace a8::platform
 
 namespace {
   // To not lose precision by storing coordinates as int.

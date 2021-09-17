@@ -1,5 +1,6 @@
-#ifndef A8_PLATFORM_WINDOWS_H_
-#define A8_PLATFORM_WINDOWS_H_
+#if !defined(A8_A8_H_) || !defined(A8_INCLUDE_PLATFORM)
+# error "Do not include this file directly; use a8/a8.h and A8_INCLUDE_PLATFORM"
+#endif
 
 #ifndef _UNICODE
 # define _UNICODE
@@ -28,11 +29,6 @@ namespace a8::platform {
 inline namespace windows {
 
 bool setThreadName(const wchar_t *name);
-
-enum class DpiStatus { Error = 0, Ok, Fallback };
-DpiStatus enableThreadDpiAwareness();
-
-LRESULT CALLBACK mainWndProc(HWND, UINT, WPARAM, LPARAM);
 
 template<typename F>
 class CallSite {
@@ -67,22 +63,22 @@ private:
   F _cachedFunction;
 };
 
-extern const wchar_t *A8WindowClass;
-
 extern struct GlobalPlatformInit {
   int nCmdShow = SW_HIDE;
   HINSTANCE hInstance = nullptr;
   DWORD dwMainThreadId = 0;
-  DpiStatus mainThreadDpiStatus = DpiStatus::Error;
   bool wantsConsole = false;
 
+public:
   void init(HINSTANCE hInstance, int nCmdShow = SW_NORMAL) noexcept;
 
   // For DLLs.
   void deinit() const noexcept;
+
+private:
+  void gfxinit() noexcept;
+  void gfxdeinit() const noexcept;
 } g_platformInit;
 
 } // inline namespace windows
 } // namespace a8::platform
-
-#endif // A8_PLATFORM_WINDOWS_H_

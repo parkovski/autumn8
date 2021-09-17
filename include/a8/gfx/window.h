@@ -115,7 +115,7 @@ private:
   void process(const DragDropEvent &);
   void process(const DataEvent &);
 
-#ifdef A8_PLATFORM_WINDOWS_IMPL
+#if A8_IS_GFX_IMPL(Win32)
   friend LRESULT CALLBACK ::a8::platform::windows::mainWndProc(
     HWND, UINT, WPARAM, LPARAM
   );

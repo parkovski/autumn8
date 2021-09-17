@@ -1,14 +1,21 @@
 #ifndef A8_A8_H_
 #define A8_A8_H_
 
+#if defined(A8_INCLUDE_GFX_BACKEND) && !defined(A8_INCLUDE_PLATFORM)
+# define A8_INCLUDE_PLATFORM
+#endif
+
 #include "config.h"
 #include "compiler.h"
+
 #ifdef A8_INCLUDE_PLATFORM
 # include A8_PLATFORM_HEADER
 #endif
-#ifdef A8_INCLUDE_GFX_PLATFORM
-# include A8_GFX_PLATFORM_HEADER
+
+#ifdef A8_INCLUDE_GFX_BACKEND
+# include A8_GFX_BACKEND_HEADER
 #endif
+
 #include "util/inline.h"
 
 #include <fmt/format.h>

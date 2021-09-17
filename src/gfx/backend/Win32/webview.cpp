@@ -1,11 +1,11 @@
-#include "a8/platform/Windows/platform.h"
-#include <wrl.h>
-#include <wil/com.h>
-#include "WebView2.h"
-
+#define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 #include "a8/gfx/views/webview.h"
 #include "a8/gfx/window.h"
+
+#include <wrl.h>
+#include <wil/com.h>
+#include "WebView2.h"
 
 #define CONTROLLERP(V) static_cast<ICoreWebView2Controller *>((V)._a)
 #define WINDOWP(V) static_cast<ICoreWebView2 *>((V)._b)
