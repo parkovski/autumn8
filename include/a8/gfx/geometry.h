@@ -1,5 +1,5 @@
-#ifndef A8_GFX_COMMON_H_
-#define A8_GFX_COMMON_H_
+#ifndef A8_GFX_GEOMETRY_H_
+#define A8_GFX_GEOMETRY_H_
 
 #include <cstdint>
 #include <type_traits>
@@ -382,4 +382,4 @@ using Rect = RectS<true>;
 
 } // namespace a8::gfx
 
-#endif /* A8_GFX_COMMON_H_ */
+#endif /* A8_GFX_GEOMETRY_H_ */

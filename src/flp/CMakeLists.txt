@@ -2,16 +2,16 @@ project(Autumn8FLPlugin)
 
 set(SOURCES
   flplug.cpp
-  ../../contrib/fpsdk/fp_plugclass.cpp
-  ../../contrib/fpsdk/fp_cplug.cpp
-  ../../contrib/fpsdk/fp_extra.cpp
 )
 
 add_library(a8flp STATIC ${SOURCES})
+target_link_libraries(a8flp PRIVATE fpsdk)
 target_link_libraries(a8flp PUBLIC
-  fpsdk
   a8gfx
 )
+
+# Temporary:
+target_include_directories(a8flp PUBLIC ${fpsdk_INCLUDE_DIR})
 
 function(a8_fl_plugin TARGET_NAME OUTPUT_NAME)
   target_link_libraries(${TARGET_NAME} PRIVATE a8flp)

@@ -14,8 +14,6 @@
 
 namespace a8::gfx {
 
-void postQuitMessage(int exitCode);
-
 class View;
 
 class Window {
@@ -27,6 +25,14 @@ public:
 
   template<class E>
   using Slot = ::a8::gfx::Slot<Window, E>;
+
+  using native_handle_t =
+#if A8_IS_GFX_IMPL(Win32)
+    HWND
+#else
+    void *
+#endif
+    ;
 
   Window() = default;
 
@@ -125,7 +131,7 @@ private:
   EventSignals<Signal> _signals;
   std::thread _eventThread;
 
-  void *_nativeHandle = nullptr;
+  native_handle_t _nativeHandle = nullptr;
   float _scale = 1.f;
   float _zoom = 1.f;
   RawPoint _pos{};
@@ -133,9 +139,6 @@ private:
   View *_view = nullptr;
   bool _quitOnClose = false;
 };
-
-int runMessageLoop();
-int runConstantFPSMessageLoop(void (*callback)(), int fps = 30);
 
 } // namespace a8::gfx
 

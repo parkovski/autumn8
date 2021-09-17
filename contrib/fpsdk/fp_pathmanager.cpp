@@ -1,9 +1,9 @@
-#include "source/c/fp_plugclass.h"
+#include "fp_plugclass.h"
 #include "fp_pathmanager.h"
 
 TPathIndexList AddPathIndexToList(TPathIndex Index, TPathIndexList List) { return (List | (1 << Index)); };
 TPathIndexList RemovePathIndexFromList(TPathIndex Index, TPathIndexList List) { return (List & ~(1 << Index)); };
-bool IsPathIndexInList(TPathIndex Index, TPathIndexList List) { return (List & (1 << Index) == (1 << Index)); };
+bool IsPathIndexInList(TPathIndex Index, TPathIndexList List) { return (List & (1 << Index)) == (1 << Index); };
 TPathIndexList ConvertPathIndexToList(TPathIndex Index)
 {
 if (Index == NoPathIndexConst)

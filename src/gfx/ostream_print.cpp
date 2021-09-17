@@ -1,4 +1,4 @@
-#include "a8/gfx/common.h"
+#include "a8/gfx/geometry.h"
 #include "a8/gfx/events.h"
 
 #include <ostream>

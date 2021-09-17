@@ -1,9 +1,12 @@
 if(EXISTS "${PROJECT_SOURCE_DIR}/contrib/fpsdk/fp_cplug.h")
-  file(GLOB fpsdk_SOURCES ${PROJECT_SOURCE_DIR}/contrib/fpsdk *.cpp)
+  file(GLOB fpsdk_SOURCES "${PROJECT_SOURCE_DIR}/contrib/fpsdk/*.cpp")
   add_library(fpsdk INTERFACE IMPORTED)
   target_sources(fpsdk INTERFACE ${fpsdk_SOURCES})
   set(fpsdk_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/contrib/fpsdk")
   target_include_directories(fpsdk INTERFACE "${fpsdk_INCLUDE_DIR}")
+  if(MSVC)
+    target_compile_definitions(fpsdk INTERFACE "-D_CRT_SECURE_NO_WARNINGS")
+  endif()
 endif()
 
 include(FindPackageHandleStandardArgs)

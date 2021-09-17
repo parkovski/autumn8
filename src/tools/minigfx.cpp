@@ -1,8 +1,7 @@
 #include "a8/a8.h"
+#include "a8/gfx/msgloop.h"
 #include "a8/gfx/window.h"
 #include "a8/gfx/views/webview.h"
-//#include "a8/gfx/view.h"
-//#include "a8/gfx/renderer.h"
 
 using namespace a8::gfx;
 

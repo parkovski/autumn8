@@ -1,7 +1,7 @@
 #ifndef A8_GFX_RENDERER_H_
 #define A8_GFX_RENDERER_H_
 
-#include "common.h"
+#include "geometry.h"
 
 #include <nanovg.h>
 #include <string_view>

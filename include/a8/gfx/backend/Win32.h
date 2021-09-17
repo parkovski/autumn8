@@ -2,7 +2,8 @@
 # error "Do not include this file directly; use a8/a8.h and A8_INCLUDE_GFX_BACKEND"
 #endif
 
-namespace a8::platform {
+namespace a8 {
+namespace platform {
 inline namespace windows {
 
 enum class DpiStatus { Error = 0, Ok, Fallback };
@@ -13,4 +14,5 @@ extern const wchar_t *const A8WindowClass;
 LRESULT CALLBACK mainWndProc(HWND, UINT, WPARAM, LPARAM);
 
 } // inline namespace windows
-} // namespace a8::platform
+} // namespace platform
+} // namespace a8

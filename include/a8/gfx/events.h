@@ -1,7 +1,7 @@
 #ifndef A8_GFX_EVENTS_H_
 #define A8_GFX_EVENTS_H_
 
-#include "common.h"
+#include "geometry.h"
 
 #include <variant>
 #include <cstdint>
