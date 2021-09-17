@@ -1,18 +1,15 @@
 project(Autumn8Main)
 
 add_library(a8main INTERFACE)
-target_sources(a8main INTERFACE
-  "${CMAKE_CURRENT_LIST_DIR}/main.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/common.cpp")
+target_sources(a8main INTERFACE "${CMAKE_CURRENT_LIST_DIR}/main.cpp")
+# Logger
+target_link_libraries(a8main INTERFACE a8util)
 
 if(A8_PLATFORM STREQUAL "Windows")
   add_library(a8winmain INTERFACE)
-  target_sources(a8winmain INTERFACE
-    "${CMAKE_CURRENT_LIST_DIR}/winmain.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/common.cpp")
-  # for utf conversion
+  target_sources(a8winmain INTERFACE "${CMAKE_CURRENT_LIST_DIR}/winmain.cpp")
+  # Logger / UTF conversion
   target_link_libraries(a8winmain INTERFACE a8util)
-  target_link_libraries(a8main INTERFACE a8util)
 else()
   add_library(a8winmain ALIAS a8main)
 endif()

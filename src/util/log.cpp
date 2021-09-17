@@ -1,9 +1,11 @@
-#include "a8/a8.h"
+#include "a8/util/log.h"
 
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include <memory>
+using a8::Log;
+
+std::shared_ptr<spdlog::logger> Log::g_logger;
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -44,10 +46,6 @@ static void getTermCaps(bool &vt, bool &ttyout, bool &ttyerr) {
 }
 
 #endif // _WIN32
-
-using a8::Log;
-
-std::shared_ptr<spdlog::logger> Log::g_logger;
 
 Log::Log(int argc, char *argv[]) {
   bool vt, ttyout, ttyerr;
@@ -161,5 +159,5 @@ Log::Log(int argc, char *argv[]) {
   } else {
     g_logger = spdlog::stderr_logger_mt("autumn8");
   }
-  g_logger->info("Hello from A8 😀");
+  g_logger->debug("Hello from A8 😀");
 }
