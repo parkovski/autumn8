@@ -155,9 +155,9 @@ Log::Log(int argc, char *argv[]) {
   spdlog::set_pattern(std::move(pattern));
   spdlog::set_level(level);
   if (ttyerr) {
-    g_logger = spdlog::stderr_color_mt("autumn8");
+    g_logger = spdlog::stderr_color_mt("Autumn8");
   } else {
-    g_logger = spdlog::stderr_logger_mt("autumn8");
+    g_logger = spdlog::stderr_logger_mt("Autumn8");
   }
   g_logger->debug("Hello from A8 😀");
 }

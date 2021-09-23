@@ -175,9 +175,14 @@ intptr_t FLAPI FLPlugin::Dispatcher(intptr_t id, intptr_t index, intptr_t value)
 
   switch (id) {
     case FPD_ShowEditor:
+      // TODO: Can we make it hide instead of creating/destroying every time?
       if (value) {
-        _window = createEditor();
-        _window->open(gs_PlugInfo.fruityPlugInfo.ShortName, (void *)value);
+        if (_window) {
+          _window->show(true);
+        } else {
+          _window = createEditor();
+          _window->open(gs_PlugInfo.fruityPlugInfo.ShortName, (void *)value);
+        }
         EditorHandle = (HWND)_window->nativeHandle();
       } else {
         _window->close();
@@ -185,6 +190,19 @@ intptr_t FLAPI FLPlugin::Dispatcher(intptr_t id, intptr_t index, intptr_t value)
         EditorHandle = nullptr;
       }
       break;
+
+    case FPD_WindowMinMax: {
+      auto rect = (PRECT)index;
+      auto snap = (PPOINT)value;
+      // Min size 350x350
+      rect->left = rect->top = 350;
+      // Max size uh, unlimited
+      rect->right = rect->bottom = 9999;
+      // No snapping
+      snap->x = 0;
+      snap->y = 0;
+      break;
+    }
 
     case FPD_SetSampleRate:
       AudioRenderer.setSmpRate((int)value);

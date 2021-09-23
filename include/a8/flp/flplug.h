@@ -19,7 +19,7 @@ class FLPlugin : public TCPPFruityPlug {
                            int outVoices) noexcept;
 
 protected:
-  a8::gfx::Window *_window;
+  a8::gfx::Window *_window = nullptr;
 
 public:
   // Name contains the module filename, without the path, extension, or

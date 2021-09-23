@@ -1,5 +1,6 @@
 #include "a8/a8.h"
 #include "a8/flp/flplug.h"
+#include "a8/flp/param.h"
 
 #include "a8/gfx/views/webview.h"
 
@@ -34,6 +35,11 @@ struct TVoice {
   }
 };
 
+struct Param {
+  int value;
+  const char *name;
+};
+
 class FLSaw : public FLPlugin {
 public:
   static constexpr int Version = 1;
@@ -53,7 +59,10 @@ public:
   static constexpr int WaveTableCount = 6;
 
 private:
-  int _params[DefaultParamCount] = { 80, 3 };
+  int _params[DefaultParamCount] = {
+    ParamConverter<float>{0.f, 1.f}.set(.8f),
+    ParamConverter<int>{0, WaveTableCount - 1}.set(3),
+  };
   TVoice _voices[DefaultPolyVoices];
 
   void clearVoices() noexcept {
@@ -147,7 +156,7 @@ int FLAPI FLSaw::ProcessParam(int index, int value, int recflags) {
              fn(REC_ShowHint,      " ShowHint"));
 
   if (recflags & REC_FromMIDI) {
-    value = value * 100 / 65536;
+    //value = _params[index];
   }
 
   if (recflags & REC_GetValue) {
@@ -166,12 +175,14 @@ int FLAPI FLSaw::ProcessParam(int index, int value, int recflags) {
 }
 
 void FLAPI FLSaw::Gen_Render(PWAV32FS destBuffer, int &length) {
-  float volume = _params[ParamId::Volume] / 100.f;
+  float volume = ParamConverter<float>{0.f, 1.f}.get(_params[ParamId::Volume]);
   float lvol, rvol;
 
   PWAV32FM buffer = (PWAV32FM)PlugHost->TempBuffers[0];
-  PWaveT sawTable = PlugHost->WaveTables[3];
-  //PWaveT sawTable = PlugHost->WaveTables[_params[ParamId::WaveTable]];
+  //PWaveT sawTable = PlugHost->WaveTables[3];
+  const int waveTableIndex =
+    ParamConverter<int>{0, WaveTableCount - 1}.get(_params[ParamId::WaveTable]);
+  PWaveT sawTable = PlugHost->WaveTables[waveTableIndex];
 
   for (auto &&voice : _voices) {
     if (!voice) {
@@ -212,6 +223,7 @@ void FLAPI FLSaw::Gen_Render(PWAV32FS destBuffer, int &length) {
 TVoiceHandle FLAPI FLSaw::TriggerVoice(PVoiceParams params, intptr_t tag) {
   auto index = nextVoice();
   if (index == -1) {
+    PlugHost->Voice_Kill(tag, true);
     return 0;
   }
 
