@@ -12,6 +12,13 @@
 #include <vector>
 #include <thread>
 
+#if A8_IS_GFX_IMPL(Win32)
+// Message types for WM_USER.
+
+constexpr WPARAM A8M_ASYNCDESTROY = 0;
+constexpr WPARAM A8M_EXECONMSGTHREAD = 1;
+#endif
+
 namespace a8::gfx {
 
 class View;
@@ -72,6 +79,15 @@ public:
   void resize(Point newPosition, Size newSize);
   void resize(float x, float y, float width, float height) {
     resize({x, y}, {width, height});
+  }
+
+  // Waits for the function to return!
+  void runOnMessageThread(void (*f)(void *data), void *data);
+
+  // Waits for the function to return!
+  template<class F>
+  void runOnMessageThread(F &&f) {
+    runOnMessageThread([](void *data){ (*static_cast<F *>(data))(); }, &f);
   }
 
   /// @type E The event type.

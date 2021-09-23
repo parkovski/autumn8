@@ -68,8 +68,20 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     return 0;
 
   case WM_USER:
-    Log::trace("WM_USER (A8 Async Destroy)");
-    DestroyWindow(hWnd);
+    switch (wParam) {
+      case A8M_ASYNCDESTROY:
+        Log::trace("A8M_ASYNCDESTROY");
+        DestroyWindow(hWnd);
+        break;
+
+      case A8M_EXECONMSGTHREAD: {
+        Log::trace("A8M_EXECONMSGTHREAD");
+        auto f = *(void (**)(void *data))lParam;
+        void *data = ((void **)lParam)[1];
+        f(data);
+        break;
+      }
+    }
     return 0;
 
   case WM_DESTROY: {
@@ -107,7 +119,7 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
   case WM_SIZE: {
     RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
-    Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
+    //Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
     switch (wParam) {
     case SIZE_MINIMIZED:
       window->postEvent(SystemEvent::Minimize);
@@ -159,7 +171,7 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       side = Anchor::None;
       break;
     }
-    Log::trace("WM_SIZING {}", side);
+    //Log::trace("WM_SIZING {}", side);
 
     RECT *rc = reinterpret_cast<RECT *>(lParam);
     auto size = toSize(rc) - getNonClientBorders(hWnd);
@@ -246,6 +258,7 @@ a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
   case WM_DPICHANGED: {
     window->_scale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
+    Log::trace("WM_DPICHANGED: {}", window->_scale);
     auto rect = reinterpret_cast<LPRECT>(lParam);
     auto x = rect->left;
     auto y = rect->top;

@@ -107,3 +107,8 @@ void Window::resize(Point newPosition, Size newSize) {
     SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE
   );
 }
+
+void Window::runOnMessageThread(void (*f)(void *data), void *data) {
+  void *msgdata[2] = {(void *)f, data};
+  SendMessage(_nativeHandle, WM_USER, A8M_EXECONMSGTHREAD, (LPARAM)msgdata);
+}

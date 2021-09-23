@@ -2,6 +2,7 @@
 #include "a8/a8.h"
 #include "a8/gfx/views/webview.h"
 #include "a8/gfx/window.h"
+#include "a8/util/utfconv.h"
 
 #include <wrl.h>
 #include <wil/com.h>
@@ -13,8 +14,10 @@
 using namespace a8::gfx;
 using namespace Microsoft::WRL;
 
-WebView::WebView() {
-  RoInitialize(RO_INIT_SINGLETHREADED);
+WebView::WebView(std::string_view url) {
+  if (url.size()) {
+    to_utf16(_initialUrl, url);
+  }
 }
 
 WebView::~WebView() {
@@ -24,8 +27,6 @@ WebView::~WebView() {
   if (_a) {
     CONTROLLERP(*this)->Release();
   }
-
-  RoUninitialize();
 }
 
 void WebView::initFinished() {
@@ -33,8 +34,21 @@ void WebView::initFinished() {
     return;
   }
 
-  Log::debug("WebView navigate");
-  WINDOWP(*this)->Navigate(L"https://www.bing.com/");
+  if (_initialUrl.size()) {
+    WINDOWP(*this)->Navigate(_initialUrl.c_str());
+  }
+}
+
+void WebView::navigate(std::string_view url) {
+  std::wstring urlw;
+  if (!_b) {
+    return;
+  }
+  to_utf16(urlw, url);
+  auto result = WINDOWP(*this)->Navigate(urlw.c_str());
+  if (result != S_OK) {
+    a8::Log::error("WebView Navigate: 0x{:X}", (unsigned)result);
+  }
 }
 
 void WebView::init(Window *window) {
@@ -69,7 +83,6 @@ void WebView::init(Window *window) {
 }
 
 void WebView::resize(RawPoint pos, RawSize size) {
-  Log::debug("WebView resize: {} x {}", pos, size);
   if (!_a || !_b) { return; }
   auto c = CONTROLLERP(*this);
   RECT rc;

@@ -50,7 +50,7 @@ void Window::process(const RawSizingEvent &e) {
   }
   _size = e.size;
   auto scaledSize = Size{e.size} * _scale;
-  Log::trace("Sizing ({}, {})", scaledSize.width, scaledSize.height);
+  //Log::trace("Sizing ({}, {})", scaledSize.width, scaledSize.height);
   _signals.sizing(*this, SizingEvent{scaledSize, e.side});
 }
 
@@ -60,7 +60,7 @@ void Window::process(const RawMovingEvent &e) {
   }
   _pos = e.pos;
   auto scaledPoint = Point{e.pos} * _scale;
-  Log::trace("Move ({}, {})", scaledPoint.x, scaledPoint.y);
+  //Log::trace("Move ({}, {})", scaledPoint.x, scaledPoint.y);
   _signals.moving(*this, MovingEvent{scaledPoint});
 }
 
@@ -70,7 +70,7 @@ void Window::process(const RawResizeEvent &e) {
   // }
   _size = e.size;
   auto scaledSize = Size{e.size} * _scale;
-  Log::trace("Resize ({}, {})", scaledSize.width, scaledSize.height);
+  //Log::trace("Resize ({}, {})", scaledSize.width, scaledSize.height);
   _signals.resize(*this, ResizeEvent{scaledSize});
 }
 

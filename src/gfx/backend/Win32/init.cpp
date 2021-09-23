@@ -39,9 +39,12 @@ void GlobalPlatformInit::gfxinit() noexcept {
   if (!RegisterClassEx(&cls)) {
     Log::error("RegisterClassEx failed.");
   }
+
+  CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 }
 
 void GlobalPlatformInit::gfxdeinit() const noexcept {
+  CoUninitialize();
   if (!UnregisterClass(A8WindowClass, hInstance)) {
     Log::warn("UnregisterClass failed.");
   }

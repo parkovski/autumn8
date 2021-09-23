@@ -19,7 +19,9 @@
 #include <cassert>
 
 #include "util/inline.h"
+#ifndef A8_NO_LOG
 #include "util/log.h"
+#endif
 
 extern "C" int a8main(int argc, char *argv[]);
 

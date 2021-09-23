@@ -76,7 +76,8 @@ if(Boost_FOUND)
   if(bgfx_FOUND)
     get_target_property(bx_INCLUDE_DIRS bgfx::bx INTERFACE_INCLUDE_DIRECTORIES)
     if(MSVC)
-      set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${bx_INCLUDE_DIRS};${bx_INCLUDE_DIRS}/compat/msvc")
+      set_target_properties(bgfx::bx PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+        "${bx_INCLUDE_DIRS};${bx_INCLUDE_DIRS}/compat/msvc")
     endif()
     find_package(NanoVG_bgfx REQUIRED)
     set(A8_HAS_BGFX ON)
@@ -87,13 +88,14 @@ else()
   set(A8_HAS_GUI OFF)
 endif()
 
+find_package(uWebSockets QUIET)
+
 add_library(concurrentqueue INTERFACE IMPORTED)
 target_include_directories(concurrentqueue INTERFACE
   "${PROJECT_SOURCE_DIR}/contrib/moodycamel/include"
 )
 
 include_directories(${Autumn8_INCLUDE_DIRS})
-link_libraries(spdlog::spdlog_header_only fmt::fmt-header-only)
 
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)

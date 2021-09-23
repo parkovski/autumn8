@@ -6,3 +6,4 @@ set(SOURCES
 )
 
 add_library(a8util STATIC ${SOURCES})
+target_link_libraries(a8util PUBLIC spdlog::spdlog fmt::fmt)
