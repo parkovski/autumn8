@@ -6,11 +6,6 @@
 #include <string>
 #include <memory>
 
-#include <wrl.h>
-#include <wil/com.h>
-#include "../contrib/webview2/build/native/include/WebView2.h"
-
-//#pragma comment(lib, "windowsapp.lib")
 #pragma comment(lib, "mincore.lib")
 
 using a8::Log;

@@ -3,6 +3,7 @@ find_package(Catch2 3.0 REQUIRED)
 set(SOURCES
   test.cpp
   paramconv.cpp
+  utf.cpp
 )
 
 add_executable(test ${SOURCES})
