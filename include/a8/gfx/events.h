@@ -458,9 +458,6 @@ public:
     : DataEvent(pointer, tag, auxValueByte, Index{})
   {}
 
-  DataEvent(const DataEvent &) = default;
-  DataEvent &operator=(const DataEvent &) = default;
-
   void *pointer;
   uint32_t tag;
   union {
@@ -470,12 +467,24 @@ public:
   };
 };
 
-static_assert(sizeof(DataEvent) == 2 * sizeof(int64_t));
+// Should be 96 bytes on a 32 bit system, 128 on a 64.
+static_assert(sizeof(DataEvent) <= 2 * sizeof(int64_t));
+
+struct CallbackEvent {
+  std::function<void()> fn;
+
+  template<class F, class = std::enable_if_t<std::is_invocable_v<F>>>
+  explicit CallbackEvent(F f)
+    : fn{std::move(f)}
+  {}
+};
 
 template<bool scaled>
 using EventS = std::variant<
   std::monostate,
   EventLoopQuitEvent,
+  CallbackEvent,
+  SystemEvent,
   PointerEventS<scaled>,
   KeyboardEvent,
   GamepadEvent,
@@ -484,7 +493,6 @@ using EventS = std::variant<
   MovingEventS<scaled>,
   ResizeEventS<scaled>,
   DisplayScaleEvent,
-  SystemEvent,
   StyleChangeEvent,
   DragDropEvent,
   DataEvent

@@ -124,6 +124,8 @@ private:
   bool processEvents();
   void process(const std::monostate &) {}
   void process(const EventLoopQuitEvent &);
+  void process(const CallbackEvent &);
+  void process(const SystemEvent &);
   void process(const RawPointerEvent &);
   void process(const KeyboardEvent &);
   void process(const GamepadEvent &);
@@ -132,7 +134,6 @@ private:
   void process(const RawMovingEvent &);
   void process(const RawResizeEvent &);
   void process(const DisplayScaleEvent &);
-  void process(const SystemEvent &);
   void process(const StyleChangeEvent &);
   void process(const DragDropEvent &);
   void process(const DataEvent &);

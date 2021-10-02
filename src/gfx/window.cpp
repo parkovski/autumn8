@@ -27,6 +27,19 @@ void Window::process(const EventLoopQuitEvent &) {
   A8_UNREACHABLE;
 }
 
+void Window::process(const CallbackEvent &e) {
+  e.fn();
+}
+
+void Window::process(const SystemEvent &e) {
+  Log::trace("System {}", e);
+  if (_signals.system(*this, e)) {
+    if (e == SystemEvent::Close) {
+      close();
+    }
+  }
+}
+
 void Window::process(const RawPointerEvent &e) {
   auto scaledPoint = Point{e.pos} * _scale;
   _signals.pointer(*this, PointerEvent{scaledPoint, e.amount, e.params});
@@ -78,15 +91,6 @@ void Window::process(const DisplayScaleEvent &e) {
   _scale = e.scale;
   Log::trace("DisplayScale {}x ({}, {})", e.scale, e.displaySize.width, e.displaySize.height);
   _signals.displayScale(*this, e);
-}
-
-void Window::process(const SystemEvent &e) {
-  Log::trace("System {}", e);
-  if (_signals.system(*this, e)) {
-    if (e == SystemEvent::Close) {
-      close();
-    }
-  }
 }
 
 void Window::process(const StyleChangeEvent &e) {
