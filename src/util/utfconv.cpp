@@ -10,29 +10,29 @@ namespace a8 {
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-void to_utf8(std::string &utf8str, std::wstring_view utf16str) {
+size_t to_utf8(std::string &utf8str, std::wstring_view utf16str) {
   auto size = WideCharToMultiByte(CP_UTF8, 0, utf16str.data(),
                                   (int)utf16str.size(), nullptr, 0, nullptr,
                                   nullptr);
   if (!size) {
-    utf8str.clear();
-    return;
+    return 0;
   }
-  utf8str.resize(size);
+  utf8str.resize(utf8str.size() + size);
   WideCharToMultiByte(CP_UTF8, 0, utf16str.data(), (int)utf16str.size(),
-                      utf8str.data(), size, nullptr, nullptr);
+                      &utf8str.back() + 1 - size, size, nullptr, nullptr);
+  return size;
 }
 
-void to_utf16(std::wstring &utf16str, std::string_view utf8str) {
+size_t to_utf16(std::wstring &utf16str, std::string_view utf8str) {
   auto size = MultiByteToWideChar(CP_UTF8, 0, utf8str.data(),
                                   (int)utf8str.size(), nullptr, 0);
   if (!size) {
-    utf16str.clear();
-    return;
+    return 0;
   }
-  utf16str.resize(size);
+  utf16str.resize(utf16str.size() + size);
   MultiByteToWideChar(CP_UTF8, 0, utf8str.data(), (int)utf8str.size(),
-                      utf16str.data(), size);
+                      &utf16str.back() + 1 - size, size);
+  return size;
 }
 
 std::string to_utf8(std::wstring_view utf16str) {
@@ -54,9 +54,11 @@ std::string to_utf8(std::u16string_view utf16str) {
             .to_bytes(&utf16str.front(), &utf16str.back() + 1);
 }
 
-void to_utf8(std::string &utf8str, std::u16string_view utf16str) {
+size_t to_utf8(std::string &utf8str, std::u16string_view utf16str) {
   // TODO: Make this write directly to utf8str.
-  utf8str = to_utf8(utf16str);
+  auto initsize = utf8str.size();
+  utf8str += to_utf8(utf16str);
+  return utf8str.size() - initsize;
 }
 
 std::u16string to_utf16(std::string_view utf8str) {
@@ -64,9 +66,11 @@ std::u16string to_utf16(std::string_view utf8str) {
             .from_bytes(&utf8str.front(), &utf8str.back() + 1);
 }
 
-void to_utf16(std::u16string &utf16str, std::string_view utf8str) {
+size_t to_utf16(std::u16string &utf16str, std::string_view utf8str) {
   // TODO: Make this write directly to utf16str.
+  auto initsize = utf16str.size();
   utf16str = to_utf16(utf8str);
+  return utf16str.size() - initsize;
 }
 
 #endif // _WIN32

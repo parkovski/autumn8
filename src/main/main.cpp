@@ -14,19 +14,17 @@ int wmain(int argc, wchar_t *argv16[]) {
   auto _argv8{std::make_unique<char *[]>(argc)};
   // Single buffer to hold all arguments, null separated.
   std::string _buffer{};
-  // Temp conversion string.
-  std::string _temp;
   for (int i = 0; i < argc; ++i) {
-    _temp = a8::to_utf8(argv16[i]);
+    // Append argv16[i] to buffer as UTF-8 and add a NUL terminator.
+    auto argsize = a8::to_utf8(_buffer, argv16[i]);
+    _buffer.push_back('\0');
     // Set each pointer to its end offset in `_buffer` (offset of next arg).
     // This offset is the length of the current string plus the previous
     // argument's offset.
-    _argv8[i] = reinterpret_cast<char *>(_temp.length() + 1);
+    _argv8[i] = reinterpret_cast<char *>(argsize + 1);
     if (i > 0) {
       _argv8[i] += reinterpret_cast<size_t>(_argv8[i - 1]);
     }
-    // Append the converted string to the single buffer.
-    _buffer.append(_temp).push_back('\0');
   }
   // Convert offsets to actual pointers into the buffer.
   for (int i = argc - 1; i > 0; --i) {

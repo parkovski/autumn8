@@ -16,22 +16,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   int argc;
   wchar_t **argv16 = CommandLineToArgvW(GetCommandLineW(), &argc);
   std::string buffer{};
-  std::string temp;
   auto argv8{std::make_unique<char *[]>(argc)};
+  // In this first loop, all the arguments are converted to UTF-8 and appended
+  // to buffer. Argv8 stores the offset of the next argument, which is the
+  // sum of all the previous offsets plus the length of the current argument.
   for (int i = 0; i < argc; ++i) {
-    temp = to_utf8(argv16[i]);
-    argv8[i] = reinterpret_cast<char *>(temp.length() + 1);
+    std::wstring_view argw{argv16[i]};
+    auto argsize = to_utf8(buffer, argw);
+    buffer.push_back('\0');
+    argv8[i] = reinterpret_cast<char *>(argsize + 1);
     if (i > 0) {
       argv8[i] += reinterpret_cast<size_t>(argv8[i - 1]);
     }
-    buffer.append(temp).push_back('\0');
 
-    if (i > 0 && temp == "--console") {
+    if (i > 0 && argw == L"--console") {
       g_platformInit.wantsConsole = true;
     }
   }
   LocalFree(argv16);
   argv16 = nullptr;
+  // Now that the buffer pointer is fixed, we convert all the offsets stored
+  // in argv8 to actual pointers to buffer.
   for (int i = argc - 1; i > 0; --i) {
     argv8[i] = buffer.data() + reinterpret_cast<size_t>(argv8[i - 1]);
   }
