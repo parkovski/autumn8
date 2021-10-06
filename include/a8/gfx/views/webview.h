@@ -1,22 +1,32 @@
 #ifndef A8_GFX_VIEWS_WEBVIEW_H_
 #define A8_GFX_VIEWS_WEBVIEW_H_
 
+#include "a8/a8.h"
+
 #include "view.h"
 #include <string_view>
 #include <string>
 
+#if A8_IS_GFX_IMPL(Win32)
+# include "WebView2.h"
+#endif
+
 namespace a8::gfx {
 
 class WebView : public View {
-  void *_a = nullptr;
-  void *_b = nullptr;
-
-#ifdef _WIN32
-  std::wstring
-#else
-  std::string
+#if A8_IS_GFX(Win32)
+# ifdef A8_INCLUDE_GFX_BACKEND
+  ICoreWebView2Environment *_env;
+  ICoreWebView2Controller *_controller;
+  ICoreWebView2 *_webView;
+# else
+  void *_env;
+  void *_controller;
+  void *_webView;
+# endif
 #endif
-    _initialUrl;
+
+  std::string _initialUrl;
 
   void initFinished();
 

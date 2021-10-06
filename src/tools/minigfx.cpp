@@ -34,6 +34,7 @@ const char *const docHead = R"(
 <h1>it's a dang html document</h1>
 <button id="b">Do Websocket Things</button><br>
 <span id="s">Click it.</span>
+<div>Well this is <a href="http://apprc.parkovski.com/test.html">some bidness</a> ain't it?</div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 )";
