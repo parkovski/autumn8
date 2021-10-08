@@ -15,13 +15,12 @@
 #define A8_PLATFORM_Emscripten 6
 
 #define A8_GFX_BACKEND_NULL       0
-#define A8_GFX_BACKEND_Cocoa      1
-#define A8_GFX_BACKEND_CocoaTouch 2
-#define A8_GFX_BACKEND_Win32      3
+#define A8_GFX_BACKEND_Win32      1
+#define A8_GFX_BACKEND_Cocoa      2
+#define A8_GFX_BACKEND_CocoaTouch 3
 #define A8_GFX_BACKEND_Android    4
-#define A8_GFX_BACKEND_X          5
-#define A8_GFX_BACKEND_Wayland    6
-#define A8_GFX_BACKEND_HTML       7
+#define A8_GFX_BACKEND_Gtk        5
+#define A8_GFX_BACKEND_HTML       6
 
 #define A8_IS_PLATFORM(Platform) (A8_PLATFORM == A8_PLATFORM_##Platform)
 #ifdef A8_INCLUDE_PLATFORM
