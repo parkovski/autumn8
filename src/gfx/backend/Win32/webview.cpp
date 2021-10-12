@@ -28,7 +28,11 @@ WebView::~WebView() {
   }
 }
 
-static constexpr std::wstring_view AppDomain = L"apprc.parkovski.com";
+static constexpr std::string_view RsrcUriBase = "http://appres.a8.parkovski.com";
+static constexpr std::wstring_view RsrcDomain = L"appres.a8.parkovski.com";
+
+static constexpr std::string_view UserUriBase = "http://appusr.a8.parkovski.com";
+static constexpr std::wstring_view UserDomain = L"appusr.a8.parkovski.com";
 
 #define LOGHR(Msg, X) if (auto _hr_ = (X); FAILED(_hr_)) a8::Log::error(Msg ": 0x{:X}", (unsigned)_hr_)
 
@@ -55,22 +59,93 @@ void WebView::initFinished() {
             uriDomain = uri + 8;
           }
         }
-        if (uriDomain && a8::starts_with(uriDomain, AppDomain)) {
-          // it's a file url
-          std::wstring filepath{L"C:\\dev\\autumn8\\src\\tools"};
-          filepath.append(uriDomain + AppDomain.length());
-          a8::Log::debug(L"File: {}", filepath);
-          IStream *stream;
-          RETURN_IF_FAILED(SHCreateStreamOnFileEx(filepath.c_str(),
-                                                  STGM_READ | STGM_SHARE_DENY_WRITE,
-                                                  FILE_FLAG_SEQUENTIAL_SCAN,
-                                                  false, nullptr, &stream));
-          const wchar_t *headers =
-            L"Content-Type: text/html\r\n"
-            L"Cache-Control: no-store, max-age=0\r\n";
-          LOGHR("CreateWebResourceResponse",
-                _env->CreateWebResourceResponse(stream, 200, L"OK", headers, &response));
-          LOGHR("put_Response", args->put_Response(response));
+        if (uriDomain) {
+          if (a8::starts_with(uriDomain, RsrcDomain)) {
+            // App resource request.
+            // TODO: Look up the app's actual path or allow configuring this.
+            std::wstring filepath{L"C:\\dev\\autumn8\\src\\tools"};
+            filepath.append(uriDomain + RsrcDomain.length());
+            a8::Log::debug(L"File: {}", filepath);
+            IStream *stream;
+            RETURN_IF_FAILED(
+              SHCreateStreamOnFileEx(filepath.c_str(),
+                                     STGM_READ | STGM_SHARE_DENY_WRITE,
+                                     FILE_FLAG_SEQUENTIAL_SCAN,
+                                     false, nullptr, &stream)
+            );
+            // TODO: Find the actual content type.
+            const wchar_t *headers =
+              L"Content-Type: text/html\r\n"
+              L"Cache-Control: no-store, max-age=0\r\n";
+            LOGHR("CreateWebResourceResponse",
+                  _env->CreateWebResourceResponse(stream, 200, L"OK", headers, &response));
+            LOGHR("put_Response", args->put_Response(response));
+          } else if (a8::starts_with(uriDomain, UserDomain)) {
+            // User resource request.
+            WebViewRequest wvreq;
+            WebViewResponse wvres;
+
+            if (_userCallback) {
+              wchar_t *method;
+              request->get_Method(&method);
+              a8::to_utf8(wvreq.method, method);
+
+              // TODO: Use only the path.
+              a8::to_utf8(wvreq.uri, uri);
+
+              // TODO: Fill in headers.
+              ICoreWebView2HttpRequestHeaders *headers;
+              request->get_Headers(&headers);
+              ICoreWebView2HttpHeadersCollectionIterator *iterator;
+              headers->GetIterator(&iterator);
+              wchar_t *headerName, *headerValue;
+              while (iterator->GetCurrentHeader(&headerName, &headerValue) == S_OK) {
+                wvreq.headers.emplace(a8::to_utf8(headerName), a8::to_utf8(headerValue));
+                BOOL hasNext;
+                iterator->MoveNext(&hasNext);
+                if (!hasNext) {
+                  break;
+                }
+              }
+
+              if (!_userCallback(this, wvreq, wvres)) {
+                a8::Log::debug("User response: false; 404 Not Found.");
+                wvres.status = 404;
+                wvres.reason = "Not Found";
+                wvres.content.clear();
+                wvres.headers.clear();
+                wvres.contentType.clear();
+              } else {
+                a8::Log::debug("User response: {} {}; {}; {}B.",
+                               wvres.status, wvres.reason, wvres.contentType,
+                               wvres.content.size());
+              }
+            } else {
+              wvres.status = 501;
+              wvres.reason = "Not Implemented";
+              a8::Log::debug("User response: null; 501 Not Implemented.");
+            }
+
+            std::wstring headers{L"Content-Type: "};
+            if (wvres.contentType.empty()) {
+              headers.append(L"text/plain\r\n");
+            } else {
+              a8::to_utf16(headers, wvres.contentType);
+              headers.append(L"\r\n");
+            }
+            a8::to_utf16(headers, wvres.headers);
+
+            std::wstring reason = a8::to_utf16(wvres.reason);
+
+            IStream *stream = SHCreateMemStream(
+              reinterpret_cast<const BYTE *>(wvres.content.data()),
+              static_cast<UINT>(wvres.content.length()));
+
+            _env->CreateWebResourceResponse(stream, wvres.status,
+                                            reason.c_str(), headers.c_str(),
+                                            &response);
+            args->put_Response(response);
+          }
         }
         return S_OK;
       }).Get(),
@@ -94,6 +169,14 @@ void WebView::navigate(std::string_view url) {
   if (result != S_OK) {
     a8::Log::error("WebView Navigate: 0x{:X}", (unsigned)result);
   }
+}
+
+std::string_view WebView::resourceUri() const noexcept {
+  return RsrcUriBase;
+}
+
+std::string_view WebView::userUri() const noexcept {
+  return UserUriBase;
 }
 
 void WebView::init(Window *window) {

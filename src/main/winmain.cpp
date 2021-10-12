@@ -12,6 +12,7 @@ using a8::Log;
 using namespace a8::platform::windows;
 using a8::to_utf8;
 
+extern "C"
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   int argc;
   wchar_t **argv16 = CommandLineToArgvW(GetCommandLineW(), &argc);

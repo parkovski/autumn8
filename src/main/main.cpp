@@ -8,6 +8,7 @@
 #include <memory>
 
 // Windows console entry point.
+extern "C"
 int wmain(int argc, wchar_t *argv16[]) {
   // Convert UTF-16 args to UTF-8.
   // RAII array of arg pointers.
