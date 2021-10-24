@@ -7,3 +7,5 @@
 /session.vim
 /res/size*.png
 /res/*.ico
+*.env
+*.env.old

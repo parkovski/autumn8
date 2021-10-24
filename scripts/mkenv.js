@@ -58,10 +58,10 @@ function removeDups(env) {
 const builders = {
   help(name) {
     if (name && builders[name]) {
-      builders[name]('help');
+      return builders[name]('help');
     } else {
-      console.log('usage: mkenv <toolkit> <args>...');
-      console.log(`toolkits: ${Object.keys(builders).filter(n => n !== 'help').join(', ')}`);
+      return 'usage: node mkenv <toolkit> <args>...\n' +
+        `toolkits: ${Object.keys(builders).filter(n => n !== 'help').join(', ')}`;
     }
   },
 
@@ -70,8 +70,7 @@ const builders = {
       arch = os.arch();
     }
     if (arch === 'help') {
-      console.log('usage: node mkenv msvc <arch>');
-      return;
+      return 'usage: node mkenv msvc <arch>';
     }
     const vswhere = path.join(
       sh('pwsh.exe', '-c',
@@ -122,14 +121,14 @@ const builders = {
     };
 
     if (arguments[0] === 'help' || arguments.length === 0) {
-      console.log('usage: node mkenv android [VAR=VALUE]... [components]...');
-      console.log(`vars: ${Object.keys(vars).join(', ')}`);
-      console.log(`component sets: ${Object.keys(defaults).join(', ')}`);
-      console.log(`components: ${Object.keys(paths).join(', ')}`);
-      if (arguments.length === 0) {
-        process.exit(1);
-      }
-      return;
+      return 'usage: node mkenv android [VAR=VALUE]... [components]...\n' +
+        `vars: ${Object.keys(vars).join(', ')}\n` +
+        `component sets: ${
+          Object.keys(defaults)
+            .map(d => `${d}[${defaults[d].join(', ')}]`)
+            .join('; ')
+        }\n` +
+        `components: ${Object.keys(paths).join(', ')}`
     }
 
     const components = [];
@@ -194,7 +193,7 @@ const builders = {
 
 const builder = builders[process.argv[2]];
 if (!builder) {
-  builders.help();
+  console.log(builders.help());
   process.exit(1);
 }
 
