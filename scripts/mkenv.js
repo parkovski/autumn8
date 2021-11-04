@@ -15,6 +15,19 @@ class ShError extends Error {
   }
 }
 
+class EnvError extends Error {
+  constructor(name) {
+    super(`Environment variable ${name} not set`);
+  }
+}
+
+function reqenv(name) {
+  if (typeof process.env[name] === 'undefined') {
+    throw new EnvError(name);
+  }
+  return process.env[name];
+}
+
 function sh() {
   const s = spawnSync(arguments[0], Array.prototype.slice.call(arguments, 1),
     { encoding: 'utf8', stdio: 'pipe' });
@@ -92,9 +105,9 @@ const builders = {
 
   android() {
     const home = {
-      android: process.env.ANDROID_HOME,
-      ndk: process.env.ANDROID_NDK,
-      java: process.env.JAVA_HOME,
+      android: () => reqenv('ANDROID_HOME'),
+      ndk: () => reqenv('ANDROID_NDK'),
+      java: () => reqenv('JAVA_HOME'),
     };
     const paths = {
       'platform-tools': [['android', 'platform-tools']],
@@ -102,22 +115,60 @@ const builders = {
       'cmdline-tools': [['android', 'cmdline-tools/latest/bin']],
       'tools': [['android', 'tools'], ['android', 'tools/bin']],
       'emulator': [['android', 'emulator'], ['android', 'emulator/bin64'], ['android', 'emulator/qemu', '$HOSTARCH']],
-      'ndkroot': [['ndk', 'ndk', '$NDKVER']],
-      'prebuilt': [['ndk', 'ndk', '$NDKVER', 'prebuilt', '$HOSTARCH', 'bin']],
-      'shader-tools': [['ndk', 'ndk', '$NDKVER', 'shader-tools', '$HOSTARCH']],
-      'llvm': [['ndk', 'ndk', '$NDKVER', 'toolchains/llvm/prebuilt', '$HOSTARCH', 'bin']],
-      'renderscript': [['ndk', 'ndk', '$NDKVER', 'toolchains/renderscript/prebuilt', '$HOSTARCH', 'bin']],
+      'ndkroot': [['ndk']],
+      'prebuilt': [['ndk', 'prebuilt', '$HOSTARCH', 'bin']],
+      'shader-tools': [['ndk', 'shader-tools', '$HOSTARCH']],
+      'llvm': [['ndk', 'toolchains/llvm/prebuilt', '$HOSTARCH', 'bin']],
+      'renderscript': [['ndk', 'toolchains/renderscript/prebuilt', '$HOSTARCH', 'bin']],
       'java': [['java', 'bin']],
     };
     const defaults = {
       sdk: ['platform-tools', 'cmdline-tools'],
-      ndk: ['ndk', 'llvm'],
+      ndk: ['ndkroot', 'llvm'],
       java: ['java'],
     };
     const vars = {
       SDKVER: null,
-      NDKVER: null,
       HOSTARCH: null,
+    };
+    const defaultvars = {
+      SDKVER() {
+        const sdks = fs.readdirSync(home.android());
+        sdks.sort((a, b) => {
+          let pa = a.split('.');
+          let pb = b.split('.');
+          let i = 0;
+          while (true) {
+            if (i >= pa.length) {
+              return pa.length - pb.length;
+            }
+            if (i >= pb.length) {
+              return pb.length - pa.length;
+            }
+            const na = parseInt(pa[i]);
+            const nb = parseInt(pb[i]);
+            if (na === nb) {
+              continue;
+            }
+            return na - nb;
+          }
+        });
+        return sdks[sdks.length - 1];
+      },
+      HOSTARCH() {
+        let pfm = os.platform();
+        let arch = os.arch();
+        if (pfm === 'linux') {
+          if (arch === 'x64') {
+            return 'linux-x86_64';
+          }
+          return `linux-${arch}`;
+        }
+        if (pfm === 'win32') {
+          pfm = 'windows';
+        }
+        return `${pfm}-${arch}`;
+      }
     };
 
     if (arguments[0] === 'help' || arguments.length === 0) {
@@ -134,8 +185,12 @@ const builders = {
     const components = [];
     let newpath = '';
     const append = (parts) => {
-      parts[0] = home[parts[0]];
-      newpath += path.join.apply(null, parts);
+      parts[0] = home[parts[0]]();
+      if (parts.length === 1) {
+        newpath += parts[0];
+      } else {
+        newpath += path.join.apply(null, parts);
+      }
       newpath += path.delimiter;
     };
 
@@ -173,7 +228,7 @@ const builders = {
             if (vars[name]) {
               list[i] = vars[name];
             } else {
-              throw 'Defaults not yet implemented: ' + name;
+              list[i] = defaultvars[name]();
             }
           }
         }
@@ -205,8 +260,8 @@ try {
       console.log(e.stack);
     } else {
       console.log(`\x1b[31mError:\x1b[m ${e.message}`);
+      console.log(`\x1b[36mfile:\x1b[m ${e.fileName}`)
     }
-    console.log(`x1b[36mfile:\x1b[m ${e.fileName}`)
     if (e instanceof ShError) {
       console.log(`\x1b[32mcommand:\x1b[m ${e.command.join(' ')}`);
       if (e.output) {
