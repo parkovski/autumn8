@@ -26,9 +26,10 @@
 #include <optional>
 
 namespace a8::platform {
-inline namespace windows {
+inline namespace Windows {
 
 bool setThreadName(const wchar_t *name);
+bool setThreadName(const char *name);
 
 template<typename F>
 class CallSite {
@@ -80,5 +81,5 @@ private:
   void gfxdeinit() const noexcept;
 } g_platformInit;
 
-} // inline namespace windows
+} // inline namespace Windows
 } // namespace a8::platform

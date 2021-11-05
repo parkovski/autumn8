@@ -139,7 +139,7 @@ private:
   void process(const DataEvent &);
 
 #if A8_IS_GFX_IMPL(Win32)
-  friend LRESULT CALLBACK ::a8::platform::windows::mainWndProc(
+  friend LRESULT CALLBACK ::a8::platform::Windows::mainWndProc(
     HWND, UINT, WPARAM, LPARAM
   );
 #endif

@@ -9,7 +9,8 @@ using namespace a8;
 using namespace a8::midi;
 
 int a8main(int argc, char *argv[]) {
-  Backend backend;
+  Backend backend = Backend::Default;
+#if A8_IS_PLATFORM(Windows)
   if (argc == 2) {
     std::string_view backend_arg{argv[1]};
     if (backend_arg == "winmm") {
@@ -20,9 +21,8 @@ int a8main(int argc, char *argv[]) {
       Log::error("Invalid backend {}", backend_arg);
       return 1;
     }
-  } else {
-    backend = Backend::Default;
   }
+#endif
 
   auto inMan = PortManager<InputPort>::create(backend);
   auto outMan = PortManager<OutputPort>::create(backend);

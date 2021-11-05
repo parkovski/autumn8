@@ -3,12 +3,16 @@
 const spawnSync = require('child_process').spawnSync;
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const args = [];
 
 function fixpath(p) {
   if (!p) return;
-  return p.replace(/\\/g, '/');
+  if (os.platform() === 'win32') {
+    return p.replace(/\\/g, '/');
+  }
+  return p;
 }
 
 function envpath(name) {
@@ -60,6 +64,15 @@ if (process.argv[3] === 'release') {
   args.push('-DCMAKE_BUILD_TYPE=Release');
   ++i;
 } else if (process.argv[3] === 'debug') {
+  args.push('-DCMAKE_BUILD_TYPE=Debug');
+  ++i;
+} else if (process.argv[3] === 'relwithdebinfo') {
+  kind = 'relwithdebinfo';
+  args.push('-DCMAKE_BUILD_TYPE=RelWithDebInfo');
+  ++i;
+} else if (process.argv[3] === 'minsizerel') {
+  kind = 'minsizerel';
+  args.push('-DCMAKE_BUILD_TYPE=MinSizeRel');
   ++i;
 }
 

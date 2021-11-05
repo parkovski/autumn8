@@ -20,6 +20,10 @@ namespace a8::midi {
     M(Winmm) \
     //M(UWP)
 # define A8_MIDI_DEFAULT_BACKEND Winmm
+#elif defined(__linux__)
+# define A8_MIDI_BACKENDS(M) \
+    M(Alsa)
+# define A8_MIDI_DEFAULT_BACKEND Alsa
 #elif defined(__ANDROID__)
 # define A8_MIDI_BACKENDS(M) M(Android)
 # define A8_MIDI_DEFAULT_BACKEND Android

@@ -3,6 +3,7 @@
 #include "a8/util/utfconv.h"
 
 #include <codecvt>
+#include <locale>
 
 namespace a8 {
 

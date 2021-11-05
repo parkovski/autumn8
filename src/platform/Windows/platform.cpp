@@ -1,14 +1,19 @@
 #define A8_INCLUDE_PLATFORM
 #include "a8/a8.h"
+#include "a8/util/utfconv.h"
 
 namespace a8::platform {
-inline namespace windows {
+inline namespace Windows {
 
 bool setThreadName(const wchar_t *name) {
   static CallSite<decltype(&SetThreadDescription)> fn(
     L"kernel32.dll", "SetThreadDescription"
   );
   return fn && fn(GetCurrentThread(), name) == S_OK;
+}
+
+bool setThreadName(const char *name) {
+  return setThreadName(to_utf16(name));
 }
 
 void GlobalPlatformInit::init(HINSTANCE hInstance, int nCmdShow) noexcept {
@@ -37,5 +42,5 @@ void GlobalPlatformInit::deinit() const noexcept {
 
 GlobalPlatformInit g_platformInit;
 
-} // inline namespace windows
+} // inline namespace Windows
 } // namespace a8::platform
