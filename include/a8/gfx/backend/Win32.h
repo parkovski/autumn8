@@ -12,5 +12,5 @@ extern const wchar_t *const A8WindowClass;
 
 LRESULT CALLBACK mainWndProc(HWND, UINT, WPARAM, LPARAM);
 
-} // inline namespace windows
+} // inline namespace Windows
 } // namespace a8::platform

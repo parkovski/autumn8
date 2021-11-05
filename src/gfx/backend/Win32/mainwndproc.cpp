@@ -20,7 +20,7 @@ namespace {
 }
 
 LRESULT CALLBACK
-a8::platform::windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   auto *window = reinterpret_cast<Window *>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
   switch (msg) {

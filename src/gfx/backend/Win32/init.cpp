@@ -2,7 +2,7 @@
 #include "a8/a8.h"
 
 namespace a8::platform {
-inline namespace windows {
+inline namespace Windows {
 
 const wchar_t *const A8WindowClass = L"Autumn8WndClass";
 
@@ -50,5 +50,5 @@ void GlobalPlatformInit::gfxdeinit() const noexcept {
   }
 }
 
-} // inline namespace windows
+} // inline namespace Windows
 } // namespace a8::platform

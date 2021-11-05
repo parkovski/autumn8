@@ -3,7 +3,7 @@
 #include "a8/gfx/msgloop.h"
 
 using a8::Log;
-using namespace a8::platform::windows;
+using namespace a8::platform::Windows;
 
 int a8::gfx::runMessageLoop() {
   if (g_platformInit.dwMainThreadId != GetCurrentThreadId()) {
