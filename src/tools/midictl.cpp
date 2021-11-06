@@ -9,12 +9,14 @@ using namespace a8;
 using namespace a8::midi;
 
 int a8main(int argc, char *argv[]) {
-  Backend backend = Backend::Default;
 #if A8_IS_PLATFORM(Windows)
+  Backend backend = Backend::Winmm;
   if (argc == 2) {
     std::string_view backend_arg{argv[1]};
     if (backend_arg == "winmm") {
       backend = Backend::Winmm;
+    } else if (backend_arg == "null") {
+      backend = Backend::Null;
     // } else if (backend_arg == "uwp") {
     //   backend = Backend::UWP;
     } else {
@@ -22,10 +24,12 @@ int a8main(int argc, char *argv[]) {
       return 1;
     }
   }
-#endif
-
   auto inMan = PortManager<InputPort>::create(backend);
   auto outMan = PortManager<OutputPort>::create(backend);
+#else
+  auto inMan = PortManager<InputPort>::create();
+  auto outMan = PortManager<OutputPort>::create();
+#endif
 
   inMan->scan().wait();
   outMan->scan().wait();

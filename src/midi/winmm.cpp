@@ -337,7 +337,7 @@ template class PortManager<OutputPort>;
 namespace a8::midi {
 
 template<> template<>
-auto PortManager<InputPort>::create<Backend::Winmm>()
+auto PortManager<InputPort>::createInternal<Backend::Winmm>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::winmm;
@@ -345,7 +345,7 @@ auto PortManager<InputPort>::create<Backend::Winmm>()
 }
 
 template<> template<>
-auto PortManager<OutputPort>::create<Backend::Winmm>()
+auto PortManager<OutputPort>::createInternal<Backend::Winmm>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::winmm;

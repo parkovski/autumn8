@@ -1,40 +1,11 @@
-#ifndef A8_CONFIG_H_
-#define A8_CONFIG_H_
+#ifndef A8_A8_H_
+# error "Do not include this file directly; include a8/a8.h"
+#endif
 
 #define A8_VERSION_MAJOR @A8_VERSION_MAJOR@
 #define A8_VERSION_MINOR @A8_VERSION_MINOR@
 #define A8_VERSION_PATCH @A8_VERSION_PATCH@
 #define A8_VERSION "@A8_VERSION_MAJOR@.@A8_VERSION_MINOR@.@A8_VERSION_PATCH@"
-
-#define A8_PLATFORM_NULL       0
-#define A8_PLATFORM_Windows    1
-#define A8_PLATFORM_macOS      2
-#define A8_PLATFORM_iOS        3
-#define A8_PLATFORM_Android    4
-#define A8_PLATFORM_Linux      5
-#define A8_PLATFORM_Emscripten 6
-
-#define A8_GFX_BACKEND_NULL       0
-#define A8_GFX_BACKEND_Win32      1
-#define A8_GFX_BACKEND_Cocoa      2
-#define A8_GFX_BACKEND_CocoaTouch 3
-#define A8_GFX_BACKEND_Android    4
-#define A8_GFX_BACKEND_Gtk        5
-#define A8_GFX_BACKEND_HTML       6
-
-#define A8_IS_PLATFORM(Platform) (A8_PLATFORM == A8_PLATFORM_##Platform)
-#ifdef A8_INCLUDE_PLATFORM
-# define A8_IS_PLATFORM_IMPL(Platform) A8_IS_PLATFORM(Platform)
-#else
-# define A8_IS_PLATFORM_IMPL(Platform) 0
-#endif
-
-#define A8_IS_GFX(Backend) (A8_GFX_BACKEND == A8_GFX_BACKEND_##Backend)
-#ifdef A8_INCLUDE_GFX_BACKEND
-# define A8_IS_GFX_IMPL(Backend) A8_IS_GFX(Backend)
-#else
-# define A8_IS_GFX_IMPL(Backend) 0
-#endif
 
 #define A8_PLATFORM A8_PLATFORM_@A8_PLATFORM@
 #define A8_PLATFORM_HEADER "a8/platform/@A8_PLATFORM@/platform.h"
@@ -47,4 +18,6 @@
 # define A8_GFX_BACKEND A8_GFX_BACKEND_NULL
 #endif
 
-#endif /* A8_CONFIG_H_ */
+#cmakedefine A8_HAS_JACK
+
+#cmakedefine A8_GTK_VERSION @A8_GTK_VERSION@

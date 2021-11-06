@@ -15,45 +15,25 @@
 
 namespace a8::midi {
 
-#if defined(_WIN32)
-# define A8_MIDI_BACKENDS(M) \
-    M(Winmm) \
-    //M(UWP)
-# define A8_MIDI_DEFAULT_BACKEND Winmm
-#elif defined(__linux__)
-# define A8_MIDI_BACKENDS(M) \
-    M(Alsa)
-# define A8_MIDI_DEFAULT_BACKEND Alsa
-#elif defined(__ANDROID__)
-# define A8_MIDI_BACKENDS(M) M(Android)
-# define A8_MIDI_DEFAULT_BACKEND Android
-#endif
+#define A8_MIDI_BACKENDS(M) \
+    M(Null)             \
+    M(UWP)              \
+    M(Winmm)            \
+    M(CoreMIDI)         \
+    M(AMidi)            \
+    M(AndroidMediaMidi) \
+    M(Alsa)             \
+    M(Jack)             \
+    M(WebMIDI)
 
 // MIDI backends available on this platform.
 enum class Backend {
-#define A8_MIDI_BE(be) be,
-  A8_MIDI_BACKENDS(A8_MIDI_BE)
-#undef A8_MIDI_BE
-  Default = A8_MIDI_DEFAULT_BACKEND
+#define BACKEND(BE) BE,
+  A8_MIDI_BACKENDS(BACKEND)
+#undef BACKEND
 };
 
 std::ostream &operator<<(std::ostream &os, Backend be);
-
-class BackendException : public std::runtime_error {
-public:
-  BackendException(Backend backend) noexcept
-    : std::runtime_error("MIDI backend does not exist"),
-      _backend{backend}
-  {}
-
-  Backend backend() const noexcept {
-    return _backend;
-  }
-
-private:
-  Backend _backend;
-};
-
 
 // Common MIDI port base type.
 class Port {
@@ -141,8 +121,11 @@ public:
   //virtual void operator()(unsigned char *data, size_t length) = 0;
 };
 
-template<typename P>
+template<class P>
 class PortManager {
+  template<Backend B>
+  static std::unique_ptr<PortManager> createInternal();
+
 public:
   using promise_type = std::promise<std::unique_ptr<PortManager>>;
   using future_type = std::future<std::unique_ptr<PortManager>>;
@@ -225,12 +208,11 @@ protected:
 public:
   virtual ~PortManager();
 
-  template<Backend B>
+  // Use the platform default/first available backend.
   static std::unique_ptr<PortManager> create();
 
-  /// \throws BackendException
-  static std::unique_ptr<PortManager>
-  create(Backend backend = Backend::Default);
+  // Use a specific backend.
+  static std::unique_ptr<PortManager> create(Backend backend);
 
   virtual std::future<void> scan() = 0;
   virtual void startWatching() = 0;

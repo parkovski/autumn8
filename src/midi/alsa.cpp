@@ -36,14 +36,21 @@ public:
   explicit PortManager() {}
   ~PortManager() {}
 
-  std::future<void> scan() override {}
+  std::future<void> scan() override {
+    std::promise<void> promise;
+    promise.set_value();
+    return promise.get_future();
+  }
   void startWatching() override {}
   void stopWatching() override {}
 
-  size_t size() const noexcept override {}
+  size_t size() const noexcept override {
+    return 0;
+  }
 
   typename P::future_type open(const iterator &it) override {
     typename P::promise_type promise;
+    // TODO: promise.set_value(???);
     return promise.get_future();
   }
 };
@@ -56,7 +63,7 @@ template class PortManager<OutputPort>;
 namespace a8::midi {
 
 template<> template<>
-auto PortManager<InputPort>::create<Backend::Alsa>()
+auto PortManager<InputPort>::createInternal<Backend::Alsa>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::alsa;
@@ -64,7 +71,7 @@ auto PortManager<InputPort>::create<Backend::Alsa>()
 }
 
 template<> template<>
-auto PortManager<OutputPort>::create<Backend::Alsa>()
+auto PortManager<OutputPort>::createInternal<Backend::Alsa>()
   -> std::unique_ptr<PortManager>
 {
   namespace impl = midi_impl::alsa;

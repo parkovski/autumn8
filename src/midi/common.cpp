@@ -29,20 +29,62 @@ template<typename P>
 PortManager<P>::~PortManager() {}
 
 template<typename P>
+auto PortManager<P>::create() -> std::unique_ptr<PortManager> {
+#if A8_IS_PLATFORM(Windows)
+  // TODO: If UWP not available, return Winmm.
+  return createInternal<Backend::UWP>();
+#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
+  return createInternal<Backend::CoreMIDI>();
+#elif A8_IS_PLATFORM(Android)
+  // TODO: If AMidi not available, return AndroidMediaMidi.
+  return createInternal<Backend::AMidi>();
+#elif A8_IS_PLATFORM(Linux)
+  return createInternal<Backend::Alsa>();
+#elif A8_IS_PLATFORM(Emscripten)
+  return createInternal<Backend::WebMIDI>();
+#else
+# error "Unknown platform"
+#endif
+}
+
+template<typename P>
 auto PortManager<P>::create(Backend backend) -> std::unique_ptr<PortManager> {
   switch (backend) {
+    case Backend::Null:
+      return createInternal<Backend::Null>();
 
-#define BACKEND(b)   \
-    case Backend::b: \
-      return PortManager<P>::template create<Backend::b>();
+#if A8_IS_PLATFORM(Windows)
+    case Backend::UWP:
+      return createInternal<Backend::UWP>();
+    case Backend::Winmm:
+      return createInternal<Backend::Winmm>();
 
-    A8_MIDI_BACKENDS(BACKEND)
+#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
+    case Backend::CoreMIDI:
+      return createInternal<Backend::CoreMIDI>();
 
-#undef BACKEND
+#elif A8_IS_PLATFORM(Android)
+    case Backend::AMidi:
+      return createInternal<Backend::AMidi>();
+    case Backend::AndroidMediaMidi:
+      return createInternal<Backend::AndroidMediaMidi>();
+
+#elif A8_IS_PLATFORM(Linux)
+    case Backend::Alsa:
+      return createInternal<Backend::Alsa>();
+
+#elif A8_IS_PLATFORM(Emscripten)
+    case Backend::WebMIDI:
+      return createInternal<Backend::WebMIDI>();
+#endif
+
+#if A8_HAS_JACK
+    case Backend::Jack:
+      return createInternal<Backend::Jack>();
+#endif
 
     default:
-      A8_UNREACHABLE;
-      break;
+      return std::unique_ptr<PortManager>{};
   }
 }
 
