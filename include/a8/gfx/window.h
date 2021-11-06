@@ -36,6 +36,8 @@ public:
   using native_handle_t =
 #if A8_IS_GFX_IMPL(Win32)
     HWND
+#elif A8_IS_GFX_IMPL(Gtk)
+    GtkWidget *
 #else
     void *
 #endif

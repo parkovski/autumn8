@@ -8,11 +8,16 @@ set(SOURCES
 )
 
 set(SOURCES_Win32
-  backend/Win32/window.cpp
-  backend/Win32/mainwndproc.cpp
   backend/Win32/init.cpp
+  backend/Win32/mainwndproc.cpp
   backend/Win32/messageloop.cpp
   backend/Win32/webview.cpp
+  backend/Win32/window.cpp
+)
+
+set(SOURCES_Gtk
+  backend/Gtk/init.cpp
+  backend/Gtk/window.cpp
 )
 
 add_library(a8gfx STATIC ${SOURCES} ${SOURCES_${A8_GFXBACKEND}})
@@ -31,7 +36,7 @@ endif()
 
 target_include_directories(a8gfx PUBLIC ${Boost_INCLUDE_DIRS})
 
-if(${A8_GFXBACKEND} STREQUAL "Win32")
+if(A8_GFXBACKEND STREQUAL "Win32")
   find_package(wil REQUIRED)
 
   target_include_directories(a8gfx PRIVATE ../../contrib/webview2/build/native/include)
@@ -43,4 +48,17 @@ if(${A8_GFXBACKEND} STREQUAL "Win32")
 
   target_link_libraries(a8gfx PUBLIC WebView2LoaderStatic)
   target_link_libraries(a8gfx PRIVATE WIL::WIL)
+elseif(A8_GFXBACKEND STREQUAL "Gtk")
+  find_package(PkgConfig REQUIRED)
+  if(A8_GTK_VERSION STREQUAL 2)
+    pkg_check_modules(GTK REQUIRED gtk+-2.0)
+  elseif(A8_GTK_VERSION STREQUAL 3)
+    pkg_check_modules(GTK REQUIRED gtk+-3.0)
+  elseif(A8_GTK_VERSION STREQUAL 4)
+    pkg_check_modules(GTK REQUIRED gtk4)
+  endif()
+  target_include_directories(a8gfx PRIVATE ${GTK_INCLUDE_DIRS})
+  target_compile_options(a8gfx PRIVATE ${GTK_CFLAGS_OTHER})
+  target_link_directories(a8gfx PUBLIC ${GTK_LIBRARY_DIRS})
+  target_link_libraries(a8gfx PUBLIC ${GTK_LIBRARIES})
 endif()

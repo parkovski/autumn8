@@ -523,34 +523,70 @@ using Signal = boost::signals2::signal<bool (R &, const E &), ShortCircuit>;
 template<class R, class E>
 using Slot = boost::signals2::slot<bool (R &, const E &)>;
 
+#define ENUMEVENTS(DEF) \
+  DEF(PointerEvent, pointer)           \
+  DEF(KeyboardEvent, keyboard)         \
+  DEF(GamepadEvent, gamepad)           \
+  DEF(MidiEvent, midi)                 \
+  DEF(SizingEvent, sizing)             \
+  DEF(MovingEvent, moving)             \
+  DEF(ResizeEvent, resize)             \
+  DEF(DisplayScaleEvent, displayScale) \
+  DEF(SystemEvent, system)             \
+  DEF(StyleChangeEvent, styleChange)   \
+  DEF(DragDropEvent, dragDrop)         \
+  DEF(DataEvent, data)
+
+template<template<class> class EventKind>
+struct EventSignals;
+
+namespace detail {
+  template<template<template<class> class> class Signals,
+           template<class> class EventKind,
+           class E>
+  struct GetEvent {
+    constexpr static EventKind<E> &get_event(Signals<EventKind> &s) noexcept;
+  };
+
+#define DEFEVENT(E, Name) \
+  template<template<template<class> class> class Signals, \
+           template<class> class EventKind>               \
+  struct GetEvent<Signals, EventKind, E> {                \
+    constexpr static EventKind<E> &                       \
+    get_event(Signals<EventKind> &s) noexcept {           \
+      return s.Name;                                      \
+    }                                                     \
+  };
+
+  ENUMEVENTS(DEFEVENT)
+
+#undef DEFEVENT
+}
+
 template<template<class> class EventKind>
 struct EventSignals {
   // Let you refer to the signals here by type.
-  template<class E> EventKind<E> &get();
+  template<class E>
+  constexpr EventKind<E> &get() noexcept {
+    return detail::GetEvent<EventSignals, EventKind, E>::get_event(*this);
+  }
 
-  // template<typename E> const E &get() const {
-  //   return const_cast<EventSignals *>(this)->get<E>();
-  // }
+  template<class E>
+  constexpr const E &get() const noexcept {
+    return detail::GetEvent<EventSignals, EventKind, E>::get_event(
+      *const_cast<EventSignals *>(this)
+    );
+  }
 
-#define DEFEVENT(Class, Name) \
-  EventKind<Class> Name; \
-  template<> EventKind<Class> &get<Class>() { return Name; }
+#define DEFEVENT(E, Name) \
+  EventKind<E> Name; \
 
-  DEFEVENT(PointerEvent, pointer)
-  DEFEVENT(KeyboardEvent, keyboard)
-  DEFEVENT(GamepadEvent, gamepad)
-  DEFEVENT(MidiEvent, midi)
-  DEFEVENT(SizingEvent, sizing)
-  DEFEVENT(MovingEvent, moving)
-  DEFEVENT(ResizeEvent, resize)
-  DEFEVENT(DisplayScaleEvent, displayScale)
-  DEFEVENT(SystemEvent, system)
-  DEFEVENT(StyleChangeEvent, styleChange)
-  DEFEVENT(DragDropEvent, dragDrop)
-  DEFEVENT(DataEvent, data)
+  ENUMEVENTS(DEFEVENT)
 
 #undef DEFEVENT
 };
+
+#undef ENUMEVENTS
 
 } // namespace a8::gfx
 
