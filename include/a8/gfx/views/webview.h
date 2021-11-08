@@ -2,6 +2,7 @@
 #define A8_GFX_VIEWS_WEBVIEW_H_
 
 #include "a8/a8.h"
+#include "a8/util/cstring_view.h"
 
 #include "view.h"
 #include <string_view>
@@ -78,7 +79,7 @@ public:
   WebView(void *webView);
   ~WebView();
 
-  void navigate(std::string_view url);
+  void navigate(cstring_view url);
 
   // The URL where app resources can be found on disk.
   std::string_view resourceUri() const noexcept;
