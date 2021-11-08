@@ -10,6 +10,8 @@
 
 #if A8_IS_GFX_IMPL(Win32)
 # include "WebView2.h"
+#elif A8_IS_GFX_IMPL(Gtk)
+# include <webkit2/webkit2.h>
 #endif
 
 namespace a8::gfx {
@@ -57,6 +59,12 @@ private:
   void *_controller;
   void *_webView;
 # endif
+#elif A8_IS_GFX(Gtk)
+# ifdef A8_INCLUDE_GFX_BACKEND
+  GtkWidget *_webView;
+# else
+  void *_webView;
+# endif
 #endif
 
   std::string _initialUrl;
@@ -65,7 +73,9 @@ private:
   void initFinished();
 
 public:
-  WebView(std::string_view url = {});
+  static WebView *create(Window *parent);
+
+  WebView(void *webView);
   ~WebView();
 
   void navigate(std::string_view url);

@@ -33,7 +33,7 @@ getfile(std::filesystem::path path) noexcept {
 }
 
 int a8main(int argc, char *argv[]) {
-  Window *mainWindow = new Window;
+  Window *mainWindow = Window::create("Minigfx");
   mainWindow->resize(0, 0, 500, 500);
   mainWindow->quitOnClose();
 
@@ -41,7 +41,8 @@ int a8main(int argc, char *argv[]) {
   auto icon64 = getfile("C:\\dev\\autumn8\\res\\size64.png");
   auto icon256 = getfile("C:\\dev\\autumn8\\res\\size256.png");
 
-  auto *webview = new WebView("http://appusr.a8.parkovski.com/index.html");
+  auto *webview = WebView::create(mainWindow);
+  webview->navigate("http://appusr.a8.parkovski.com/index.html");
   webview->setUserCallback([&](auto *wv, auto const &req, auto &res) -> bool {
     res.status = 200;
     res.reason = "OK";
@@ -76,9 +77,7 @@ int a8main(int argc, char *argv[]) {
   });
   mainWindow->setView(webview);
 
-  if (!mainWindow->open("Minigfx")) {
-    return 1;
-  }
+  mainWindow->show(true);
 
   auto x = runMessageLoop();
   a8::Log::debug("Message loop returned {}.", x);

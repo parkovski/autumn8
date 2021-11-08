@@ -1,4 +1,7 @@
+#define A8_INCLUDE_PLATFORM
 #include "a8/a8.h"
+
+using namespace a8::platform;
 
 #if defined(_WIN32)
 
@@ -44,5 +47,6 @@ int main(int argc, char **argv) {
 #endif // defined(_WIN32)
 
   a8::Log log{argc, argv};
+  g_platformState.init(argc, argv);
   return a8main(argc, argv);
 }

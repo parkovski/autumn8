@@ -23,7 +23,7 @@ DpiStatus enableThreadDpiAwareness() {
   return DpiStatus::Error;
 }
 
-void GlobalPlatformInit::gfxinit() noexcept {
+void PlatformState::gfxinit() noexcept {
   enableThreadDpiAwareness();
 
   WNDCLASSEXW cls{};
@@ -43,7 +43,7 @@ void GlobalPlatformInit::gfxinit() noexcept {
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 }
 
-void GlobalPlatformInit::gfxdeinit() const noexcept {
+void PlatformState::gfxdeinit() const noexcept {
   CoUninitialize();
   if (!UnregisterClass(A8WindowClass, hInstance)) {
     Log::warn("UnregisterClass failed.");

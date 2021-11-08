@@ -2,19 +2,26 @@
 # error "Do not include this file directly; use a8/a8.h and A8_INCLUDE_PLATFORM"
 #endif
 
+#include "common.h"
+
 namespace a8::platform {
-inline namespace Linux {
+inline namespace Android {
 
 bool setThreadName(const char *name);
 
-extern struct GlobalPlatformInit {
+extern struct PlatformState : PlatformStateCommon {
   void init() noexcept;
   void deinit() const noexcept;
 
 private:
+#ifdef A8_HAS_GUI
   void gfxinit() noexcept;
   void gfxdeinit() const noexcept;
-} g_platformInit;
+#else
+  void gfxinit() noexcept {}
+  void gfxdeinit() const noexcept {}
+#endif
+} g_platformState;
 
-} // inline namespace Linux
+} // inline namespace Android
 } // namespace a8::platform

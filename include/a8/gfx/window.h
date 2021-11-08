@@ -43,16 +43,20 @@ public:
 #endif
     ;
 
-  Window() = default;
+  explicit Window(void *nativeHandle) noexcept;
 
   Window(const Window &) = delete;
   Window &operator=(const Window &) = delete;
   Window(Window &&) = delete;
   Window &operator=(Window &&) = delete;
 
+private:
   ~Window();
 
-  bool open(std::string_view title, void *parent = nullptr) noexcept;
+public:
+  static Window *
+  create(std::string_view title, void *parent = nullptr);
+
   void close() noexcept;
 
   void show(bool show) noexcept;
@@ -64,9 +68,6 @@ public:
   const View *view() const noexcept {
     return _view;
   }
-
-  float zoom() const noexcept { return _zoom; }
-  void zoom(float newZoom);
 
   float scale() const noexcept { return _scale; }
 
@@ -120,7 +121,7 @@ public:
     return _events.enqueue_bulk(eventsArray.begin(), eventsArray.size());
   }
 
-  void *nativeHandle() const noexcept { return _nativeHandle; }
+  native_handle_t nativeHandle() const noexcept { return _nativeHandle; }
 
 private:
   bool processEvents();
@@ -152,7 +153,6 @@ private:
 
   native_handle_t _nativeHandle = nullptr;
   float _scale = 1.f;
-  float _zoom = 1.f;
   RawPoint _pos{};
   RawSize _size{};
   View *_view = nullptr;

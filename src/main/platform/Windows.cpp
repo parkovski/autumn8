@@ -13,10 +13,10 @@ bool setThreadName(const wchar_t *name) {
 }
 
 bool setThreadName(const char *name) {
-  return setThreadName(to_utf16(name));
+  return setThreadName(to_utf16(name).c_str());
 }
 
-void GlobalPlatformInit::init(HINSTANCE hInstance, int nCmdShow) noexcept {
+void PlatformState::init(HINSTANCE hInstance, int nCmdShow) noexcept {
   if (this->hInstance) {
     return;
   }
@@ -36,11 +36,11 @@ void GlobalPlatformInit::init(HINSTANCE hInstance, int nCmdShow) noexcept {
   gfxinit();
 }
 
-void GlobalPlatformInit::deinit() const noexcept {
+void PlatformState::deinit() const noexcept {
   gfxdeinit();
 }
 
-GlobalPlatformInit g_platformInit;
+PlatformState g_platformState;
 
 } // inline namespace Windows
 } // namespace a8::platform

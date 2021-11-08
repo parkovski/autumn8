@@ -8,9 +8,8 @@
 #define A8_VERSION "@A8_VERSION_MAJOR@.@A8_VERSION_MINOR@.@A8_VERSION_PATCH@"
 
 #define A8_PLATFORM A8_PLATFORM_@A8_PLATFORM@
-#define A8_PLATFORM_HEADER "a8/platform/@A8_PLATFORM@/platform.h"
+#define A8_PLATFORM_HEADER "a8/platform/@A8_PLATFORM@.h"
 
-#cmakedefine A8_HAS_GUI
 #ifdef A8_HAS_GUI
 # define A8_GFX_BACKEND A8_GFX_BACKEND_@A8_GFXBACKEND@
 # define A8_GFX_BACKEND_HEADER "a8/gfx/backend/@A8_GFXBACKEND@.h"
@@ -18,6 +17,6 @@
 # define A8_GFX_BACKEND A8_GFX_BACKEND_NULL
 #endif
 
-#cmakedefine A8_HAS_JACK
-
 #cmakedefine A8_GTK_VERSION @A8_GTK_VERSION@
+
+#cmakedefine A8_HAS_JACK

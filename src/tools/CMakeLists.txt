@@ -1,12 +1,12 @@
 project(Autumn8Tools)
 
-if(A8_HAS_GUI)
+if(A8_BUILD_GUI)
   add_executable(minigfx WIN32 minigfx.cpp)
-  target_link_libraries(minigfx PRIVATE a8sysmain a8gfx)
+  target_link_libraries(minigfx PRIVATE a8gfxmain a8gfx)
 
   if(uWebSockets_FOUND)
     add_executable(uws-server WIN32 uws-server.cpp)
-    target_link_libraries(uws-server PRIVATE a8sysmain a8gfx uWebSockets)
+    target_link_libraries(uws-server PRIVATE a8gfxmain a8gfx uWebSockets)
   endif()
 endif()
 

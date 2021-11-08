@@ -2,6 +2,8 @@
 # error "Do not include this file directly; use a8/a8.h and A8_INCLUDE_PLATFORM"
 #endif
 
+#include "common.h"
+
 #ifndef _UNICODE
 # define _UNICODE
 #endif
@@ -22,8 +24,6 @@
 # define NOMINMAX
 #endif
 #include <Windows.h>
-
-#include <optional>
 
 namespace a8::platform {
 inline namespace Windows {
@@ -64,7 +64,7 @@ private:
   F _cachedFunction;
 };
 
-extern struct GlobalPlatformInit {
+extern struct PlatformState : PlatformStateCommon {
   int nCmdShow = SW_HIDE;
   HINSTANCE hInstance = nullptr;
   DWORD dwMainThreadId = 0;
@@ -77,9 +77,14 @@ public:
   void deinit() const noexcept;
 
 private:
+#ifdef A8_HAS_GUI
   void gfxinit() noexcept;
   void gfxdeinit() const noexcept;
-} g_platformInit;
+#else
+  void gfxinit() noexcept {}
+  void gfxdeinit() const noexcept {}
+#endif
+} g_platformState;
 
 } // inline namespace Windows
 } // namespace a8::platform

@@ -31,7 +31,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
     }
 
     if (i > 0 && argw == L"--console") {
-      g_platformInit.wantsConsole = true;
+      g_platformState.wantsConsole = true;
     }
   }
   LocalFree(argv16);
@@ -43,7 +43,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   }
   argv8[0] = buffer.data();
 
-  g_platformInit.init(hInstance, nCmdShow);
+  g_platformState.init(hInstance, nCmdShow);
 
   Log log{argc, argv8.get()};
 

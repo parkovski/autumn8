@@ -2,20 +2,20 @@
 #include "a8/a8.h"
 
 namespace a8::platform {
-inline namespace Linux {
+inline namespace Emscripten {
 
 bool setThreadName(const char *name) {
   return false;
 }
 
-void GlobalPlatformInit::init() noexcept {
+void PlatformState::init() noexcept {
   setThreadName("Main");
   gfxinit();
 }
 
-void GlobalPlatformInit::deinit() const noexcept {
+void PlatformState::deinit() const noexcept {
   gfxdeinit();
 }
 
-} // inline namespace Linux
+} // inline namespace Emscripten
 } // namespace a8::platform

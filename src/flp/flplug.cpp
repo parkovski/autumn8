@@ -34,7 +34,7 @@ CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
   spdlog::set_pattern(a8::Log::pattern_no_color_explicit);
   spdlog::flush_on(spdlog::level::trace);
 
-  a8::platform::g_platformInit.init(HInstance);
+  a8::platform::g_platformState.init(HInstance);
 
   gs_PlugInfo.host = Host;
   gs_PlugInfo.hostTag = Tag;

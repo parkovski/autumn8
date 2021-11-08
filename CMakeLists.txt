@@ -21,8 +21,6 @@ option(A8_BUILD_TESTS "Build tests" ${A8_TEST_DEFAULT})
 option(A8_BUILD_TOOLS "Build tools" ON)
 option(A8_BUILD_GUI "Build GUI targets" ON)
 
-set(A8_HAS_GUI ${A8_BUILD_GUI})
-
 include(cmake/platform.cmake)
 
 if(A8_GFXBACKEND STREQUAL Gtk)
@@ -54,7 +52,7 @@ find_package(Boost REQUIRED) # signals2
 
 find_package(uWebSockets QUIET)
 
-if(A8_HAS_GUI AND A8_FLSTUDIO_PLATFORM)
+if(A8_BUILD_GUI AND A8_FLSTUDIO_PLATFORM)
   find_package(fpsdk QUIET)
 endif()
 
@@ -67,10 +65,9 @@ include_directories(${Autumn8_INCLUDE_DIRS})
 
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
-add_subdirectory(src/platform platform)
 add_subdirectory(src/util util)
 
-if(A8_HAS_GUI)
+if(A8_BUILD_GUI)
   message(STATUS "GUI targets are enabled")
   add_subdirectory(src/gfx gfx)
 

@@ -6,9 +6,9 @@ using a8::Log;
 using namespace a8::platform::Windows;
 
 int a8::gfx::runMessageLoop() {
-  if (g_platformInit.dwMainThreadId != GetCurrentThreadId()) {
+  if (g_platformState.dwMainThreadId != GetCurrentThreadId()) {
     Log::warn("Expected runMessageLoop() on thread {}",
-              g_platformInit.dwMainThreadId);
+              g_platformState.dwMainThreadId);
   }
 
   MSG msg;
@@ -21,9 +21,9 @@ int a8::gfx::runMessageLoop() {
 }
 
 int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
-  if (g_platformInit.dwMainThreadId != GetCurrentThreadId()) {
+  if (g_platformState.dwMainThreadId != GetCurrentThreadId()) {
     Log::warn("Expected runConstantFPSMessageLoop() on thread {}",
-              g_platformInit.dwMainThreadId);
+              g_platformState.dwMainThreadId);
   }
 
   // Units are 100ns intervals. There are 10 million of these in a second.

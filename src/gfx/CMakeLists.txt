@@ -17,12 +17,14 @@ set(SOURCES_Win32
 
 set(SOURCES_Gtk
   backend/Gtk/init.cpp
+  backend/Gtk/messageloop.cpp
+  backend/Gtk/webview.cpp
   backend/Gtk/window.cpp
 )
 
 add_library(a8gfx STATIC ${SOURCES} ${SOURCES_${A8_GFXBACKEND}})
+target_compile_definitions(a8gfx PUBLIC A8_HAS_GUI)
 target_link_libraries(a8gfx PUBLIC
-  a8platform
   a8util
   concurrentqueue
 )
@@ -50,13 +52,14 @@ if(A8_GFXBACKEND STREQUAL "Win32")
   target_link_libraries(a8gfx PRIVATE WIL::WIL)
 elseif(A8_GFXBACKEND STREQUAL "Gtk")
   find_package(PkgConfig REQUIRED)
-  if(A8_GTK_VERSION STREQUAL 2)
-    pkg_check_modules(GTK REQUIRED gtk+-2.0)
-  elseif(A8_GTK_VERSION STREQUAL 3)
-    pkg_check_modules(GTK REQUIRED gtk+-3.0)
+  if(A8_GTK_VERSION STREQUAL 3)
+    pkg_check_modules(GTK REQUIRED gtk+-3.0 webkit2gtk-4.0)
   elseif(A8_GTK_VERSION STREQUAL 4)
-    pkg_check_modules(GTK REQUIRED gtk4)
+    pkg_check_modules(GTK REQUIRED gtk4 webkit2gtk-5.0)
+  else()
+    message(FATAL_ERROR "A8_GTK_VERSION ${A8_GTK_VERSION} should be 3 or 4")
   endif()
+
   target_include_directories(a8gfx PRIVATE ${GTK_INCLUDE_DIRS})
   target_compile_options(a8gfx PRIVATE ${GTK_CFLAGS_OTHER})
   target_link_directories(a8gfx PUBLIC ${GTK_LIBRARY_DIRS})

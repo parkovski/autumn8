@@ -4,10 +4,11 @@
 namespace a8::platform {
 inline namespace Linux {
 
-void GlobalPlatformInit::gfxinit() noexcept {
+void PlatformState::gfxinit() noexcept {
+  gtk_init(&argc, &argv);
 }
 
-void GlobalPlatformInit::gfxdeinit() const noexcept {
+void PlatformState::gfxdeinit() const noexcept {
 }
 
 } // inline namespace Linux

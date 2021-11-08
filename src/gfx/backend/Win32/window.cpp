@@ -12,38 +12,44 @@ using namespace a8::platform::Windows;
   //constexpr int InitialCoordMultiplier = 60;
 //}
 
+Window::Window(native_handle_t nativeHandle) noexcept
+  : _nativeHandle{nativeHandle}
+{
+  // TODO
+  // _scale = ??
+  // _pos = ??
+  // _size = ??
+}
+
 Window::~Window() {}
 
-bool Window::open(std::string_view title, void *parent) noexcept {
+Window *
+Window::create(std::string_view title, native_handle_t parent) {
   DWORD style = parent
     ? WS_CHILD | WS_VISIBLE
     : WS_OVERLAPPEDWINDOW;
 
   auto u16title = to_utf16(title);
-  _nativeHandle = CreateWindowEx(
+  auto nativeHandle = CreateWindowEx(
     WS_EX_ACCEPTFILES,
     A8WindowClass,
     u16title.c_str(),
     style,
-    _pos.x,
-    _pos.y,
-    _size.width,
-    _size.height,
-    (HWND)parent,
+    CW_USEDEFAULT,
+    0,
+    0,
+    0,
+    parent,
     nullptr,
-    g_platformInit.hInstance,
+    g_platformState.hInstance,
     this
   );
 
-  if (!_nativeHandle) {
-    return false;
+  if (!nativeHandle) {
+    return nullptr;
   }
 
-  if (!parent) {
-    ShowWindow(_nativeHandle, g_platformInit.nCmdShow);
-    UpdateWindow(_nativeHandle);
-  }
-  return true;
+  return new Window(nativeHandle);
 }
 
 void Window::close() noexcept {
@@ -59,19 +65,12 @@ void Window::show(bool show) noexcept {
   }
 }
 
-void Window::zoom(float newZoom) {
-  _zoom = newZoom;
-}
-
 void Window::size(Size newSize) {
   auto rawNewSize = RawSize(newSize * _scale);
   if (_size == rawNewSize) {
     return;
   }
   _size = rawNewSize;
-  if (!_nativeHandle) {
-    return;
-  }
   SetWindowPos(_nativeHandle, nullptr, 0, 0, _size.width, _size.height,
                SWP_ASYNCWINDOWPOS | SWP_NOMOVE | SWP_NOZORDER
                 | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
@@ -83,9 +82,6 @@ void Window::position(Point newPosition) {
     return;
   }
   _pos = rawNewPosition;
-  if (!_nativeHandle) {
-    return;
-  }
   SetWindowPos(_nativeHandle, nullptr, _pos.x, _pos.y, 0, 0,
                SWP_ASYNCWINDOWPOS | SWP_NOSIZE | SWP_NOZORDER
                 | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOREDRAW);
@@ -99,9 +95,6 @@ void Window::resize(Point newPosition, Size newSize) {
   }
   _size = rawNewSize;
   _pos = rawNewPosition;
-  if (!_nativeHandle) {
-    return;
-  }
   SetWindowPos(
     _nativeHandle, nullptr, _pos.x, _pos.y, _size.width, _size.height,
     SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE
