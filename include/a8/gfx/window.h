@@ -1,16 +1,9 @@
 #ifndef A8_GFX_WINDOW_H_
 #define A8_GFX_WINDOW_H_
 
+#include "views/view.h"
 #include "events.h"
-
-#include "concurrentqueue/blockingconcurrentqueue.h"
-
-#include <boost/signals2.hpp>
-
-#include <string_view>
-#include <array>
-#include <vector>
-#include <thread>
+#include "a8/util/cstring_view.h"
 
 #if A8_IS_GFX_IMPL(Win32)
 // Message types for WM_USER.
@@ -21,10 +14,8 @@ constexpr WPARAM A8M_EXECONMSGTHREAD = 1;
 
 namespace a8::gfx {
 
-class View;
-
-class Window {
-  static constexpr int QueueSize = 64;
+class Window : public View {
+  void initialize(native_handle_t nativeHandle) noexcept;
 
 public:
   template<class E>
@@ -33,35 +24,16 @@ public:
   template<class E>
   using Slot = ::a8::gfx::Slot<Window, E>;
 
-  using native_handle_t =
-#if A8_IS_GFX_IMPL(Win32)
-    HWND
-#elif A8_IS_GFX_IMPL(Gtk)
-    GtkWidget *
-#else
-    void *
-#endif
-    ;
+  explicit Window(native_handle_t nativeHandle) noexcept;
 
-  explicit Window(void *nativeHandle) noexcept;
+  explicit Window(cstring_view title);
 
-  Window(const Window &) = delete;
-  Window &operator=(const Window &) = delete;
-  Window(Window &&) = delete;
-  Window &operator=(Window &&) = delete;
-
-private:
   ~Window();
-
-public:
-  static Window *
-  create(std::string_view title, void *parent = nullptr);
 
   void close() noexcept;
 
-  void show(bool show) noexcept;
+  void show(bool show = true) noexcept;
 
-  View *setView(View *view);
   View *view() noexcept {
     return _view;
   }
@@ -84,79 +56,34 @@ public:
     resize({x, y}, {width, height});
   }
 
-  // Waits for the function to return!
-  void runOnMessageThread(void (*f)(void *data), void *data);
-
-  // Waits for the function to return!
-  template<class F>
-  void runOnMessageThread(F &&f) {
-    runOnMessageThread([](void *data){ (*static_cast<F *>(data))(); }, &f);
-  }
-
-  /// @type E The event type.
-  /// @param slot The callback function.
-  template<class E>
-  auto connect(Slot<E> slot) {
-    return _signals.get<E>().connect(std::move(slot));
-  }
-
   void quitOnClose(bool quit = true) noexcept {
     _quitOnClose = quit;
   }
 
-  bool postEvent(const RawEvent &event) {
-    return _events.enqueue(event);
-  }
-
-  bool postEvents(RawEvent *begin, RawEvent *end) {
-    return _events.enqueue_bulk(begin, end - begin);
-  }
-
-  template<typename E1, typename... Events>
-  bool postEvents(E1 &&e1, Events &&...events) {
-    std::array<RawEvent, 1 + sizeof...(Events)> eventsArray{
-      std::forward<E1>(e1),
-      std::forward<Events>(events)...
-    };
-    return _events.enqueue_bulk(eventsArray.begin(), eventsArray.size());
-  }
-
-  native_handle_t nativeHandle() const noexcept { return _nativeHandle; }
+protected:
+  void childCreated(View *child) override;
+  void childInitialized(View *child) override;
 
 private:
-  bool processEvents();
-  void process(const std::monostate &) {}
-  void process(const EventLoopQuitEvent &);
-  void process(const CallbackEvent &);
-  void process(const SystemEvent &);
-  void process(const RawPointerEvent &);
-  void process(const KeyboardEvent &);
-  void process(const GamepadEvent &);
-  void process(const MidiEvent &);
-  void process(const RawSizingEvent &);
-  void process(const RawMovingEvent &);
-  void process(const RawResizeEvent &);
-  void process(const DisplayScaleEvent &);
-  void process(const StyleChangeEvent &);
-  void process(const DragDropEvent &);
-  void process(const DataEvent &);
-
 #if A8_IS_GFX_IMPL(Win32)
   friend LRESULT CALLBACK ::a8::platform::Windows::mainWndProc(
     HWND, UINT, WPARAM, LPARAM
   );
 #endif
 
-  moodycamel::BlockingConcurrentQueue<RawEvent> _events;
-  EventSignals<Signal> _signals;
-  std::thread _eventThread;
-
-  native_handle_t _nativeHandle = nullptr;
   float _scale = 1.f;
   RawPoint _pos{};
   RawSize _size{};
   View *_view = nullptr;
   bool _quitOnClose = false;
+
+public:
+  Signal<WindowEvent> ewindow;
+  Signal<PointerEvent> epointer;
+  Signal<KeyboardEvent> ekeyboard;
+  Signal<SizingEvent> esizing;
+  Signal<MovingEvent> emoving;
+  Signal<ResizeEvent> eresize;
 };
 
 } // namespace a8::gfx

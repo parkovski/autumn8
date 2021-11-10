@@ -3,3 +3,6 @@
 using namespace a8::gfx;
 
 View::~View() = default;
+
+void View::childCreated(View *) {}
+void View::childInitialized(View *) {}

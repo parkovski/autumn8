@@ -389,11 +389,16 @@ struct DisplayScaleEvent {
   RawSize displaySize;
 };
 
-enum class SystemEvent {
+enum class ViewEvent {
   /// Sent when the view is created.
   Initialize,
   /// Sent when the view is being destroyed.
   Destroy,
+};
+
+std::ostream &operator<<(std::ostream &os, ViewEvent e);
+
+enum class WindowEvent {
   /// Sent when the user requests a close action.
   Close,
   /// Sent when the window is minimized.
@@ -404,14 +409,19 @@ enum class SystemEvent {
   RestoreSize,
   /// Sent when the window is made full screen.
   FullScreen,
+  /// Sent when the window is brought to the foreground.
+  Focus,
+  /// Sent when the window is sent to the background.
+  Unfocus,
+};
+
+std::ostream &operator<<(std::ostream &os, WindowEvent e);
+
+enum class SystemEvent {
   /// Sent when the system pauses the app.
   Pause,
   /// Sent when the system resumes the app.
   Resume,
-  /// Sent when the app is brought to the foreground.
-  Focus,
-  /// Sent when the app is sent to the background.
-  Unfocus,
   /// Sent when the system back button is pressed.
   Back,
 };
@@ -479,27 +489,7 @@ struct CallbackEvent {
   {}
 };
 
-template<bool scaled>
-using EventS = std::variant<
-  std::monostate,
-  EventLoopQuitEvent,
-  CallbackEvent,
-  SystemEvent,
-  PointerEventS<scaled>,
-  KeyboardEvent,
-  GamepadEvent,
-  MidiEvent,
-  SizingEventS<scaled>,
-  MovingEventS<scaled>,
-  ResizeEventS<scaled>,
-  DisplayScaleEvent,
-  StyleChangeEvent,
-  DragDropEvent,
-  DataEvent
->;
-
-using RawEvent = EventS<false>;
-using Event = EventS<true>;
+namespace detail {
 
 // Signals can return false to stop the event from propogating further. If no
 // signals are present or all return true, a default behavior may be invoked.
@@ -517,76 +507,27 @@ struct ShortCircuit {
   }
 };
 
-template<class R, class E>
-using Signal = boost::signals2::signal<bool (R &, const E &), ShortCircuit>;
-
-template<class R, class E>
-using Slot = boost::signals2::slot<bool (R &, const E &)>;
-
-#define ENUMEVENTS(DEF) \
-  DEF(PointerEvent, pointer)           \
-  DEF(KeyboardEvent, keyboard)         \
-  DEF(GamepadEvent, gamepad)           \
-  DEF(MidiEvent, midi)                 \
-  DEF(SizingEvent, sizing)             \
-  DEF(MovingEvent, moving)             \
-  DEF(ResizeEvent, resize)             \
-  DEF(DisplayScaleEvent, displayScale) \
-  DEF(SystemEvent, system)             \
-  DEF(StyleChangeEvent, styleChange)   \
-  DEF(DragDropEvent, dragDrop)         \
-  DEF(DataEvent, data)
-
-template<template<class> class EventKind>
-struct EventSignals;
-
-namespace detail {
-  template<template<template<class> class> class Signals,
-           template<class> class EventKind,
-           class E>
-  struct GetEvent {
-    constexpr static EventKind<E> &get_event(Signals<EventKind> &s) noexcept;
-  };
-
-#define DEFEVENT(E, Name) \
-  template<template<template<class> class> class Signals, \
-           template<class> class EventKind>               \
-  struct GetEvent<Signals, EventKind, E> {                \
-    constexpr static EventKind<E> &                       \
-    get_event(Signals<EventKind> &s) noexcept {           \
-      return s.Name;                                      \
-    }                                                     \
-  };
-
-  ENUMEVENTS(DEFEVENT)
-
-#undef DEFEVENT
-}
-
-template<template<class> class EventKind>
-struct EventSignals {
-  // Let you refer to the signals here by type.
-  template<class E>
-  constexpr EventKind<E> &get() noexcept {
-    return detail::GetEvent<EventSignals, EventKind, E>::get_event(*this);
-  }
-
-  template<class E>
-  constexpr const E &get() const noexcept {
-    return detail::GetEvent<EventSignals, EventKind, E>::get_event(
-      *const_cast<EventSignals *>(this)
-    );
-  }
-
-#define DEFEVENT(E, Name) \
-  EventKind<E> Name; \
-
-  ENUMEVENTS(DEFEVENT)
-
-#undef DEFEVENT
+template<class O, class E, class Cmb>
+struct signal {
+  using function = typename Cmb::result_type (O &, const E &);
+  using type = boost::signals2::signal<function, Cmb>;
+  using slot_type = boost::signals2::slot<function>;
 };
 
-#undef ENUMEVENTS
+template<class O, class Cmb>
+struct signal<O, void, Cmb> {
+  using function = typename Cmb::result_type (O &);
+  using type = boost::signals2::signal<function, Cmb>;
+  using slot_type = boost::signals2::slot<function>;
+};
+
+} // namespace detail
+
+template<class O, class E, class Cmb = detail::ShortCircuit>
+using Signal = typename detail::signal<O, E, Cmb>::type;
+
+template<class O, class E, class Cmb = detail::ShortCircuit>
+using Slot = typename detail::signal<O, E, Cmb>::slot_type;
 
 } // namespace a8::gfx
 

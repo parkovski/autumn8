@@ -64,20 +64,37 @@ std::ostream &operator<<(std::ostream &os, Anchor a) {
   return os;
 }
 
-std::ostream &operator<<(std::ostream &os, SystemEvent e) {
-#define CASE(evt) case SystemEvent::evt: os << #evt; break
+std::ostream &operator<<(std::ostream &os, ViewEvent e) {
+#define CASE(evt) case ViewEvent::evt: os << #evt; break
   switch (e) {
     CASE(Initialize);
     CASE(Destroy);
+    default: break;
+  }
+#undef CASE
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, WindowEvent e) {
+#define CASE(evt) case WindowEvent::evt: os << #evt; break
+  switch (e) {
     CASE(Close);
     CASE(Minimize);
     CASE(Maximize);
     CASE(RestoreSize);
     CASE(FullScreen);
-    CASE(Pause);
-    CASE(Resume);
     CASE(Focus);
     CASE(Unfocus);
+  }
+#undef CASE
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, SystemEvent e) {
+#define CASE(evt) case SystemEvent::evt: os << #evt; break
+  switch (e) {
+    CASE(Pause);
+    CASE(Resume);
     CASE(Back);
     default: break;
   }

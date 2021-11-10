@@ -1,10 +1,8 @@
 project(Autumn8Graphics)
 
 set(SOURCES
-  #nvgrenderer.cpp
   ostream_print.cpp
   view.cpp
-  window.cpp
 )
 
 set(SOURCES_Win32

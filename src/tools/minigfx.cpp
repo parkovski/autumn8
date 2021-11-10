@@ -33,7 +33,7 @@ getfile(std::filesystem::path path) noexcept {
 }
 
 int a8main(int argc, char *argv[]) {
-  Window *mainWindow = Window::create("Minigfx");
+  auto mainWindow = new Window("Minigfx");
   mainWindow->resize(0, 0, 500, 500);
   mainWindow->quitOnClose();
 
@@ -41,8 +41,9 @@ int a8main(int argc, char *argv[]) {
   auto icon64 = getfile("C:\\dev\\autumn8\\res\\size64.png");
   auto icon256 = getfile("C:\\dev\\autumn8\\res\\size256.png");
 
-  auto *webview = WebView::create(mainWindow);
-  webview->navigate("http://appusr.a8.parkovski.com/index.html");
+  auto webview = new WebView(mainWindow);
+  //webview->navigate("http://appusr.a8.parkovski.com/index.html");
+  webview->navigate("https://www.coinmarketcap.com/");
   webview->setUserCallback([&](auto *wv, auto const &req, auto &res) -> bool {
     res.status = 200;
     res.reason = "OK";
@@ -75,7 +76,6 @@ int a8main(int argc, char *argv[]) {
 
     return true;
   });
-  mainWindow->setView(webview);
 
   mainWindow->show(true);
 

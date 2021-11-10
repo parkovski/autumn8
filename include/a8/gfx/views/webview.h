@@ -60,23 +60,13 @@ private:
   void *_controller;
   void *_webView;
 # endif
-#elif A8_IS_GFX(Gtk)
-# ifdef A8_INCLUDE_GFX_BACKEND
-  GtkWidget *_webView;
-# else
-  void *_webView;
-# endif
 #endif
 
   std::string _initialUrl;
   std::function<UserCallback> _userCallback;
 
-  void initFinished();
-
 public:
-  static WebView *create(Window *parent);
-
-  WebView(void *webView);
+  explicit WebView(View *parent);
   ~WebView();
 
   void navigate(cstring_view url);
@@ -90,9 +80,6 @@ public:
   void setUserCallback(std::function<UserCallback> callback) {
     _userCallback = callback;
   }
-
-  void init(Window *window) override;
-  void resize(RawPoint pos, RawSize size) override;
 };
 
 } // namespace a8::gfx
