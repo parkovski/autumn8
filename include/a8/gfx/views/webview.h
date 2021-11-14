@@ -17,17 +17,17 @@
 
 namespace a8::gfx {
 
-struct WebViewConfig {
-  std::string homeUrl;
-  std::string resourceUrl;
-  std::string userUrl;
-};
-
 struct WebViewRequest {
   std::unordered_map<std::string, std::string> headers;
   std::string method;
   std::string uri;
-  //std::string_view resource;
+  //std::string_view scheme;
+  //std::string_view userinfo;
+  //std::string_view host;
+  //uint16_t port;
+  //std::string_view path;
+  //std::string_view query;
+  //std::string_view fragment;
 };
 
 struct WebViewResponse {
@@ -62,12 +62,14 @@ private:
 # endif
 #endif
 
-  std::string _initialUrl;
+  std::string _userScheme;
   std::function<UserCallback> _userCallback;
 
 public:
   explicit WebView(View *parent);
   ~WebView();
+
+  //void setUserScheme(cstring_view scheme);
 
   void navigate(cstring_view url);
 
@@ -79,6 +81,13 @@ public:
 
   void setUserCallback(std::function<UserCallback> callback) {
     _userCallback = callback;
+  }
+
+  bool callUserCallback(const WebViewRequest &req, WebViewResponse &res) {
+    if (!_userCallback) {
+      return false;
+    }
+    return _userCallback(this, req, res);
   }
 };
 

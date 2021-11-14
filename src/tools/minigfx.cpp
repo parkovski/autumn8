@@ -37,13 +37,13 @@ int a8main(int argc, char *argv[]) {
   mainWindow->resize(0, 0, 500, 500);
   mainWindow->quitOnClose();
 
-  auto icon16 = getfile("C:\\dev\\autumn8\\res\\size16.png");
-  auto icon64 = getfile("C:\\dev\\autumn8\\res\\size64.png");
-  auto icon256 = getfile("C:\\dev\\autumn8\\res\\size256.png");
+  auto icon16 = getfile("/home/parker/Documents/dev/autumn8/res/size16.png");
+  auto icon64 = getfile("/home/parker/Documents/dev/autumn8/res/size64.png");
+  auto icon256 = getfile("/home/parker/Documents/dev/autumn8/res/size256.png");
 
   auto webview = new WebView(mainWindow);
   //webview->navigate("http://appusr.a8.parkovski.com/index.html");
-  webview->navigate("https://www.coinmarketcap.com/");
+  //webview->navigate("https://www.coinmarketcap.com/");
   webview->setUserCallback([&](auto *wv, auto const &req, auto &res) -> bool {
     res.status = 200;
     res.reason = "OK";
@@ -51,12 +51,13 @@ int a8main(int argc, char *argv[]) {
     res.content = "<html><head>"
       "<link rel=\"icon\" href=\"/icon.png\"/>"
       "<title>Custom Page</title></head><body>";
-    if (a8::ends_with(std::string_view{req.uri}, "/index.html"sv)) {
+    if (a8::ends_with(req.uri, "/index.html"sv)) {
       res.content
-        .append("<a href=\"http://appres.a8.parkovski.com/test.html\">Resource page</a><br>")
-        .append("<a href=\"http://appusr.a8.parkovski.com/test.html\">User page</a><br>")
-        .append("<a href=\"http://appusr.a8.parkovski.com/test2.html\">User page 2</a><br>");
-    } else if (a8::ends_with(std::string_view{req.uri}, ".png"sv)) {
+        .append("<a href=\"a8res:///test.html\">Resource page</a><br>")
+        .append("<a href=\"a8usr:///test.html\">User page</a><br>")
+        .append("<a href=\"a8usr:///test2.html\">User page 2</a><br>");
+    } else if (a8::ends_with(req.uri, ".png")) {
+      a8::Log::debug("requested png {}", req.uri);
       res.contentType = "image/png";
       res.content.clear();
       if (a8::ends_with(req.uri, "/icon.png")) {
@@ -76,6 +77,7 @@ int a8main(int argc, char *argv[]) {
 
     return true;
   });
+  webview->navigate("a8usr:///index.html");
 
   mainWindow->show(true);
 

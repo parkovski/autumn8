@@ -5,10 +5,63 @@
 
 using namespace a8::gfx;
 
+namespace {
+  constexpr const char *const RsrcScheme = "a8res";
+  constexpr const char *const UserScheme = "a8usr";
+  constexpr const char *const RsrcUri = "a8res:///";
+  constexpr const char *const UserUri = "a8usr:///";
+
+  void scheme_request(WebKitURISchemeRequest *req, gpointer data) {
+    auto webview = static_cast<WebView *>(data);
+
+    auto scheme = webkit_uri_scheme_request_get_scheme(req);
+    auto path = webkit_uri_scheme_request_get_path(req);
+    if (g_str_equal(scheme, RsrcScheme)) {
+      auto file = g_file_new_build_filename(
+        "/home/parker/Documents/dev/autumn8/src/tools", path, nullptr);
+      auto stream = G_INPUT_STREAM(g_file_read(file, nullptr, nullptr));
+      const char *contentType = "text/plain";
+      if (a8::ends_with(path, ".html")) {
+        contentType = "text/html";
+      } else if (a8::ends_with(path, ".js")) {
+        contentType = "application/javascript";
+      }
+      webkit_uri_scheme_request_finish(req, stream, -1, contentType);
+    } else if (g_str_equal(scheme, UserScheme)) {
+      WebViewRequest wvreq;
+      wvreq.method = "GET";
+      wvreq.uri = path;
+      WebViewResponse wvres;
+      if (!webview->callUserCallback(wvreq, wvres)) {
+        auto err = g_error_new(webkit_network_error_quark(),
+                               WEBKIT_NETWORK_ERROR_FAILED, "");
+        webkit_uri_scheme_request_finish_error(req, err);
+        return;
+      }
+
+      // TODO: Async
+      auto bytes = g_bytes_new(wvres.content.data(), wvres.content.size());
+      auto stream = g_memory_input_stream_new_from_bytes(bytes);
+      webkit_uri_scheme_request_finish(
+        req, stream, static_cast<gint64>(wvres.content.size()),
+        wvres.contentType.c_str());
+    }
+  }
+}
+
 WebView::WebView(View *parent)
   : View(parent)
 {
-  auto wkwv = webkit_web_view_new();
+  // webkit_website_data_manager_new(
+  //   "base-data-directory", "/home/USER/.local/share/webkitgtk",
+  //   "base-cache-directory", "/home/USER/.cache/APPNAME");
+  // webkit_web_context_new_with_website_data_manager(...);
+  auto ctx = webkit_web_context_new();
+  webkit_web_context_register_uri_scheme(ctx, RsrcScheme, scheme_request, this,
+                                         nullptr);
+  webkit_web_context_register_uri_scheme(ctx, UserScheme, scheme_request, this,
+                                         nullptr);
+  auto wkwv = webkit_web_view_new_with_context(ctx);
   initializationFinished(wkwv);
 }
 
@@ -20,9 +73,9 @@ void WebView::navigate(cstring_view url) {
 }
 
 std::string_view WebView::resourceUri() const noexcept {
-  return "";
+  return RsrcUri;
 }
 
 std::string_view WebView::userUri() const noexcept {
-  return "";
+  return UserUri;
 }
