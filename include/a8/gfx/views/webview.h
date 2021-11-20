@@ -46,49 +46,47 @@ struct WebViewResponse {
 
 class WebView : public View {
 public:
+  constexpr static cstring_view CustomScheme = "a8";
+  constexpr static cstring_view ResourceRoot = "a8://res";
+  constexpr static cstring_view AppUserRoot = "a8://app";
+
   using UserCallback = bool(WebView *, const WebViewRequest &,
                             WebViewResponse &);
-
-private:
-#if A8_IS_GFX(Win32)
-# ifdef A8_INCLUDE_GFX_BACKEND
-  ICoreWebView2Environment *_env;
-  ICoreWebView2Controller *_controller;
-  ICoreWebView2 *_webView;
-# else
-  void *_env;
-  void *_controller;
-  void *_webView;
-# endif
-#endif
-
-  std::string _userScheme;
-  std::function<UserCallback> _userCallback;
 
 public:
   explicit WebView(View *parent);
   ~WebView();
 
-  //void setUserScheme(cstring_view scheme);
-
   void navigate(cstring_view url);
-
-  // The URL where app resources can be found on disk.
-  std::string_view resourceUri() const noexcept;
-
-  // The URL that triggers the user callback.
-  std::string_view userUri() const noexcept;
 
   void setUserCallback(std::function<UserCallback> callback) {
     _userCallback = callback;
   }
 
+private:
   bool callUserCallback(const WebViewRequest &req, WebViewResponse &res) {
     if (!_userCallback) {
       return false;
     }
     return _userCallback(this, req, res);
   }
+
+  std::function<UserCallback> _userCallback;
+
+#if A8_IS_GFX(Win32)
+# ifndef A8_INCLUDE_GFX_BACKEND
+  class ICoreWebView2Environment;
+  class ICoreWebView2Controller;
+  class ICoreWebView2;
+# endif
+
+  ICoreWebView2Environment *_env;
+  ICoreWebView2Controller *_controller;
+  ICoreWebView2 *_webView;
+#elif A8_IS_GFX_IMPL(Gtk)
+  static void onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
+                                 noexcept;
+#endif
 };
 
 } // namespace a8::gfx

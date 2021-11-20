@@ -29,9 +29,11 @@ public:
   constexpr basic_cstring_view(const basic_cstring_view &) noexcept = default;
 
   constexpr basic_cstring_view(const CharT *s)
-    : _data{s}
+    : _data{s}, _length{0}
   {
-    _length = strlen(s);
+    if (s) {
+      _length = traits_type::length(s);
+    }
   }
 
 private:

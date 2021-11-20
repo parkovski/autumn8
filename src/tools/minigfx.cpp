@@ -53,9 +53,9 @@ int a8main(int argc, char *argv[]) {
       "<title>Custom Page</title></head><body>";
     if (a8::ends_with(req.uri, "/index.html"sv)) {
       res.content
-        .append("<a href=\"a8res:///test.html\">Resource page</a><br>")
-        .append("<a href=\"a8usr:///test.html\">User page</a><br>")
-        .append("<a href=\"a8usr:///test2.html\">User page 2</a><br>");
+        .append("<a href=\"a8://res/test.html\">Resource page</a><br>")
+        .append("<a href=\"a8://app/test.html\">User page</a><br>")
+        .append("<a href=\"a8://app/test2.html\">User page 2</a><br>");
     } else if (a8::ends_with(req.uri, ".png")) {
       a8::Log::debug("requested png {}", req.uri);
       res.contentType = "image/png";
@@ -77,7 +77,7 @@ int a8main(int argc, char *argv[]) {
 
     return true;
   });
-  webview->navigate("a8usr:///index.html");
+  webview->navigate("a8://app/index.html");
 
   mainWindow->show(true);
 

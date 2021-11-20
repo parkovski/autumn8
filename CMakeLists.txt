@@ -49,6 +49,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(SndFile REQUIRED) # SndFile::sndfile
 find_package(Boost REQUIRED) # signals2
+find_package(uriparser 0.9.2 CONFIG REQUIRED char wchar_t)
 
 find_package(uWebSockets QUIET)
 
