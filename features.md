@@ -1,7 +1,0 @@
-- Channel/port switch
-- Single trigger - multi-control map
-- Curve type selection, modification, application
-- Queue and repeat
-- Macro record
-- Control switching
-- Tempo modulation

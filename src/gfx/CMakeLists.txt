@@ -25,6 +25,7 @@ target_compile_definitions(a8gfx PUBLIC A8_HAS_GUI)
 target_link_libraries(a8gfx PUBLIC
   a8util
   concurrentqueue
+  uriparser::uriparser
 )
 
 if(A8_HAS_BGFX)

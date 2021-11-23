@@ -3,10 +3,12 @@
 #endif
 
 #include "common.h"
+#include <string>
 
 namespace a8::platform {
 inline namespace Linux {
 
+std::string getExePath();
 bool setThreadName(const char *name);
 
 extern struct PlatformState : PlatformStateCommon {

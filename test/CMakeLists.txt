@@ -1,5 +1,3 @@
-find_package(Catch2 3.0 REQUIRED)
-
 set(SOURCES
   test.cpp
   paramconv.cpp
