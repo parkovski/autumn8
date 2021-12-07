@@ -2,80 +2,82 @@
 
 using namespace a8;
 
-namespace a8::midi_impl::null_be {
-
-class InputPort final : public midi::InputPort {
-public:
-  using base = midi::InputPort;
-  using typename base::promise_type;
-  using typename base::future_type;
-
-  explicit InputPort() : base("") {}
-
-  void start() override {}
-  void stop() override {}
-};
-
-class OutputPort final : public midi::OutputPort {
-public:
-  using base = midi::OutputPort;
-  using typename base::promise_type;
-  using typename base::future_type;
-
-  explicit OutputPort() : base("") {}
-};
-
-template<typename P>
-class PortManager final : public midi::PortManager<typename P::base> {
-public:
-  using base = midi::PortManager<typename P::base>;
-  using typename base::promise_type;
-  using typename base::future_type;
-  using typename base::iterator;
-
-  explicit PortManager() {}
-  ~PortManager() {}
-
-  std::future<void> scan() override {
-    std::promise<void> promise;
-    promise.set_value();
-    return promise.get_future();
-  }
-  void startWatching() override {}
-  void stopWatching() override {}
-
-  size_t size() const noexcept override {
-    return 0;
-  }
-
-  typename P::future_type open(const iterator &it) override {
-    typename P::promise_type promise;
-    // TODO: promise.set_value(???);
-    return promise.get_future();
-  }
-};
-
-template class PortManager<InputPort>;
-template class PortManager<OutputPort>;
-
-} // namespace a8::midi_impl::null_be
-
 namespace a8::midi {
 
-template<> template<>
-auto PortManager<InputPort>::createInternal<Backend::Null>()
-  -> std::unique_ptr<PortManager>
-{
-  namespace impl = midi_impl::null_be;
-  return std::make_unique<impl::PortManager<impl::InputPort>>();
-}
+class NullInputPort final : public InputPort {
+  bool _connected = false;
 
-template<> template<>
-auto PortManager<OutputPort>::createInternal<Backend::Null>()
+public:
+  explicit NullInputPort(boost::uuids::uuid id)
+    : InputPort(id, "null")
+  {}
+
+  bool deviceConnected() const noexcept override { return true; }
+  Connection connection() const noexcept override {
+    return _connected
+      ? Connection::Connected
+      : Connection::Disconnected;
+  }
+  std::future<Port *> close() override {
+    std::promise<Port *> promise;
+    promise.set_value(this);
+    _connected = false;
+    return promise.get_future();
+  }
+  std::future<InputPort *> open() override {
+    std::promise<InputPort *> promise;
+    promise.set_value(this);
+    _connected = true;
+    return promise.get_future();
+  }
+};
+
+class NullOutputPort final : public OutputPort {
+  bool _connected = false;
+
+public:
+  explicit NullOutputPort(boost::uuids::uuid id)
+    : OutputPort(id, "null")
+  {}
+
+  bool deviceConnected() const noexcept override { return true; }
+  Connection connection() const noexcept override {
+    return _connected
+      ? Connection::Connected
+      : Connection::Disconnected;
+  }
+  std::future<Port *> close() override {
+    std::promise<Port *> promise;
+    promise.set_value(this);
+    _connected = false;
+    return promise.get_future();
+  }
+  std::future<OutputPort *> open() override {
+    std::promise<OutputPort *> promise;
+    promise.set_value(this);
+    _connected = true;
+    return promise.get_future();
+  }
+  void send(const unsigned char *begin, const unsigned char *end,
+            Port::timestamp_t timestamp) override {}
+};
+
+class NullPortManager final : public PortManager {
+public:
+  explicit NullPortManager() {
+    auto &map = portMap();
+    auto input = std::make_shared<NullInputPort>(nextId());
+    auto output = std::make_shared<NullOutputPort>(nextId());
+    map.emplace(input->id(), input);
+    map.emplace(output->id(), output);
+  }
+};
+
+template<>
+auto PortManager::createInternal<Backend::Null>()
   -> std::unique_ptr<PortManager>
 {
-  namespace impl = midi_impl::null_be;
-  return std::make_unique<impl::PortManager<impl::OutputPort>>();
+  return std::make_unique<NullPortManager>();
 }
 
 } // namespace a8::midi

@@ -9,6 +9,9 @@ namespace a8::platform {
 inline namespace Linux {
 
 std::string getExePath();
+std::string getExeDir();
+std::string getExeName();
+
 bool setThreadName(const char *name);
 
 extern struct PlatformState : PlatformStateCommon {

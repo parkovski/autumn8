@@ -11,269 +11,481 @@
 #include <mutex>
 #include <exception>
 #include <iosfwd>
-#include <optional>
+#include <unordered_map>
+#include <array>
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/container_hash/hash.hpp>
 
 namespace a8::midi {
 
 #define A8_MIDI_BACKENDS(M) \
-    M(Null)             \
-    M(UWP)              \
-    M(Winmm)            \
-    M(CoreMIDI)         \
-    M(AMidi)            \
-    M(AndroidMediaMidi) \
-    M(Alsa)             \
-    M(Jack)             \
-    M(WebMIDI)
+    M(UWP)                  \
+    M(Winmm)                \
+    M(CoreMIDI)             \
+    M(AMidi)                \
+    M(AndroidMediaMidi)     \
+    M(Alsa)                 \
+    M(WebMIDI)              \
+    M(Jack)
 
-// MIDI backends available on this platform.
 enum class Backend {
+  Null,
 #define BACKEND(BE) BE,
   A8_MIDI_BACKENDS(BACKEND)
 #undef BACKEND
+  _count,
 };
 
+constexpr const std::array ActiveBackends{
+#if A8_IS_PLATFORM(Windows)
+  Backend::UWP,
+  Backend::Winmm,
+#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
+  Backend::CoreMIDI,
+#elif A8_IS_PLATFORM(Android)
+  Backend::AMidi,
+  Backend::AndroidMediaMidi,
+#elif A8_IS_PLATFORM(Linux)
+  Backend::Alsa,
+#elif A8_IS_PLATFORM(Emscripten)
+  Backend::WebMIDI,
+#endif
+
+#if A8_HAS_JACK
+  Backend::Jack,
+#endif
+
+  Backend::Null,
+};
+
+// Places a string representation of `be` into the stream `os`.
 std::ostream &operator<<(std::ostream &os, Backend be);
+
+// Parses a case insensitive string corresponding to a member of `Backend`.
+// If none matches, returns `Backend::Null`.
+Backend parseBackend(std::string_view name);
+
+class InputPort;
+class OutputPort;
 
 // Common MIDI port base type.
 class Port {
 public:
-  friend struct async_destroy;
-  struct async_destroy {
-    void operator()(Port *port) const {
-      port->destroy();
-    }
+  enum class Connection {
+    Disconnected,
+    Connected,
+    Pending,
   };
 
-  // Specialization of \c std::unique_ptr for async destruction.
-  template<typename T = Port>
-  using unique_ptr = std::unique_ptr<T, async_destroy>;
-
-  // Substitute for \c std::make_unique using the \c async_destroy deleter.
-  template<typename T, typename... Args>
-  static unique_ptr<T> make_unique(Args &&...args) {
-    return unique_ptr<T>(new T(std::forward<Args>(args)...));
-  }
+  using timestamp_t = uint32_t;
 
 protected:
-  explicit Port(std::string name)
-    : _name{std::move(name)}
-  {}
+  explicit Port(boost::uuids::uuid id, std::string name) noexcept;
 
-  virtual ~Port();
-  virtual void destroy() = 0;
+  Port(const Port &) = delete;
+  Port &operator=(const Port &) = delete;
+
+  virtual ~Port() = 0;
 
 public:
-  static std::future<void> destroy(unique_ptr<> self) {
-    return self->_destroyPromise.get_future();
+  // Unique ID of this port.
+  const boost::uuids::uuid &id() const noexcept {
+    return _id;
   }
-  std::string_view name() const { return _name; }
+
+  // Human-friendly name of this port.
+  std::string_view name() const noexcept {
+    return _name;
+  }
+
+  // WebMIDI calls this `state` and it has the string values "connected" and
+  // "disconnected".
+  virtual bool deviceConnected() const noexcept = 0;
+
+  virtual Connection connection() const noexcept = 0;
+
+  // TODO: onstatechange
+
+  /// \returns A future which resolves to a pointer to this port when the
+  ///          close operation completes.
+  virtual std::future<Port *> close() = 0;
+
+  /// WebMIDI uses a string enum `type` here with value "input".
+  /// \returns This port casted to `InputPort` if it is in fact an `InputPort`,
+  ///          otherwise null.
+  virtual InputPort *asInputPort() noexcept;
+  const InputPort *asInputPort() const noexcept {
+    return const_cast<Port *>(this)->asInputPort();
+  }
+
+  /// WebMIDI uses a string enum `type` here with value "output".
+  /// \returns This port casted to `OutputPort` if it is in fact an
+  ///          `OutputPort`, otherwise null.
+  virtual OutputPort *asOutputPort() noexcept;
+  const OutputPort *asOutputPort() const noexcept {
+    return const_cast<Port *>(this)->asOutputPort();
+  }
 
 private:
-  std::promise<void> _destroyPromise;
+  boost::uuids::uuid _id;
   std::string _name;
 };
 
 class InputPort : public Port {
-public:
-  using pointer = Port::unique_ptr<InputPort>;
-  using promise_type = std::promise<pointer>;
-  using future_type = std::future<pointer>;
-  using sink_type = std::function<void(const IMessage &, uint32_t)>;
-
+protected:
   using Port::Port;
 
-  void sink(sink_type sink) {
-    if (sink) {
-      _sink = std::move(sink);
-    } else {
-      _sink = &InputPort::nop;
-    }
+public:
+  using message_handler_type =
+    std::function<void(InputPort *, const IMessage &, Port::timestamp_t)>;
+
+  void onMessage(message_handler_type handler) noexcept {
+    _handler = std::move(handler);
   }
 
-  void start(sink_type sink) {
-    this->sink(std::move(sink));
-    start();
+  void onMessage() noexcept {
+    _handler = &InputPort::nop;
   }
 
-  virtual void start() = 0;
-  virtual void stop() = 0;
+  /// \returns A future which resolves to a pointer to this port when the
+  ///          open operation completes.
+  virtual std::future<InputPort *> open() = 0;
+
+  InputPort *asInputPort() noexcept override final;
 
 protected:
-  void emit(const IMessage &message, uint32_t timestamp) const {
-    _sink(message, timestamp);
+  void emit(const IMessage &message, Port::timestamp_t timestamp) {
+    _handler(this, message, timestamp);
   }
 
 private:
-  static void nop(const IMessage &, uint32_t) {}
+  static void nop(InputPort *, const IMessage &, Port::timestamp_t);
 
-  sink_type _sink = &InputPort::nop;
+  message_handler_type _handler = &InputPort::nop;
 };
 
 class OutputPort : public Port {
-public:
-  using pointer = Port::unique_ptr<OutputPort>;
-  using promise_type = std::promise<pointer>;
-  using future_type = std::future<pointer>;
-
+protected:
   using Port::Port;
 
-  //virtual void operator()(unsigned char *data, size_t length) = 0;
+public:
+  virtual void send(const unsigned char *begin, const unsigned char *end,
+                    Port::timestamp_t timestamp = 0) = 0;
+
+  void send(const IMessage &message, Port::timestamp_t timestamp = 0) {
+    send(message.data(), message.data() + message.size(), timestamp);
+  }
+
+  virtual std::future<OutputPort *> open() = 0;
+
+  OutputPort *asOutputPort() noexcept override final;
 };
 
-template<class P>
 class PortManager {
   template<Backend B>
   static std::unique_ptr<PortManager> createInternal();
 
+protected:
+  using map_t = std::unordered_map<boost::uuids::uuid, std::shared_ptr<Port>,
+                                   boost::hash<boost::uuids::uuid>>;
+
+  PortManager() = default;
+
+  map_t &portMap() {
+    return _ports;
+  }
+
+  boost::uuids::uuid nextId() {
+    return _uuidGen();
+  }
+
 public:
-  using promise_type = std::promise<std::unique_ptr<PortManager>>;
-  using future_type = std::future<std::unique_ptr<PortManager>>;
+  virtual ~PortManager() = 0;
 
-  friend struct iterator;
-  struct iterator {
-    friend class PortManager;
+  // Create a `PortManager` for the given backend.
+  static std::unique_ptr<PortManager> create(Backend backend);
 
-  private:
-    // End iterator - does not hold a lock.
-    iterator() noexcept
-      : iterator(nullptr, -1)
-    {}
+  // Create a `PortManager` for the first available backend for the current
+  // platform.
+  static std::unique_ptr<PortManager> create();
 
-    // Important! Must have a lock before calling this.
-    iterator(const PortManager *manager, size_t index) noexcept
-      : manager(manager), index(index)
+  std::unique_lock<std::recursive_mutex> lock() const {
+    return std::unique_lock<std::recursive_mutex>{_mutex};
+  }
+
+  std::unique_lock<std::recursive_mutex> tryLock() const {
+    return std::unique_lock<std::recursive_mutex>{_mutex, std::try_to_lock};
+  }
+
+  // \returns the current number of accessible ports. The size may change if a
+  // locked iterator is not held.
+  size_t size() const noexcept {
+    auto lk = lock();
+    return _ports.size();
+  }
+
+  /// \returns true if the port collection is currently empty. \see size().
+  bool empty() const noexcept {
+    return size() == 0;
+  }
+
+  // TODO: onstatechange
+
+  template<class MapIter>
+  struct iterator_base {
+  protected:
+    iterator_base(std::unique_lock<std::recursive_mutex> lock,
+                  MapIter mapIterator) noexcept
+      : _lock{std::move(lock)},
+        _mapIterator{std::move(mapIterator)}
     {}
 
   public:
-    // Releases the lock held on the \c PortManager if needed.
-    ~iterator() {
-      if (manager) manager->_mutex.unlock();
+    iterator_base(const iterator_base &other) noexcept
+      : _lock{*other._lock.mutex()},
+        _mapIterator{other._mapIterator}
+    {}
+
+    iterator_base &operator=(const iterator_base &other) noexcept {
+      _lock = std::unique_lock<std::recursive_mutex>{*other._lock.mutex()};
+      _mapIterator = other._mapIterator;
+      return *this;
     }
 
-    // Comparisons are only valid for iterators from the same container.
-    bool operator==(const iterator &other) const noexcept {
-      return index == other.index;
+    iterator_base(iterator_base &&) noexcept = default;
+    iterator_base &operator=(iterator_base &&) noexcept = default;
+
+    bool operator==(const iterator_base &other) const noexcept {
+      return _mapIterator == other._mapIterator;
     }
 
-    // Comparisons are only valid for iterators from the same container.
-    bool operator!=(const iterator &other) const noexcept {
+    bool operator!=(const iterator_base &other) const noexcept {
       return !(*this == other);
     }
 
-    iterator &operator++() noexcept {
-      if (index < manager->size() - 1) {
-        ++index;
-      } else {
-        index = -1;
-      }
-      return *this;
+    const Port *operator*() const noexcept {
+      return _mapIterator->second.get();
     }
-    /*const Info &operator*() const noexcept {
-      return manager->info(id);
-    }
-    const Info *operator->() const noexcept {
-      return &operator*();
-    }*/
 
-  private:
-    const PortManager *manager;
-    size_t index;
+    const Port *operator->() const noexcept {
+      return _mapIterator->second.get();
+    }
+
+  protected:
+    Port *get() noexcept {
+      return _mapIterator->second.get();
+    }
+
+    std::unique_lock<std::recursive_mutex> _lock;
+    MapIter _mapIterator;
   };
 
-protected:
-  PortManager() = default;
+  struct const_iterator : iterator_base<map_t::const_iterator> {
+  private:
+    friend class PortManager;
 
-  /// Acquires a lock and returns an iterator for port at \c index.
-  iterator lockedIterator(size_t index) const {
-    _mutex.lock();
-    return iterator{this, index};
-  }
+    const_iterator(std::unique_lock<std::recursive_mutex> lock,
+                   map_t::const_iterator mapIterator) noexcept
+      : iterator_base(std::move(lock), std::move(mapIterator))
+    {}
 
-  /// Tries to acquire a lock and returns an iterator for port at \c index,
-  /// or \c std::nullopt if the lock was not successful.
-  std::optional<iterator> tryLockedIterator(size_t index) const {
-    if (_mutex.try_lock()) {
-      return iterator{this, index};
+  public:
+    const_iterator(const const_iterator &other) noexcept
+      : iterator_base(other)
+    {}
+
+    const_iterator &operator=(const const_iterator &other) noexcept {
+      iterator_base::operator=(other);
+      return *this;
     }
-    return std::nullopt;
-  }
 
-  /// \returns The index pointed to by \c it. The index is -1 if \c it
-  /// is an end iterator.
-  static size_t iteratorIndex(const iterator &it) {
-    return it.index;
-  }
+    const_iterator(const_iterator &&) noexcept = default;
+    const_iterator &operator=(const_iterator &&) noexcept = default;
 
-public:
-  virtual ~PortManager();
+    using iterator_base::operator==;
+    using iterator_base::operator!=;
 
-  // Use the platform default/first available backend.
-  static std::unique_ptr<PortManager> create();
-
-  // Use a specific backend.
-  static std::unique_ptr<PortManager> create(Backend backend);
-
-  virtual std::future<void> scan() = 0;
-  virtual void startWatching() = 0;
-  virtual void stopWatching() = 0;
-
-  // Returns the current number of accessible ports. The size may change if a
-  // locked iterator is not held.
-  virtual size_t size() const noexcept = 0;
-
-  /// Returns true if the port collection is currently empty. \see size().
-  bool empty() const noexcept { return size() == 0; }
-
-  /// If there are no ports, returns an end iterator. Otherwise, locks the
-  /// \c PortManager and returns an iterator to the first element.
-  iterator begin() const {
-    if (empty()) {
-      return end();
-    } else {
-      return lockedIterator(0);
+    const_iterator &operator++() noexcept {
+      ++_mapIterator;
+      return *this;
     }
-  }
 
-  /// If there are no ports, returns an end iterator. Otherwise, tries to lock
-  /// the \c PortManager. If the lock was successful, returns an iterator to
-  /// the first element. If not, returns \c std::nullopt.
-  std::optional<iterator> tryBegin() const {
-    if (empty()) {
-      return end();
-    } else {
-      return tryLockedIterator(0);
+    const_iterator operator++(int) noexcept {
+      const_iterator prev = *this;
+      ++_mapIterator;
+      return prev;
     }
-  }
+  };
 
-  /// \returns End iterator. Does not hold a lock.
-  iterator end() const noexcept { return {}; }
+  struct iterator : iterator_base<map_t::iterator> {
+  private:
+    friend class PortManager;
 
-  /// Returns an iterator to element \c i. The iterator holds a lock on the
-  /// \c PortManager.
-  iterator get(size_t i) const {
-    if (i < size()) {
-      return lockedIterator(i);
-    } else {
-      return end();
+    iterator(std::unique_lock<std::recursive_mutex> lock,
+             map_t::iterator mapIterator) noexcept
+      : iterator_base(std::move(lock), std::move(mapIterator))
+    {}
+
+  public:
+    iterator(const iterator &other) noexcept
+      : iterator_base(other)
+    {}
+
+    iterator &operator=(const iterator &other) noexcept {
+      iterator_base::operator=(other);
+      return *this;
     }
-  }
 
-  /// Returns an iterator to element \c i, or \c std::nullopt if a lock could
-  /// not be acquired.
-  std::optional<iterator> tryGet(size_t i) const {
-    if (i < size()) {
-      return tryLockedIterator(i);
-    } else {
-      return end();
+    iterator(iterator &&) noexcept = default;
+    iterator &operator=(iterator &&) noexcept = default;
+
+    using iterator_base::operator==;
+    using iterator_base::operator!=;
+
+    iterator &operator++() noexcept {
+      ++_mapIterator;
+      return *this;
     }
+
+    iterator operator++(int) noexcept {
+      iterator prev = *this;
+      ++_mapIterator;
+      return prev;
+    }
+
+    // TODO: shared_ptr
+    Port *operator*() noexcept {
+      return get();
+    }
+
+    Port *operator->() noexcept {
+      return get();
+    }
+  };
+
+  const_iterator cbegin() const noexcept {
+    return {lock(), _ports.cbegin()};
   }
 
-  /// Opens the port pointed to by \c it.
-  virtual typename P::future_type open(const iterator &it) = 0;
+  const_iterator begin() const noexcept { return cbegin(); }
 
-protected:
-  mutable std::mutex _mutex;
+  // Acquires a lock.
+  iterator begin() noexcept {
+    return {lock(), _ports.begin()};
+  }
+
+  const_iterator cend() const noexcept {
+    return {lock(), _ports.end()};
+  }
+
+  const_iterator end() const noexcept { return cend(); }
+
+  // Acquires a lock.
+  iterator end() noexcept {
+    return {lock(), _ports.end()};
+  }
+
+  // const_reverse_iterator crbegin() const noexcept {}
+  // const_reverse_iterator rbegin() const noexcept { return crbegin(); }
+  // reverse_iterator rbegin() noexcept {}
+
+  // const_reverse_iterator crend() const noexcept {}
+  // const_reverse_iterator rend() const noexcept { return crend(); }
+  // reverse_iterator rend() noexcept {}
+
+  iterator find(const boost::uuids::uuid &id) noexcept {
+    auto lk = lock();
+    auto it = _ports.find(id);
+    return {std::move(lk), std::move(it)};
+  }
+
+  const_iterator find(const boost::uuids::uuid &id) const noexcept {
+    auto lk = lock();
+    auto it = _ports.find(id);
+    return {std::move(lk), std::move(it)};
+  }
+
+  iterator findInput(const boost::uuids::uuid &id) noexcept {
+    auto it = find(id);
+    auto endit = end();
+    if (it != endit && it->asInputPort()) {
+      return it;
+    }
+    return endit;
+  }
+
+  const_iterator findInput(const boost::uuids::uuid &id) const noexcept {
+    auto it = find(id);
+    auto endit = end();
+    if (it != endit && it->asInputPort()) {
+      return it;
+    }
+    return endit;
+  }
+
+  iterator findOutput(const boost::uuids::uuid &id) noexcept {
+    auto it = find(id);
+    auto endit = end();
+    if (it != endit && it->asOutputPort()) {
+      return it;
+    }
+    return endit;
+  }
+
+  const_iterator findOutput(const boost::uuids::uuid &id) const noexcept {
+    auto it = find(id);
+    auto endit = end();
+    if (it != endit && it->asOutputPort()) {
+      return it;
+    }
+    return endit;
+  }
+
+  // TODO: Change to shared_ptr.
+  Port *get(const boost::uuids::uuid &id) noexcept {
+    auto it = find(id);
+    if (it == end()) {
+      return nullptr;
+    }
+    return *it;
+  }
+
+  const Port *get(const boost::uuids::uuid &id) const noexcept {
+    auto it = find(id);
+    if (it == end()) {
+      return nullptr;
+    }
+    return *it;
+  }
+
+  InputPort *getInput(const boost::uuids::uuid &id) noexcept {
+    if (auto port = get(id)) {
+      return port->asInputPort();
+    }
+    return nullptr;
+  }
+
+  const InputPort *getInput(const boost::uuids::uuid &id) const noexcept {
+    return const_cast<PortManager *>(this)->getInput(id);
+  }
+
+  OutputPort *getOutput(const boost::uuids::uuid &id) noexcept {
+    if (auto port = get(id)) {
+      return port->asOutputPort();
+    }
+    return nullptr;
+  }
+
+  const OutputPort *getOutput(const boost::uuids::uuid &id) const noexcept {
+    return const_cast<PortManager *>(this)->getOutput(id);
+  }
+
+private:
+  map_t _ports;
+  mutable std::recursive_mutex _mutex;
+  boost::uuids::random_generator_pure _uuidGen;
 };
 
 } // namespace a8::midi

@@ -3,8 +3,103 @@
 
 #include <memory>
 #include <string_view>
+#include <type_traits>
+#include <exception>
 
 namespace a8 {
+
+template<class F>
+class ScopeExit {
+  F _function;
+  bool _active;
+
+public:
+  explicit ScopeExit(F function)
+    noexcept(std::is_nothrow_move_constructible_v<F>)
+    : _function{std::move(function)},
+      _active{true}
+  {}
+
+  ScopeExit(const ScopeExit &) = delete;
+  ScopeExit &operator=(const ScopeExit &) = delete;
+
+  ~ScopeExit() {
+    if (_active) {
+      _function();
+    }
+  }
+
+  void release() noexcept {
+    _active = false;
+  }
+};
+
+template<class F>
+class ScopeSuccess : public ScopeExit<F> {
+public:
+  using ScopeExit<F>::ScopeExit;
+
+  ~ScopeSuccess() {
+    if (std::current_exception()) {
+      this->release();
+    }
+  }
+};
+
+template<class F>
+class ScopeFail : public ScopeExit<F> {
+public:
+  using ScopeExit<F>::ScopeExit;
+
+  ~ScopeFail() {
+    if (!std::current_exception()) {
+      this->release();
+    }
+  }
+};
+
+template<class F>
+ScopeExit<F> scope_exit(F function)
+             noexcept(std::is_nothrow_move_constructible_v<F>) {
+  return ScopeExit<F>(std::move(function));
+}
+
+template<class F>
+ScopeSuccess<F> scope_success(F function)
+             noexcept(std::is_nothrow_move_constructible_v<F>) {
+  return ScopeSuccess<F>(std::move(function));
+}
+
+template<class F>
+ScopeFail<F> scope_fail(F function)
+             noexcept(std::is_nothrow_move_constructible_v<F>) {
+  return ScopeFail<F>(std::move(function));
+}
+
+namespace detail {
+  struct ScopeExitHelper {};
+  template<class F>
+  ScopeExit<F> operator^(ScopeExitHelper, F function)
+               noexcept(std::is_nothrow_move_constructible_v<F>) {
+    return ScopeExit<F>(std::move(function));
+  }
+
+  template<class F>
+  ScopeSuccess<F> operator&(ScopeExitHelper, F function)
+                  noexcept(std::is_nothrow_move_constructible_v<F>) {
+    return ScopeSuccess<F>(std::move(function));
+  }
+
+  template<class F>
+  ScopeFail<F> operator|(ScopeExitHelper, F function)
+               noexcept(std::is_nothrow_move_constructible_v<F>) {
+    return ScopeFail<F>(std::move(function));
+  }
+}
+
+#define A8_SCOPE_EXIT auto _scope_exit_##__LINE__ = ::a8::detail::ScopeExitHelper{} ^ [&]()
+#define A8_SCOPE_SUCCESS auto _scope_exit_##__LINE__ = ::a8::detail::ScopeExitHelper{} & [&]()
+#define A8_SCOPE_FAIL auto _scope_exit_##__LINE__ = ::a8::detail::ScopeExitHelper{} | [&]()
 
 // Returns a null unique_ptr on allocation failure.
 template<typename T, typename ...Args>

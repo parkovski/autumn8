@@ -9,46 +9,26 @@ using namespace a8;
 using namespace a8::midi;
 
 int a8main(int argc, char *argv[]) {
-#if A8_IS_PLATFORM(Windows)
-  Backend backend = Backend::Winmm;
+  std::unique_ptr<PortManager> pm;
   if (argc == 2) {
-    std::string_view backend_arg{argv[1]};
-    if (backend_arg == "winmm") {
-      backend = Backend::Winmm;
-    } else if (backend_arg == "null") {
-      backend = Backend::Null;
-    // } else if (backend_arg == "uwp") {
-    //   backend = Backend::UWP;
-    } else {
-      Log::error("Invalid backend {}", backend_arg);
+    auto backend = parseBackend(argv[1]);
+    if (backend == Backend::Null) {
+      Log::error("Invalid backend {}", argv[1]);
       return 1;
     }
+    pm = PortManager::create(backend);
   }
-  auto inMan = PortManager<InputPort>::create(backend);
-  auto outMan = PortManager<OutputPort>::create(backend);
-#else
-  auto inMan = PortManager<InputPort>::create();
-  auto outMan = PortManager<OutputPort>::create();
-#endif
+  pm = PortManager::create();
+  if (!pm) {
+    Log::critical("Port manager creation failed");
+  }
 
-  inMan->scan().wait();
-  outMan->scan().wait();
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   std::string sel;
-  std::cout << "input device number: ";
+  std::cout << "press enter to exit.\n";
   std::getline(std::cin, sel);
-  int n = atoi(sel.c_str());
-  if (auto it = inMan->get(n); it != inMan->end()) {
-    auto inp = inMan->open(it).get();
-    inp->sink([](auto const &m, auto ts) {
-      Log::debug("in: size={}", m.size());
-    });
-    inp->start();
-    std::cout << "Press enter to exit.\n";
-    std::getline(std::cin, sel);
-    Port::destroy(std::move(inp)).wait();
-  }
+  Log::debug("should exit");
 
   return 0;
 }

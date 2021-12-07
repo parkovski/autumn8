@@ -1,54 +1,67 @@
 #include "a8/midi/midi.h"
 #include <ostream>
 
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace a8::midi {
 
 std::ostream &operator<<(std::ostream &os, Backend backend) {
   switch (backend) {
 #define BACKEND(be) \
   case Backend::be: \
-    os << #be;
+    os << #be;      \
+    break;
 
 A8_MIDI_BACKENDS(BACKEND)
 
 #undef BACKEND
 
   default:
-    A8_UNREACHABLE;
+    os << "Null";
     break;
   }
   return os;
 }
 
-Port::~Port() {
-  Log::debug("Port {} async destroy finished.", name());
-  _destroyPromise.set_value();
+Backend parseBackend(std::string_view name) {
+#define BACKEND(be) if (boost::iequals(name, #be)) return Backend::be; else
+
+  A8_MIDI_BACKENDS(BACKEND)
+  return Backend::Null;
+
+#undef BACKEND
 }
 
-template<typename P>
-PortManager<P>::~PortManager() {}
+Port::Port(boost::uuids::uuid id, std::string name) noexcept
+  : _id{id},
+    _name{std::move(name)}
+{}
 
-template<typename P>
-auto PortManager<P>::create() -> std::unique_ptr<PortManager> {
-#if A8_IS_PLATFORM(Windows)
-  // TODO: If UWP not available, return Winmm.
-  return createInternal<Backend::UWP>();
-#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
-  return createInternal<Backend::CoreMIDI>();
-#elif A8_IS_PLATFORM(Android)
-  // TODO: If AMidi not available, return AndroidMediaMidi.
-  return createInternal<Backend::AMidi>();
-#elif A8_IS_PLATFORM(Linux)
-  return createInternal<Backend::Alsa>();
-#elif A8_IS_PLATFORM(Emscripten)
-  return createInternal<Backend::WebMIDI>();
-#else
-# error "Unknown platform"
-#endif
+Port::~Port() {}
+
+InputPort *Port::asInputPort() noexcept {
+  return nullptr;
 }
 
-template<typename P>
-auto PortManager<P>::create(Backend backend) -> std::unique_ptr<PortManager> {
+OutputPort *Port::asOutputPort() noexcept {
+  return nullptr;
+}
+
+InputPort *InputPort::asInputPort() noexcept {
+  return this;
+}
+
+void InputPort::nop(InputPort *, const IMessage &, Port::timestamp_t) {}
+
+OutputPort *OutputPort::asOutputPort() noexcept {
+  return this;
+}
+
+PortManager::~PortManager() {}
+
+std::unique_ptr<PortManager>
+PortManager::create(Backend backend) {
   switch (backend) {
     case Backend::Null:
       return createInternal<Backend::Null>();
@@ -88,8 +101,32 @@ auto PortManager<P>::create(Backend backend) -> std::unique_ptr<PortManager> {
   }
 }
 
-template class PortManager<InputPort>;
-template class PortManager<OutputPort>;
+std::unique_ptr<PortManager>
+PortManager::create() {
+#define TRY_BE(BE) if (auto p = createInternal<Backend::BE>()) return p
+
+#if A8_IS_PLATFORM(Windows)
+  TRY_BE(UWP);
+  TRY_BE(Winmm);
+#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
+  TRY_BE(CoreMIDI);
+#elif A8_IS_PLATFORM(Android)
+  TRY_BE(AMidi);
+  TRY_BE(AndroidMediaMidi);
+#elif A8_IS_PLATFORM(Linux)
+  TRY_BE(Alsa);
+#elif A8_IS_PLATFORM(Emscripten)
+  TRY_BE(WebMIDI);
+#endif
+
+#if A8_HAS_JACK
+  TRY_BE(Jack);
+#endif
+
+#undef TRY_BE
+
+  return {};
+}
 
 std::string_view ControlNames[128] = {
   "Bank select",

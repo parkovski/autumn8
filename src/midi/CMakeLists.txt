@@ -17,3 +17,11 @@ add_library(a8midi STATIC common.cpp null.cpp ${SOURCES_${A8_PLATFORM}})
 #  target_sources(a8midi PRIVATE jack.cpp)
 #endif()
 target_link_libraries(a8midi PUBLIC a8util)
+
+# Boost::UUID
+target_include_directories(a8midi PUBLIC ${Boost_INCLUDE_DIRS})
+
+if(A8_PLATFORM STREQUAL Linux)
+  find_package(ALSA REQUIRED)
+  target_link_libraries(a8midi PUBLIC ALSA::ALSA)
+endif()
