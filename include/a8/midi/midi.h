@@ -11,11 +11,9 @@
 #include <mutex>
 #include <exception>
 #include <iosfwd>
-#include <unordered_map>
+#include <map>
 #include <array>
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/container_hash/hash.hpp>
 
 namespace a8::midi {
@@ -79,10 +77,11 @@ public:
     Pending,
   };
 
+  using id_t = uint32_t;
   using timestamp_t = uint32_t;
 
 protected:
-  explicit Port(boost::uuids::uuid id, std::string name) noexcept;
+  explicit Port(id_t id, std::string name) noexcept;
 
   Port(const Port &) = delete;
   Port &operator=(const Port &) = delete;
@@ -91,7 +90,7 @@ protected:
 
 public:
   // Unique ID of this port.
-  const boost::uuids::uuid &id() const noexcept {
+  const id_t id() const noexcept {
     return _id;
   }
 
@@ -129,7 +128,7 @@ public:
   }
 
 private:
-  boost::uuids::uuid _id;
+  id_t _id;
   std::string _name;
 };
 
@@ -188,17 +187,12 @@ class PortManager {
   static std::unique_ptr<PortManager> createInternal();
 
 protected:
-  using map_t = std::unordered_map<boost::uuids::uuid, std::shared_ptr<Port>,
-                                   boost::hash<boost::uuids::uuid>>;
+  using map_t = std::map<Port::id_t, std::shared_ptr<Port>>;
 
   PortManager() = default;
 
   map_t &portMap() {
     return _ports;
-  }
-
-  boost::uuids::uuid nextId() {
-    return _uuidGen();
   }
 
 public:
@@ -395,19 +389,19 @@ public:
   // const_reverse_iterator rend() const noexcept { return crend(); }
   // reverse_iterator rend() noexcept {}
 
-  iterator find(const boost::uuids::uuid &id) noexcept {
+  iterator find(Port::id_t id) noexcept {
     auto lk = lock();
     auto it = _ports.find(id);
     return {std::move(lk), std::move(it)};
   }
 
-  const_iterator find(const boost::uuids::uuid &id) const noexcept {
+  const_iterator find(Port::id_t id) const noexcept {
     auto lk = lock();
     auto it = _ports.find(id);
     return {std::move(lk), std::move(it)};
   }
 
-  iterator findInput(const boost::uuids::uuid &id) noexcept {
+  iterator findInput(Port::id_t id) noexcept {
     auto it = find(id);
     auto endit = end();
     if (it != endit && it->asInputPort()) {
@@ -416,7 +410,7 @@ public:
     return endit;
   }
 
-  const_iterator findInput(const boost::uuids::uuid &id) const noexcept {
+  const_iterator findInput(Port::id_t id) const noexcept {
     auto it = find(id);
     auto endit = end();
     if (it != endit && it->asInputPort()) {
@@ -425,7 +419,7 @@ public:
     return endit;
   }
 
-  iterator findOutput(const boost::uuids::uuid &id) noexcept {
+  iterator findOutput(Port::id_t id) noexcept {
     auto it = find(id);
     auto endit = end();
     if (it != endit && it->asOutputPort()) {
@@ -434,7 +428,7 @@ public:
     return endit;
   }
 
-  const_iterator findOutput(const boost::uuids::uuid &id) const noexcept {
+  const_iterator findOutput(Port::id_t id) const noexcept {
     auto it = find(id);
     auto endit = end();
     if (it != endit && it->asOutputPort()) {
@@ -444,7 +438,7 @@ public:
   }
 
   // TODO: Change to shared_ptr.
-  Port *get(const boost::uuids::uuid &id) noexcept {
+  Port *get(Port::id_t id) noexcept {
     auto it = find(id);
     if (it == end()) {
       return nullptr;
@@ -452,7 +446,7 @@ public:
     return *it;
   }
 
-  const Port *get(const boost::uuids::uuid &id) const noexcept {
+  const Port *get(Port::id_t id) const noexcept {
     auto it = find(id);
     if (it == end()) {
       return nullptr;
@@ -460,32 +454,31 @@ public:
     return *it;
   }
 
-  InputPort *getInput(const boost::uuids::uuid &id) noexcept {
+  InputPort *getInput(Port::id_t id) noexcept {
     if (auto port = get(id)) {
       return port->asInputPort();
     }
     return nullptr;
   }
 
-  const InputPort *getInput(const boost::uuids::uuid &id) const noexcept {
+  const InputPort *getInput(Port::id_t id) const noexcept {
     return const_cast<PortManager *>(this)->getInput(id);
   }
 
-  OutputPort *getOutput(const boost::uuids::uuid &id) noexcept {
+  OutputPort *getOutput(Port::id_t id) noexcept {
     if (auto port = get(id)) {
       return port->asOutputPort();
     }
     return nullptr;
   }
 
-  const OutputPort *getOutput(const boost::uuids::uuid &id) const noexcept {
+  const OutputPort *getOutput(Port::id_t id) const noexcept {
     return const_cast<PortManager *>(this)->getOutput(id);
   }
 
 private:
   map_t _ports;
   mutable std::recursive_mutex _mutex;
-  boost::uuids::random_generator_pure _uuidGen;
 };
 
 } // namespace a8::midi

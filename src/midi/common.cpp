@@ -1,7 +1,6 @@
 #include "a8/midi/midi.h"
 #include <ostream>
 
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace a8::midi {
@@ -33,7 +32,7 @@ Backend parseBackend(std::string_view name) {
 #undef BACKEND
 }
 
-Port::Port(boost::uuids::uuid id, std::string name) noexcept
+Port::Port(id_t id, std::string name) noexcept
   : _id{id},
     _name{std::move(name)}
 {}
