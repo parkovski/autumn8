@@ -8,9 +8,8 @@ class NullInputPort final : public InputPort {
   bool _connected = false;
 
 public:
-  static constexpr Port::id_t id = 1;
   explicit NullInputPort() noexcept
-    : InputPort(id, "NullInputPort")
+    : InputPort(0xFFFFFFFD, "NullInputPort")
   {}
 
   bool deviceConnected() const noexcept override { return true; }
@@ -37,9 +36,8 @@ class NullOutputPort final : public OutputPort {
   bool _connected = false;
 
 public:
-  static constexpr Port::id_t id = 2;
   explicit NullOutputPort() noexcept
-    : OutputPort(id, "NullOutputPort")
+    : OutputPort(0xFFFFFFFE, "NullOutputPort")
   {}
 
   bool deviceConnected() const noexcept override { return true; }
@@ -70,8 +68,8 @@ public:
     auto &map = portMap();
     auto input = std::make_shared<NullInputPort>();
     auto output = std::make_shared<NullOutputPort>();
-    map.emplace(1, input);
-    map.emplace(2, output);
+    map.emplace(input->id(), input);
+    map.emplace(output->id(), output);
   }
 };
 

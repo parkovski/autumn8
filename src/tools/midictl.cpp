@@ -17,8 +17,9 @@ int a8main(int argc, char *argv[]) {
       return 1;
     }
     pm = PortManager::create(backend);
+  } else {
+    pm = PortManager::create();
   }
-  pm = PortManager::create();
   if (!pm) {
     Log::critical("Port manager creation failed");
   }

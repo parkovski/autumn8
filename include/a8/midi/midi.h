@@ -24,7 +24,9 @@ namespace a8::midi {
     M(CoreMIDI)             \
     M(AMidi)                \
     M(AndroidMediaMidi)     \
-    M(Alsa)                 \
+    M(AlsaSeq)              \
+    M(AlsaRaw)              \
+    M(PipeWire)             \
     M(WebMIDI)              \
     M(Jack)
 
@@ -46,7 +48,11 @@ constexpr const std::array ActiveBackends{
   Backend::AMidi,
   Backend::AndroidMediaMidi,
 #elif A8_IS_PLATFORM(Linux)
-  Backend::Alsa,
+  Backend::AlsaSeq,
+  Backend::AlsaRaw,
+# if A8_HAS_PIPEWIRE
+  Backend::PipeWire
+# endif
 #elif A8_IS_PLATFORM(Emscripten)
   Backend::WebMIDI,
 #endif

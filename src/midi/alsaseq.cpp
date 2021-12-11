@@ -501,7 +501,7 @@ private:
 
 template<>
 std::unique_ptr<PortManager>
-PortManager::createInternal<Backend::Alsa>() {
+PortManager::createInternal<Backend::AlsaSeq>() {
   return std::make_unique<AlsaPortManager>();
 }
 

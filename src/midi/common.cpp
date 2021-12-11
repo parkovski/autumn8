@@ -82,8 +82,16 @@ PortManager::create(Backend backend) {
       return createInternal<Backend::AndroidMediaMidi>();
 
 #elif A8_IS_PLATFORM(Linux)
-    case Backend::Alsa:
-      return createInternal<Backend::Alsa>();
+    case Backend::AlsaSeq:
+      return createInternal<Backend::AlsaSeq>();
+
+    case Backend::AlsaRaw:
+      return createInternal<Backend::AlsaRaw>();
+
+# if A8_HAS_PIPEWIRE
+    case Backend::PipeWire:
+      return createInternal<Backend::PipeWire>();
+# endif
 
 #elif A8_IS_PLATFORM(Emscripten)
     case Backend::WebMIDI:
@@ -113,7 +121,11 @@ PortManager::create() {
   TRY_BE(AMidi);
   TRY_BE(AndroidMediaMidi);
 #elif A8_IS_PLATFORM(Linux)
-  TRY_BE(Alsa);
+# if A8_HAS_PIPEWIRE
+  TRY_BE(PipeWire);
+# endif
+  TRY_BE(AlsaSeq);
+  TRY_BE(AlsaRaw);
 #elif A8_IS_PLATFORM(Emscripten)
   TRY_BE(WebMIDI);
 #endif
