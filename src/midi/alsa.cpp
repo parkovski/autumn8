@@ -3,6 +3,7 @@
 #include <alsa/asoundlib.h>
 
 #include <thread>
+#include <exception>
 
 using namespace a8;
 
@@ -93,44 +94,80 @@ snd_seq_addr_t port_id_to_alsa_addr(Port::id_t id) noexcept {
 
 class AlsaInputPort final : public InputPort {
   snd_seq_t *_seq;
-  snd_seq_addr_t _subscribeAddr;
+  unsigned char _subscribePort;
   snd_seq_port_subscribe_t *_sub = nullptr;
 
+  void unsubscribe() noexcept {
+    snd_seq_unsubscribe_port(_seq, _sub);
+    snd_seq_port_subscribe_free(_sub);
+    _sub = nullptr;
+  }
+
 public:
-  explicit AlsaInputPort(snd_seq_t *seq, snd_seq_port_info_t *pi) noexcept
+  explicit AlsaInputPort(snd_seq_t *seq, snd_seq_port_info_t *pi,
+                         unsigned char subscribePort) noexcept
     : InputPort(alsa_addr_to_port_id(*snd_seq_port_info_get_addr(pi)),
                 snd_seq_port_info_get_name(pi)),
-      _seq{seq}
+      _seq{seq},
+      _subscribePort{subscribePort}
   {}
 
-  ~AlsaInputPort() {}
+  ~AlsaInputPort() {
+    if (_sub) {
+      unsubscribe();
+    }
+  }
 
   bool deviceConnected() const noexcept override {
-    return false;
+    // TODO: Detect changes
+    return true;
   }
 
   Connection connection() const noexcept override {
+    // TODO: pending state
+    if (_sub) {
+      return Connection::Connected;
+    }
     return Connection::Disconnected;
   }
 
   std::future<InputPort *> open() override {
     std::promise<InputPort *> promise;
-    auto future = promise.get_future();
-    snd_seq_port_subscribe_t *sub;
-    snd_seq_port_subscribe_alloca(&sub);
+
+    if (_sub) {
+      promise.set_exception(
+        std::make_exception_ptr(PortError(PortError::PortOpen)));
+      return promise.get_future();
+    }
+    snd_seq_port_subscribe_malloc(&_sub);
+
     auto sourcePortId = port_id_to_alsa_addr(id());
-    snd_seq_port_subscribe_set_sender(sub, &sourcePortId);
-    snd_seq_port_subscribe_set_dest(sub, &_subscribeAddr);
-    snd_seq_subscribe_port(_seq, sub);
+    snd_seq_port_subscribe_set_sender(_sub, &sourcePortId);
+
+    snd_seq_client_info_t *ci;
+    snd_seq_client_info_alloca(&ci);
+    snd_seq_get_client_info(_seq, ci);
+    snd_seq_addr_t subscribeAddr;
+    subscribeAddr.client = (unsigned char)snd_seq_client_info_get_client(ci);
+    subscribeAddr.port = _subscribePort;
+    snd_seq_port_subscribe_set_dest(_sub, &subscribeAddr);
+
+    if (int err = snd_seq_subscribe_port(_seq, _sub)) {
+      promise.set_exception(
+        std::make_exception_ptr(
+          std::system_error(-err, std::system_category())));
+    }
+
+    // TODO: Should be set in response to a subs_start message.
     promise.set_value(this);
-    return future;
+    return promise.get_future();
   }
 
   std::future<Port *> close() override {
     std::promise<Port *> promise;
-    auto future = promise.get_future();
+    unsubscribe();
     promise.set_value(this);
-    return future;
+    return promise.get_future();
   }
 };
 
@@ -139,10 +176,12 @@ class AlsaOutputPort final : public OutputPort {
   unsigned char _sourcePort;
 
 public:
-  explicit AlsaOutputPort(snd_seq_t *seq, snd_seq_port_info_t *pi) noexcept
+  explicit AlsaOutputPort(snd_seq_t *seq, snd_seq_port_info_t *pi,
+                          unsigned char sourcePort) noexcept
     : OutputPort(alsa_addr_to_port_id(*snd_seq_port_info_get_addr(pi)),
                  snd_seq_port_info_get_name(pi)),
-      _seq{seq}
+      _seq{seq},
+      _sourcePort{sourcePort}
   {}
 
   ~AlsaOutputPort() {}
@@ -157,10 +196,14 @@ public:
   }
 
   bool deviceConnected() const noexcept override {
-    return false;
+    // TODO: Detect changes.
+    return true;
   }
 
   Connection connection() const noexcept override {
+    if (deviceConnected()) {
+      return Connection::Connected;
+    }
     return Connection::Disconnected;
   }
 
@@ -314,12 +357,16 @@ private:
                clientId, portId, AlsaPortCaps{cap}, AlsaPortType{type});
 
     if (cap & portCapInput) {
-      std::shared_ptr<Port> port = std::make_shared<AlsaInputPort>(_seq, pi);
+      std::shared_ptr<Port> port =
+        std::make_shared<AlsaInputPort>(_seq, pi,
+                                        (unsigned char)_inputPortId);
       auto id = port->id();
       portMap().emplace(std::make_pair(id, std::move(port)));
     }
     if (cap & portCapOutput) {
-      std::shared_ptr<Port> port = std::make_shared<AlsaOutputPort>(_seq, pi);
+      std::shared_ptr<Port> port =
+        std::make_shared<AlsaOutputPort>(_seq, pi,
+                                         (unsigned char)_inputPortId);
       auto id = port->id();
       portMap().emplace(std::make_pair(id, std::move(port)));
     }
@@ -333,6 +380,71 @@ private:
     snd_seq_port_info_t *pi;
     snd_seq_port_info_alloca(&pi);
     snd_seq_get_any_port_info(_seq, addr.client, addr.port, pi);
+
+    processNewPort(ci, pi);
+  }
+
+  bool internalEvent(snd_seq_event_t *ev) {
+    if (!memcmp(ev->data.raw8.d, PMCMD_Shutdown, PMCMDLENGTH)) {
+      Log::debug("MIDI event loop shutdown");
+      return false;
+    } else {
+      char data[PMCMDLENGTH + 1];
+      memcpy(data, ev->data.raw8.d, PMCMDLENGTH);
+      data[PMCMDLENGTH] = 0;
+      Log::warn("Unknown internal MIDI event '{}'.", data);
+    }
+    return true;
+  }
+
+  void inputPortEvent(snd_seq_event_t *ev) {
+    Log::debug("Input port event {}", ev->type);
+  }
+
+  void announcePortEvent(snd_seq_event_t *ev) {
+    snd_seq_client_info_t *ci;
+    snd_seq_client_info_alloca(&ci);
+    snd_seq_get_any_client_info(_seq, ev->data.addr.client, ci);
+    auto name = snd_seq_client_info_get_name(ci);
+    switch (ev->type) {
+      case SND_SEQ_EVENT_PORT_START: {
+        Log::debug("MIDI port start {} ({}):{}", name, ev->data.addr.client,
+                   ev->data.addr.port);
+        auto portMapLock = lock();
+        processNewPort(ev->data.addr);
+        break;
+      }
+
+      case SND_SEQ_EVENT_PORT_EXIT:
+        Log::debug("MIDI port exit {} ({}):{}", name, ev->data.addr.client,
+                   ev->data.addr.port);
+        break;
+
+      case SND_SEQ_EVENT_CLIENT_START:
+        Log::debug("MIDI client start {} ({})", name, ev->data.addr.client);
+        break;
+
+      case SND_SEQ_EVENT_CLIENT_EXIT:
+        Log::debug("MIDI client exit {} ({})", name, ev->data.addr.client);
+        break;
+
+      case SND_SEQ_EVENT_PORT_SUBSCRIBED:
+        Log::debug("Port subscribed {}:{} -> {}:{}",
+                   ev->data.connect.sender.client, ev->data.connect.sender.port,
+                   ev->data.connect.dest.client, ev->data.connect.dest.port);
+        break;
+
+      case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
+        Log::debug("Port unsubscribed {}:{} -> {}:{}",
+                   ev->data.connect.sender.client, ev->data.connect.sender.port,
+                   ev->data.connect.dest.client, ev->data.connect.dest.port);
+        break;
+    }
+  }
+
+  void generalEvent(snd_seq_event_t *ev) {
+    Log::debug("MIDI event {}:{} Ch{}", ev->source.client,
+               ev->source.port, (int)ev->data.control.channel);
   }
 
   void eventLoop() {
@@ -356,8 +468,8 @@ private:
 
       bool pending;
       do {
-        snd_seq_event_t *event;
-        err = snd_seq_event_input(_seq, &event);
+        snd_seq_event_t *ev;
+        err = snd_seq_event_input(_seq, &ev);
         pending = snd_seq_event_input_pending(_seq, 0) > 0;
         if (err == -ENOSPC) {
           Log::warn("MIDI event loop ENOSPC");
@@ -367,51 +479,20 @@ private:
         } else if (err < 0) {
           Log::error("MIDI event loop input: {}", strerror(-err));
           return;
-        } else if (event->source.client == _clientId &&
-                   event->source.port == _inputPortId &&
-                   event->type == SND_SEQ_EVENT_USR0) {
-          if (!memcmp(event->data.raw8.d, PMCMD_Shutdown, PMCMDLENGTH)) {
-            Log::debug("MIDI event loop shutdown");
-            return;
-          } else {
-            char data[PMCMDLENGTH + 1];
-            memcpy(data, event->data.raw8.d, PMCMDLENGTH);
-            data[PMCMDLENGTH] = 0;
-            Log::warn("Unknown internal MIDI event '{}'.", data);
-          }
-        } else if (event->source.client == SND_SEQ_CLIENT_SYSTEM &&
-                   event->source.port == SND_SEQ_PORT_SYSTEM_ANNOUNCE) {
-          snd_seq_client_info_t *ci;
-          snd_seq_client_info_alloca(&ci);
-          snd_seq_get_any_client_info(_seq, event->data.addr.client, ci);
-          auto name = snd_seq_client_info_get_name(ci);
-          switch (event->type) {
-            case SND_SEQ_EVENT_PORT_START: {
-              Log::debug("MIDI port start {} ({}):{}", name,
-                        event->data.addr.client, event->data.addr.port);
-              auto portMapLock = lock();
-              processNewPort(event->data.addr);
-              break;
+        } else if (ev->source.client == _clientId &&
+                   ev->source.port == _inputPortId) {
+          if (ev->type == SND_SEQ_EVENT_USR0) {
+            if (!internalEvent(ev)) {
+              return;
             }
-
-            case SND_SEQ_EVENT_PORT_EXIT:
-              Log::debug("MIDI port exit {} ({}):{}", name,
-                         event->data.addr.client, event->data.addr.port);
-              break;
-
-            case SND_SEQ_EVENT_CLIENT_START:
-              Log::debug("MIDI client start {} ({})", name,
-                         event->data.addr.client);
-              break;
-
-            case SND_SEQ_EVENT_CLIENT_EXIT:
-              Log::debug("MIDI client exit {} ({})", name,
-                         event->data.addr.client);
-              break;
+          } else {
+            inputPortEvent(ev);
           }
+        } else if (ev->source.client == SND_SEQ_CLIENT_SYSTEM &&
+                   ev->source.port == SND_SEQ_PORT_SYSTEM_ANNOUNCE) {
+          announcePortEvent(ev);
         } else {
-          Log::debug("MIDI event {}:{} Ch{}", event->source.client,
-                     event->source.port, (int)event->data.control.channel);
+          generalEvent(ev);
         }
       } while (pending);
     }

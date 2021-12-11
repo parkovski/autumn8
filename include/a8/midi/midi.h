@@ -65,6 +65,29 @@ std::ostream &operator<<(std::ostream &os, Backend be);
 // If none matches, returns `Backend::Null`.
 Backend parseBackend(std::string_view name);
 
+class PortError : std::runtime_error {
+public:
+  enum Kind {
+    PortOpen,
+  };
+
+private:
+  Kind _kind;
+
+  static constexpr const char *strkind(Kind kind) noexcept {
+    switch (kind) {
+      default: return "unknown";
+      case PortOpen: return "port already open";
+    }
+  }
+
+public:
+  explicit PortError(Kind kind) noexcept
+    : std::runtime_error{strkind(kind)},
+      _kind{kind}
+  {}
+};
+
 class InputPort;
 class OutputPort;
 
@@ -99,10 +122,18 @@ public:
     return _name;
   }
 
+  // Full descriptive name of this port that can be used as a unique ID.
+  // WebMIDI uses manufacturer and version fields for this, but that requires
+  // dealing with device interfaces for all the platforms.
+  std::string_view fullName() const noexcept {
+    return _fullName;
+  }
+
   // WebMIDI calls this `state` and it has the string values "connected" and
   // "disconnected".
   virtual bool deviceConnected() const noexcept = 0;
 
+  // The connection state of this port to the system port or device.
   virtual Connection connection() const noexcept = 0;
 
   // TODO: onstatechange
@@ -130,6 +161,7 @@ public:
 private:
   id_t _id;
   std::string _name;
+  std::string _fullName;
 };
 
 class InputPort : public Port {
