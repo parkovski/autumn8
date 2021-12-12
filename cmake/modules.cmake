@@ -10,10 +10,10 @@ else()
 endif()
 find_package(uriparser 0.9.2 REQUIRED COMPONENTS ${uriparser_COMPONENTS})
 
-find_package(uWebSockets QUIET)
+find_package(uWebSockets)
 
 if(A8_BUILD_GUI AND A8_FLSTUDIO_PLATFORM)
-  find_package(fpsdk QUIET)
+  find_package(fpsdk)
 endif()
 
 if(A8_BUILD_TESTS)

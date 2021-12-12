@@ -1,19 +1,7 @@
 project(Autumn8Tools)
 
-if(A8_BUILD_GUI)
-  add_executable(minigfx WIN32 minigfx.cpp)
-  target_link_libraries(minigfx PRIVATE a8gfxmain a8gfx)
-
-  if(uWebSockets_FOUND)
-    add_executable(uws-server WIN32 uws-server.cpp)
-    target_link_libraries(uws-server PRIVATE a8gfxmain a8gfx uWebSockets)
-  endif()
-endif()
-
-add_executable(midictl midictl.cpp)
-target_link_libraries(midictl a8main a8midi)
-
-if(fpsdk_FOUND)
-  add_library(flsaw MODULE flsaw.cpp)
-  a8_fl_plugin(flsaw A8Saw)
-endif()
+a8_app(browser browser/browser.cpp TARGETS GUI)
+a8_app(minigfx minigfx.cpp TARGETS GUI)
+a8_app(uws-server uws-server.cpp TARGETS GUI IF_DEPENDENCIES uWebSockets)
+a8_app(midictl midictl.cpp TARGETS CLI DEPENDENCIES a8midi)
+a8_app(flsaw flsaw.cpp NAME A8Saw TARGETS FLP)

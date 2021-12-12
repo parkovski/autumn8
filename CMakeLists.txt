@@ -47,6 +47,8 @@ set(Autumn8_INCLUDE_DIRS
 )
 include_directories(${Autumn8_INCLUDE_DIRS})
 
+include(cmake/app.cmake)
+
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
 add_subdirectory(src/util util)
