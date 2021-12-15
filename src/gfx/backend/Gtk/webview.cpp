@@ -13,7 +13,7 @@ namespace {
   std::string fullpath(UriPathSegmentA *head) {
     std::string path;
     while (head) {
-      path.append(sv(head->text));
+      path.append(1, '/').append(sv(head->text));
       head = head->next;
     }
     return path;
@@ -95,10 +95,10 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
     }
 
     // TODO: Async
-    auto bytes = g_bytes_new(wvres.content.data(), wvres.content.size());
+    auto bytes = g_bytes_new(wvres._content.data(), wvres._content.size());
     auto stream = g_memory_input_stream_new_from_bytes(bytes);
     webkit_uri_scheme_request_finish(
-      req, stream, static_cast<gint64>(wvres.content.size()),
-      wvres.contentType.c_str());
+      req, stream, static_cast<gint64>(wvres._content.size()),
+      wvres._contentType.c_str());
   }
 }

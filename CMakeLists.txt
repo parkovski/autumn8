@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.22.1 FATAL_ERROR)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE)
   message(STATUS "CMAKE_BUILD_TYPE not defined; defaulting to Debug")

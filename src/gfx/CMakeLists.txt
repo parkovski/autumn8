@@ -3,6 +3,7 @@ project(Autumn8Graphics)
 set(SOURCES
   ostream_print.cpp
   view.cpp
+  webview.cpp
 )
 
 set(SOURCES_Win32
@@ -52,7 +53,7 @@ if(A8_GFXBACKEND STREQUAL "Win32")
 elseif(A8_GFXBACKEND STREQUAL "Gtk")
   find_package(PkgConfig REQUIRED)
   if(A8_GTK_VERSION STREQUAL 3)
-    pkg_check_modules(GTK REQUIRED gtk+-3.0 webkit2gtk-4.0)
+    pkg_check_modules(GTK REQUIRED gtk+-3.0 webkit2gtk-4.1)
   elseif(A8_GTK_VERSION STREQUAL 4)
     pkg_check_modules(GTK REQUIRED gtk4 webkit2gtk-5.0)
   else()

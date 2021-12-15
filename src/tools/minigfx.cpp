@@ -45,35 +45,35 @@ int a8main(int argc, char *argv[]) {
   //webview->navigate("http://appusr.a8.parkovski.com/index.html");
   //webview->navigate("https://www.coinmarketcap.com/");
   webview->setUserCallback([&](auto *wv, auto const &req, auto &res) -> bool {
-    res.status = 200;
-    res.reason = "OK";
-    res.contentType = "text/html";
-    res.content = "<html><head>"
-      "<link rel=\"icon\" href=\"/icon.png\"/>"
-      "<title>Custom Page</title></head><body>";
-    if (a8::ends_with(req.uri, "/index.html"sv)) {
-      res.content
-        .append("<a href=\"a8://res/test.html\">Resource page</a><br>")
-        .append("<a href=\"a8://app/test.html\">User page</a><br>")
-        .append("<a href=\"a8://app/test2.html\">User page 2</a><br>");
-    } else if (a8::ends_with(req.uri, ".png")) {
+    res.status(a8::http::HTTP_200_OK).contentType("text/html");
+
+    if (a8::ends_with(req.uri, ".png")) {
       a8::Log::debug("requested png {}", req.uri);
-      res.contentType = "image/png";
-      res.content.clear();
+      res.contentType("image/png");
       if (a8::ends_with(req.uri, "/icon.png")) {
-        res.content.assign(icon64.first.get(), icon64.second);
+        res.write(std::string_view{icon64.first.get(), icon64.second});
       } else if (a8::ends_with(req.uri, "/icon16.png")) {
-        res.content.assign(icon16.first.get(), icon16.second);
+        res.write(std::string_view{icon16.first.get(), icon16.second});
       } else if (a8::ends_with(req.uri, "/icon256.png")) {
-        res.content.assign(icon256.first.get(), icon256.second);
+        res.write(std::string_view{icon256.first.get(), icon256.second});
       } else {
         return false;
       }
       return true;
-    } else {
-      res.content.append("You navigated to ").append(req.uri);
     }
-    res.content.append("</body></html>");
+
+    res.write("<html><head>"
+      "<link rel=\"icon\" href=\"/icon.png\"/>"
+      "<title>Custom Page</title></head><body>");
+    if (a8::ends_with(req.uri, "/index.html"sv)) {
+      res
+        .write("<a href=\"a8://res/test.html\">Resource page</a><br>")
+        .write("<a href=\"a8://app/test.html\">User page</a><br>")
+        .write("<a href=\"a8://app/test2.html\">User page 2</a><br>");
+    } else {
+      res.write("You navigated to ").write(req.uri);
+    }
+    res.write("</body></html>");
 
     return true;
   });

@@ -3,6 +3,7 @@
 
 #include "a8/a8.h"
 #include "a8/util/cstring_view.h"
+#include "a8/util/http.h"
 
 #include "view.h"
 #include <string_view>
@@ -31,17 +32,47 @@ struct WebViewRequest {
 };
 
 struct WebViewResponse {
+private:
+  friend class WebView;
   // This is a header, but it's the only required header so it's listed
   // separately.
-  std::string contentType;
+  std::string _contentType;
   // All the response headers except Content-Type as a CRLF separated string.
-  std::string headers;
+  std::string _headers;
   // HTTP status code, e.g. 200.
-  int status;
+  int _status;
   // HTTP reason description, e.g. "OK".
-  std::string reason;
+  std::string _reason;
   // Response content. Should be a stream.
-  std::string content;
+  std::string _content;
+
+  void finish() {}
+
+public:
+  WebViewResponse &contentType(std::string_view type) {
+    _contentType = type;
+    return *this;
+  }
+
+  WebViewResponse &header(std::string_view key, std::string_view value);
+
+  WebViewResponse &status(::a8::http::http_status_t status) {
+    _status = status.first;
+    _reason = status.second;
+    return *this;
+  }
+
+  WebViewResponse &write(std::string_view data) {
+    _content.append(data);
+    return *this;
+  }
+
+  void end(std::string_view data = {}) {
+    if (data.length()) {
+      write(data);
+    }
+    finish();
+  }
 };
 
 class WebView : public View {
