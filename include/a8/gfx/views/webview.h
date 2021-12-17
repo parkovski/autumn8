@@ -49,6 +49,12 @@ private:
   void finish() {}
 
 public:
+  WebViewResponse &status(::a8::http::http_status_t status) {
+    _status = status.first;
+    _reason = status.second;
+    return *this;
+  }
+
   WebViewResponse &contentType(std::string_view type) {
     _contentType = type;
     return *this;
@@ -56,14 +62,13 @@ public:
 
   WebViewResponse &header(std::string_view key, std::string_view value);
 
-  WebViewResponse &status(::a8::http::http_status_t status) {
-    _status = status.first;
-    _reason = status.second;
+  WebViewResponse &write(std::string_view data) {
+    _content.append(data);
     return *this;
   }
 
-  WebViewResponse &write(std::string_view data) {
-    _content.append(data);
+  WebViewResponse &write(char *data, size_t size) {
+    _content.append(data, size);
     return *this;
   }
 

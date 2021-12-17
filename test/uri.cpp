@@ -1,4 +1,3 @@
-#include "a8/a8.h"
 #include "a8/util/uri.h"
 #include <catch2/catch_test_macros.hpp>
 #include <sstream>
@@ -73,7 +72,6 @@ TEST_CASE("URI path check", "[uri]") {
   for (size_t i = 0; i < g_uris_size; ++i) {
     a8::Uri uri{g_uris[i]};
     REQUIRE(static_cast<bool>(uri));
-    a8::Log::info("uri = `{}`; path = `{}`", g_uris[i], uri.path().str());
     if (g_paths[i]) {
       REQUIRE(uri.path().str() == g_paths[i]);
     } else {

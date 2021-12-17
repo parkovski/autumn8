@@ -15,7 +15,7 @@ namespace a8 {
 template<class UriT>
 struct UriTraits;
 
-#define DEFINE_URI_FUNCTIONS(Suffix)                                          \
+#define A8_DEFINE_URI_FUNCTIONS(Suffix)                                       \
   static inline int                                                           \
   parseSingleUriEx(UriUri##Suffix *uri, const char_type *first,               \
                    const char_type *afterLast, const char_type **errorPos) {  \
@@ -65,7 +65,7 @@ struct UriTraits<UriUriA> {
   using path_segment_type = UriPathSegmentA;
   using query_list_type = UriQueryListA;
 
-  DEFINE_URI_FUNCTIONS(A)
+  A8_DEFINE_URI_FUNCTIONS(A)
 };
 #endif // URI_ENABLE_ANSI
 
@@ -77,9 +77,11 @@ struct UriTraits<UriUriW> {
   using path_segment_type = UriPathSegmentW;
   using query_list_type = UriQueryListW;
 
-  DEFINE_URI_FUNCTIONS(W)
+  A8_DEFINE_URI_FUNCTIONS(W)
 };
 #endif // URI_ENABLE_UNICODE
+
+#undef A8_DEFINE_URI_FUNCTIONS
 
 // NB: Modifying the pointers in this class will modify the URI that they
 // come from.

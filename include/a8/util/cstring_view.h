@@ -22,6 +22,8 @@ public:
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
 
+  static constexpr size_type npos = static_cast<size_type>(-1);
+
   constexpr basic_cstring_view() noexcept
     : _data{nullptr}, _length{0}
   {}
@@ -185,12 +187,16 @@ constexpr bool operator==(basic_cstring_view<CharT, Traits> a,
       == std::basic_string_view<CharT, Traits>{b};
 }
 
-// template<class CharT, class Traits>
-// constexpr auto operator<=>(basic_cstring_view<CharT, Traits> a,
-//                            basic_cstring_view<CharT, Traits> b) noexcept {
-// return std::basic_string_view<CharT, Traits>{a}
-//    <=> std::basic_string_view<CharT, Traits>{b};
-// }
+#if __cplusplus >= 201907L
+
+template<class CharT, class Traits>
+constexpr auto operator<=>(basic_cstring_view<CharT, Traits> a,
+                           basic_cstring_view<CharT, Traits> b) noexcept {
+return std::basic_string_view<CharT, Traits>{a}
+   <=> std::basic_string_view<CharT, Traits>{b};
+}
+
+#else // __cplusplus >= 201907L
 
 template<class CharT, class Traits>
 constexpr bool operator!=(basic_cstring_view<CharT, Traits> a,
@@ -203,32 +209,38 @@ template<class CharT, class Traits>
 constexpr bool operator<(basic_cstring_view<CharT, Traits> a,
                          basic_cstring_view<CharT, Traits> b) noexcept {
   return std::basic_string_view<CharT, Traits>{a}
-      != std::basic_string_view<CharT, Traits>{b};
+       < std::basic_string_view<CharT, Traits>{b};
 }
 
 template<class CharT, class Traits>
 constexpr bool operator<=(basic_cstring_view<CharT, Traits> a,
                           basic_cstring_view<CharT, Traits> b) noexcept {
   return std::basic_string_view<CharT, Traits>{a}
-      != std::basic_string_view<CharT, Traits>{b};
+      <= std::basic_string_view<CharT, Traits>{b};
 }
 
 template<class CharT, class Traits>
 constexpr bool operator>(basic_cstring_view<CharT, Traits> a,
                          basic_cstring_view<CharT, Traits> b) noexcept {
   return std::basic_string_view<CharT, Traits>{a}
-      != std::basic_string_view<CharT, Traits>{b};
+       > std::basic_string_view<CharT, Traits>{b};
 }
 
 template<class CharT, class Traits>
 constexpr bool operator>=(basic_cstring_view<CharT, Traits> a,
                           basic_cstring_view<CharT, Traits> b) noexcept {
   return std::basic_string_view<CharT, Traits>{a}
-      != std::basic_string_view<CharT, Traits>{b};
+      >= std::basic_string_view<CharT, Traits>{b};
 }
 
+#endif // __cplusplus > 201907L
+
 using cstring_view = basic_cstring_view<char>;
-using u8cstring_view = basic_cstring_view<char/*8_t*/>;
+#if __cplusplus >= 201811L
+  using u8cstring_view = basic_cstring_view<char8_t>;
+#else
+  using u8cstring_view = basic_cstring_view<char>;
+#endif
 using u16cstring_view = basic_cstring_view<char16_t>;
 using u32cstring_view = basic_cstring_view<char32_t>;
 using wcstring_view = basic_cstring_view<wchar_t>;
@@ -239,10 +251,12 @@ constexpr cstring_view operator "" _csv(const char *str, size_t len) noexcept {
   return cstring_view::__construct_private(str, len);
 }
 
-//constexpr u8cstring_view operator "" _csv(const char8_t *str, size_t len)
-//                                          noexcept {
-//  return u8cstring_view::__construct_private(str, len);
-//}
+#if __cplusplus >= 201811L
+constexpr u8cstring_view operator "" _csv(const char8_t *str, size_t len)
+                                          noexcept {
+  return u8cstring_view::__construct_private(str, len);
+}
+#endif
 
 constexpr u16cstring_view operator "" _csv(const char16_t *str, size_t len)
                                            noexcept {
