@@ -1,6 +1,7 @@
 set(SOURCES
   test.cpp
   paramconv.cpp
+  uri.cpp
   utf.cpp
 )
 
