@@ -148,6 +148,37 @@ static std::thread server(int wsPort, int devPort, uWS::Loop **loop,
   return thread;
 }
 
+class WebViewRouter {
+  struct RouterData {
+    const WebViewRequest *req;
+    WebViewResponse *res;
+  };
+  uWS::HttpRouter<RouterData> router;
+
+  void get(std::string pattern,
+           uWS::MoveOnlyFunction<bool(const WebViewRequest &,
+                                      WebViewResponse &)> fn) {
+    router.add({"get"}, std::move(pattern),
+               [fn = std::move(fn)](auto *router) mutable -> bool {
+      RouterData &data = router->getUserData();
+      return fn(*data.req, *data.res);
+    });
+  }
+
+  bool operator()(WebView *, const WebViewRequest &req, WebViewResponse &res) {
+    std::string_view uri{req.uri.path().str()};
+    for (auto const &method : router.methods) {
+      if (uri.length() > method.length() + 2 &&
+          uri[method.length()] == '/' &&
+          uri.substr(1, method.length()) == method) {
+        router.getUserData() = RouterData { &req, &res };
+        return router.route(method, uri.substr(method.length() + 1));
+      }
+    }
+    return false;
+  }
+};
+
 int a8main(int argc, char *argv[]) {
   int port = 0;
   int devPort = 0;
@@ -196,16 +227,14 @@ int a8main(int argc, char *argv[]) {
   }
   a8::Log::info("Listening on port {}.", port);
 
-  Window *mainWindow = new Window;
+  Window *mainWindow = new Window("UWS Server");
   mainWindow->resize(0, 0, 500, 500);
   mainWindow->quitOnClose();
 
-  auto *webview = new WebView(urlBase);
-  mainWindow->setView(webview);
+  auto *webview = new WebView(mainWindow);
+  webview->navigate(urlBase);
 
-  if (!mainWindow->open(urlBase)) {
-    return 1;
-  }
+  mainWindow->show();
 
   auto x = runMessageLoop();
   a8::Log::debug("Message loop returned {}.", x);

@@ -47,14 +47,15 @@ int a8main(int argc, char *argv[]) {
   webview->setUserCallback([&](auto *wv, auto const &req, auto &res) -> bool {
     res.status(a8::http::HTTP_200_OK).contentType("text/html");
 
-    if (a8::ends_with(req.uri, ".png")) {
-      a8::Log::debug("requested png {}", req.uri);
+    auto path = req.uri.path().str();
+    if (a8::ends_with(path, ".png")) {
+      a8::Log::debug("requested png {}", path);
       res.contentType("image/png");
-      if (a8::ends_with(req.uri, "/icon.png")) {
+      if (a8::ends_with(path, "/icon.png")) {
         res.write(std::string_view{icon64.first.get(), icon64.second});
-      } else if (a8::ends_with(req.uri, "/icon16.png")) {
+      } else if (a8::ends_with(path, "/icon16.png")) {
         res.write(std::string_view{icon16.first.get(), icon16.second});
-      } else if (a8::ends_with(req.uri, "/icon256.png")) {
+      } else if (a8::ends_with(path, "/icon256.png")) {
         res.write(std::string_view{icon256.first.get(), icon256.second});
       } else {
         return false;
@@ -65,13 +66,13 @@ int a8main(int argc, char *argv[]) {
     res.write("<html><head>"
       "<link rel=\"icon\" href=\"/icon.png\"/>"
       "<title>Custom Page</title></head><body>");
-    if (a8::ends_with(req.uri, "/index.html"sv)) {
+    if (a8::ends_with(path, "/index.html"sv)) {
       res
         .write("<a href=\"a8://res/test.html\">Resource page</a><br>")
         .write("<a href=\"a8://app/test.html\">User page</a><br>")
         .write("<a href=\"a8://app/test2.html\">User page 2</a><br>");
     } else {
-      res.write("You navigated to ").write(req.uri);
+      res.write("You navigated to ").write(path);
     }
     res.write("</body></html>");
 

@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <string_view>
+#include <string>
 
 namespace a8::http {
 
@@ -85,7 +86,12 @@ using http_status_t = std::pair<int, std::string_view>;
 
 #undef DEFINE_STATUS
 #undef DEFINE_STATUS2
+#undef DEFINE_WEBDAV
 
 } // namespace a8::http
+
+namespace a8 {
+  using http::http_status_t;
+}
 
 #endif // A8_UTIL_HTTP_H_

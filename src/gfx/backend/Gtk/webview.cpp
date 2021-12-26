@@ -2,22 +2,105 @@
 #include "a8/a8.h"
 #include "a8/gfx/views/webview.h"
 #include "a8/gfx/window.h"
-#include "uriparser/Uri.h"
+#include "a8/util/uri.h"
+#include "a8/util/mime.types.h"
 
 using namespace a8::gfx;
 
-namespace {
-  std::string_view sv(UriTextRangeA range) noexcept {
-    return {range.first, static_cast<size_t>(range.afterLast - range.first)};
+static a8::cstring_view
+getMimeTypeForPath(a8::cstring_view path,
+                   a8::cstring_view unknown = "application/octet-stream") {
+  static auto const dictionary = a8::getMimeTypeMap(false, true);
+  std::string_view pathsv{path};
+  auto dot = pathsv.find_last_of('.');
+  auto slash = pathsv.find_last_of('/');
+#if _WIN32
+  auto bkslash = pathsv.find_last_of('\\');
+  if (slash == std::string_view::npos || bkslash > slash) {
+    slash = bkslash;
   }
-  std::string fullpath(UriPathSegmentA *head) {
-    std::string path;
-    while (head) {
-      path.append(1, '/').append(sv(head->text));
-      head = head->next;
+#endif
+  if ((slash == std::string_view::npos || dot > slash) &&
+      dot != std::string_view::npos) {
+    auto ext = path.substr(dot + 1);
+    auto it = dictionary.find(ext);
+    if (it != dictionary.end()) {
+      a8::Log::debug("Mime type for .{} = {}", ext, it->second);
+      return it->second;
     }
-    return path;
+    a8::Log::debug("Mime type for .{} = ???", ext);
   }
+  a8::Log::debug("Mime type for path {} defaulting to {}", pathsv, unknown);
+  return unknown;
+}
+
+static void webViewSendFile(WebKitURISchemeRequest *req, a8::cstring_view path,
+                            a8::cstring_view mimeType) {
+  auto file = g_file_new_for_path(path.c_str());
+  if (!file) {
+    auto error = g_error_new(
+      webkit_network_error_quark(), WEBKIT_NETWORK_ERROR_FILE_DOES_NOT_EXIST,
+      "File '%s' not found", path.c_str());
+    webkit_uri_scheme_request_finish_error(req, error);
+    return;
+  }
+
+  GError *error = nullptr;
+  auto stream = G_INPUT_STREAM(g_file_read(file, nullptr, &error));
+  if (error) {
+    g_error_free(error);
+    error = g_error_new(
+      webkit_network_error_quark(), WEBKIT_NETWORK_ERROR_FAILED,
+      "File '%s' read failed", path.c_str());
+    webkit_uri_scheme_request_finish_error(req, error);
+    return;
+  }
+
+  if (!mimeType) {
+    mimeType = getMimeTypeForPath(path.c_str());
+  }
+  webkit_uri_scheme_request_finish(req, stream, -1, mimeType);
+}
+
+static void webViewSendResFile(WebKitURISchemeRequest *req,
+                               a8::cstring_view path,
+                               a8::cstring_view mimeType) {
+  const char *resdir = "/home/parker/Documents/dev/autumn8/src/tools";
+  auto fullPath = g_build_filename(resdir, path.c_str(), nullptr);
+  webViewSendFile(req, fullPath, mimeType);
+  g_free(fullPath);
+}
+
+void WebViewResponse::sendFile(cstring_view path, cstring_view mimeType) {
+  auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
+  webViewSendFile(req, path, mimeType);
+  _state = WroteAllClosed;
+}
+
+void WebViewResponse::sendResFile(cstring_view path, cstring_view mimeType) {
+  auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
+  webViewSendResFile(req, path, mimeType);
+  _state = WroteAllClosed;
+}
+
+void WebViewResponse::finish() noexcept {
+  if (_state >= WroteAllClosed) {
+    return;
+  }
+  _state = WroteAllClosed;
+
+  auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
+  auto content =
+#if __cplusplus >= 202002L
+    this->_buffer.view();
+#else
+    this->_buffer.str();
+#endif
+  auto stream = g_memory_input_stream_new_from_data(
+    content.data(), static_cast<gssize>(content.size()), nullptr);
+  Log::debug("size = {}, contentType = {}", content.size(), _contentType);
+  webkit_uri_scheme_request_finish(
+    req, stream, static_cast<gint64>(content.size()), _contentType.c_str());
 }
 
 WebView::WebView(View *parent)
@@ -49,56 +132,36 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
 
   auto uristr = webkit_uri_scheme_request_get_uri(req);
   a8::Log::debug("WebKitURISchemeRequest {}", uristr);
-  const char *errorPos;
-  UriUriA uri;
-  if (uriParseSingleUriA(&uri, uristr, &errorPos) != URI_SUCCESS) {
+  Uri uri{uristr};
+  if (!uri) {
     auto err = g_error_new(webkit_network_error_quark(),
                            WEBKIT_NETWORK_ERROR_FAILED,
                            "Bad URI '%s'", uristr);
     webkit_uri_scheme_request_finish_error(req, err);
     return;
   }
-  Log::debug("URI {{ scheme: {}, host: {}, path: {} }}", sv(uri.scheme),
-             sv(uri.hostText), fullpath(uri.pathHead));
-  if (sv(uri.scheme) != CustomScheme) {
+  if (uri.scheme() != CustomScheme) {
     auto err = g_error_new(webkit_network_error_quark(),
                            WEBKIT_NETWORK_ERROR_UNKNOWN_PROTOCOL,
                            "Unknown protocol '%.*s'",
-                           static_cast<int>(uri.scheme.afterLast -
-                                            uri.scheme.first),
-                           uri.scheme.afterLast);
+                           static_cast<int>(uri.scheme().size()),
+                           uri.scheme().data());
   }
 
-  auto host = sv(uri.hostText);
-  auto path = fullpath(uri.pathHead);
-  if (starts_with(host, "res")) {
-    auto file = g_file_new_build_filename(
-      "/home/parker/Documents/dev/autumn8/src/tools", path.c_str(), nullptr);
-    auto stream = G_INPUT_STREAM(g_file_read(file, nullptr, nullptr));
-    const char *contentType = "text/plain";
-    if (a8::ends_with(path, ".html")) {
-      contentType = "text/html";
-    } else if (a8::ends_with(path, ".js")) {
-      contentType = "application/javascript";
-    }
-    webkit_uri_scheme_request_finish(req, stream, -1, contentType);
-  } else if (starts_with(host, "app")) {
+  if (uri.host() == "res") {
+    std::string path{uri.path()};
+    webViewSendResFile(req, path, {});
+  } else if (uri.host() == "app") {
     WebViewRequest wvreq;
     wvreq.method = "GET";
-    wvreq.uri = path;
-    WebViewResponse wvres;
+    wvreq.uri = std::move(uri);
+    WebViewResponse wvres{req};
     if (!webview->callUserCallback(wvreq, wvres)) {
       auto err = g_error_new(webkit_network_error_quark(),
-                             WEBKIT_NETWORK_ERROR_FAILED, "");
+                             WEBKIT_NETWORK_ERROR_FAILED,
+                             "User callback failed");
       webkit_uri_scheme_request_finish_error(req, err);
       return;
     }
-
-    // TODO: Async
-    auto bytes = g_bytes_new(wvres._content.data(), wvres._content.size());
-    auto stream = g_memory_input_stream_new_from_bytes(bytes);
-    webkit_uri_scheme_request_finish(
-      req, stream, static_cast<gint64>(wvres._content.size()),
-      wvres._contentType.c_str());
   }
 }

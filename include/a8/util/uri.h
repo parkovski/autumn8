@@ -376,7 +376,7 @@ public:
   basic_uri(basic_uri &&other) noexcept
     : _uri{other._uri}
   {
-    other._uri.owner = false;
+    other._uri = {};
   }
 
   basic_uri &operator=(const basic_uri &other) {
@@ -400,7 +400,7 @@ public:
 
     Traits::freeUriMembers(&_uri);
     _uri = other._uri;
-    other._uri.owner = false;
+    other._uri = {};
     return *this;
   }
 
