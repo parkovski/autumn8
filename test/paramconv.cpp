@@ -67,7 +67,7 @@ using namespace a8::flp;
 static const int FromMIDI_Max = 0x40000000;
 static const int FromMIDI_Half = 0x20000000;
 
-TEST_CASE("Int param conversion", "[param]") {
+TEST_CASE("FLP int param conversion", "[flp][param-converter]") {
   using PCI = ParamConverter<int>;
 
   PCI pci{0, 10};
@@ -91,7 +91,7 @@ TEST_CASE("Int param conversion", "[param]") {
   REQUIRE(pci.set(FromMIDI_Max - 5) == FromMIDI_Max - 10);
 }
 
-TEST_CASE("Float param conversion", "[param]") {
+TEST_CASE("FLP float param conversion", "[flp][param-converter]") {
   using PCF = ParamConverter<float>;
 
   PCF pcf{0.f, 1.f};

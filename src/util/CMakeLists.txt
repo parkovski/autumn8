@@ -3,6 +3,7 @@ project(Autumn8Utility)
 set(SOURCES
   log.cpp
   mime.types.cpp
+  router.cpp
   utfconv.cpp
 )
 
