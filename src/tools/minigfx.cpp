@@ -44,25 +44,26 @@ int a8main(int argc, char *argv[]) {
   auto webview = new WebView(mainWindow);
   //webview->navigate("http://appusr.a8.parkovski.com/index.html");
   //webview->navigate("https://www.coinmarketcap.com/");
-  webview->setUserCallback([&](auto *wv, auto const &req, auto &res) -> bool {
-    res.status(a8::http::HTTP_200_OK).contentType("text/html");
-
-    auto path = req.uri.path().str();
+  webview->setUserCallback([&](auto const &req, auto &res) {
+    auto path = req.uri().path().str();
     if (a8::ends_with(path, ".png")) {
       a8::Log::debug("requested png {}", path);
-      res.contentType("image/png");
       if (a8::ends_with(path, "/icon.png")) {
+        res.contentType("image/png");
         res.write(std::string_view{icon64.first.get(), icon64.second});
       } else if (a8::ends_with(path, "/icon16.png")) {
+        res.contentType("image/png");
         res.write(std::string_view{icon16.first.get(), icon16.second});
       } else if (a8::ends_with(path, "/icon256.png")) {
+        res.contentType("image/png");
         res.write(std::string_view{icon256.first.get(), icon256.second});
       } else {
-        return false;
+        res.status(a8::http::HTTP_404_Not_Found);
       }
-      return true;
+      return;
     }
 
+    res.status(a8::http::HTTP_200_OK).contentType("text/html");
     res.write("<html><head>"
       "<link rel=\"icon\" href=\"/icon.png\"/>"
       "<title>Custom Page</title></head><body>");
@@ -75,8 +76,6 @@ int a8main(int argc, char *argv[]) {
       res.write("You navigated to ").write(path);
     }
     res.write("</body></html>");
-
-    return true;
   });
   webview->navigate("a8://app/index.html");
 

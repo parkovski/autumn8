@@ -187,11 +187,11 @@ bool WebView::callUserCallback(const WebViewRequest &req, WebViewResponse &res)
     return false;
   }
   try {
-    _userCallback(this, req, res);
+    _userCallback(req, res);
     return true;
   } catch (std::exception &e) {
     Log::error("WebView request for {} threw exception: {}",
-               req.uri.path().str(), e.what());
+               req.uri().path().str(), e.what());
     return false;
   }
 }

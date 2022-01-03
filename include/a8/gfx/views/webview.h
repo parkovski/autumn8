@@ -6,6 +6,7 @@
 #include "a8/util/cstring_view.h"
 #include "a8/util/http.h"
 #include "a8/util/uri.h"
+#include "a8/util/router.h"
 
 #include <string_view>
 #include <string>
@@ -22,10 +23,40 @@
 
 namespace a8::gfx {
 
+class WebView;
+
 struct WebViewRequest {
-  std::unordered_map<std::string, std::string> headers;
-  std::string method;
-  Uri uri;
+private:
+  WebView *_webview;
+  Uri _uri;
+
+public:
+  WebViewRequest(WebView *webview, Uri &&uri)
+    : _webview{webview}, _uri{std::move(uri)}
+  {}
+
+  const WebView *webview() const noexcept { return _webview; }
+  const Uri &uri() const noexcept { return _uri; }
+};
+
+struct WebViewRouterRequest : RouterBase::RouteParams {
+private:
+  const WebViewRequest *_wvRequest;
+
+public:
+  explicit WebViewRouterRequest(const WebViewRequest *wvRequest)
+    : _wvRequest{wvRequest}
+  {}
+
+  WebViewRouterRequest(const WebViewRouterRequest &) = delete;
+  WebViewRouterRequest &operator=(const WebViewRouterRequest &) = delete;
+
+  const WebView *webview() const noexcept { return _wvRequest->webview(); }
+  const Uri &uri() const noexcept { return _wvRequest->uri(); }
+
+  operator const WebViewRequest &() const {
+    return *_wvRequest;
+  }
 };
 
 class ResponseStateException : public std::logic_error {
@@ -146,8 +177,7 @@ public:
   constexpr static cstring_view ResourceRoot = "a8://res";
   constexpr static cstring_view AppUserRoot = "a8://app";
 
-  using UserCallback = void(WebView *, const WebViewRequest &,
-                            WebViewResponse &);
+  using UserCallback = void(const WebViewRequest &, WebViewResponse &);
 
 public:
   explicit WebView(View *parent);
@@ -155,8 +185,9 @@ public:
 
   void navigate(cstring_view url);
 
-  void setUserCallback(std::function<UserCallback> callback) {
-    _userCallback = callback;
+  template<class Callback>
+  void setUserCallback(Callback &&callback) {
+    _userCallback = std::forward<Callback>(callback);
   }
 
 private:
@@ -182,5 +213,37 @@ private:
 };
 
 } // namespace a8::gfx
+
+namespace a8 {
+
+template<>
+struct RouterTraits<gfx::WebViewRouterRequest> {
+  using callback_type = std::function<void(const gfx::WebViewRouterRequest &,
+                                           gfx::WebViewResponse &)>;
+
+  static void call(const callback_type &callback,
+                   const gfx::WebViewRouterRequest &req,
+                   const gfx::WebViewRequest &,
+                   gfx::WebViewResponse &res) {
+    callback(req, res);
+  }
+
+  static gfx::WebViewRouterRequest get_request(const gfx::WebViewRequest &req,
+                                               gfx::WebViewResponse &) {
+    return gfx::WebViewRouterRequest{&req};
+  }
+
+  static std::string_view
+  get_route_path(const gfx::WebViewRouterRequest &req) {
+    return req.uri().path();
+  }
+
+  static RouterBase::RouteParams
+  &get_route_params(gfx::WebViewRouterRequest &req) {
+    return req;
+  }
+};
+
+}
 
 #endif // A8_GFX_VIEWS_WEBVIEW_H_

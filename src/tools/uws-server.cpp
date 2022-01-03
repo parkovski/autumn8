@@ -166,7 +166,7 @@ class WebViewRouter {
   }
 
   bool operator()(WebView *, const WebViewRequest &req, WebViewResponse &res) {
-    std::string_view uri{req.uri.path().str()};
+    std::string_view uri{req.uri().path().str()};
     for (auto const &method : router.methods) {
       if (uri.length() > method.length() + 2 &&
           uri[method.length()] == '/' &&

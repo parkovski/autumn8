@@ -152,9 +152,7 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
     std::string path{uri.path()};
     webViewSendResFile(req, path, {});
   } else if (uri.host() == "app") {
-    WebViewRequest wvreq;
-    wvreq.method = "GET";
-    wvreq.uri = std::move(uri);
+    WebViewRequest wvreq{webview, std::move(uri)};
     WebViewResponse wvres{req};
     if (!webview->callUserCallback(wvreq, wvres)) {
       auto err = g_error_new(webkit_network_error_quark(),
