@@ -2,6 +2,7 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(SndFile REQUIRED) # SndFile::sndfile
 find_package(Boost REQUIRED) # signals2
+find_package(nlohmann_json 3.10.5 REQUIRED)
 
 if(WIN32)
   set(uriparser_COMPONENTS char wchar_t)
