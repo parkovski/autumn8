@@ -146,6 +146,20 @@ private:
   bool putSelfTransition(State *state, route_id_t routeId);
 };
 
+/*
+template<class ...Args>
+concept {
+  type callback_type;
+
+  get_request(Args &...) -> request_type
+  get_route_path(const request_type &) -> std::string_view
+  get_route_params(request_type &) -> RouterBase::RouteParams &
+
+  is_invocable<callback_type, Args...>
+    || method call(const callback_type &, request_type &, Args...)
+}
+*/
+
 template<class Req>
 struct RouterTraits;
 
@@ -185,7 +199,11 @@ public:
     RouteParams &params = Traits::get_route_params(req);
     if (auto rid = this->route(path, params); rid != BadRoute) {
       this->fillParamMap(params, _routes[rid]);
-      Traits::call(_routes[rid].callback, req, std::forward<Args>(args)...);
+      if constexpr (std::is_invocable_v<callback_type, Args...>) {
+        _routes[rid].callback(std::forward<Args>(args)...);
+      } else {
+        Traits::call(_routes[rid].callback, req, std::forward<Args>(args)...);
+      }
       return true;
     }
     return false;

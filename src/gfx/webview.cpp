@@ -35,10 +35,12 @@ WebViewResponse::WebViewResponse(void *platformData)
   : WebViewResponseStreamBase{},
     std::ostream{&this->_buffer},
     _platformData{platformData}
-{}
+{
+  std::boolalpha(*this);
+}
 
 WebViewResponse::~WebViewResponse() {
-  endWrite();
+  finish();
 }
 
 WebViewResponse &WebViewResponse::status(http_status_t status) {
@@ -58,6 +60,8 @@ WebViewResponse &WebViewResponse::contentType(std::string_view type) {
       ResponseStateException::DuplicateContentType
     };
   }
+  // Don't need to check state because beginWrite fills in a default
+  // content type if needed - will hit the above check.
   _contentType = type;
   return *this;
 }
@@ -90,74 +94,38 @@ WebViewResponse::header(std::string_view key, std::string_view value) {
   return *this;
 }
 
-WebViewResponse &WebViewResponse::write(std::string_view data) {
-  beginWrite();
-  if (_state >= WroteContentFull) {
-    throw ResponseStateException{ResponseStateException::WriteAfterClose};
-  }
-
-  const size_t contentLengthRemaining = streamWriteSize(this->_buffer);
-  if (_contentLength != ContentLengthUnknown) {
-    if (data.size() > contentLengthRemaining) {
-      *this << data.substr(0, contentLengthRemaining);
-      throw ResponseStateException{ResponseStateException::WroteTooMuch};
-    } else if (data.size() == contentLengthRemaining) {
-      _state = WroteContentFull;
-    } else {
-      _state = WroteContentPartial;
-    }
-  } else {
-    _state = WroteContentPartial;
-  }
-
-  *this << data;
-  return *this;
-}
-
-void WebViewResponse::end(std::string_view data) {
-  if (data.length()) {
-    write(data);
-  }
-
-  if (_state >= WroteAllClosed) {
-    throw ResponseStateException{ResponseStateException::DuplicateEnd};
-  }
-  if (_contentLength != ContentLengthUnknown &&
-      streamWriteSize(this->_buffer) < _contentLength) {
-    throw ResponseStateException{ResponseStateException::WroteNotEnough};
-  }
-
-  endWrite();
-}
-
 void WebViewResponse::beginWrite() noexcept {
   switch (_state) {
     case WroteNone:
-      Log::trace("WebViewResponse - default status 200 OK");
+      Log::debug("WebViewResponse - default status 200 OK");
       _status = 200;
       _reason = http::HTTP_200_OK.second;
       [[fallthrough]];
     case WroteStatus:
       if (_contentType.empty()) {
-        Log::trace("WebViewResponse - default content type text/plain");
+        Log::debug("WebViewResponse - default content type text/plain");
         _contentType = "text/plain";
       }
-      [[fallthrough]];
+      _state = WroteContentPartial;
+      break;
     default:
+      Log::error("WebViewResponse::beginWrite called twice");
       break;
   }
 }
 
-void WebViewResponse::endWrite() noexcept {
+void WebViewResponse::finish() noexcept {
   switch (_state) {
     case WroteNone:
-      Log::trace("WebViewResponse - default status 500 Internal Server Error");
-      _status = 500;
-      _reason = http::HTTP_500_Internal_Server_Error.second;
+      Log::debug("WebViewResponse - default status 204 No Content");
+      _status = 204;
+      _reason = http::HTTP_204_No_Content.second;
       [[fallthrough]];
     case WroteStatus:
-      Log::warn("WebViewResponse - no content");
-      _contentType = "text/plain";
+      if (_status == 200) {
+        Log::warn("WebViewResponse - status is 200 OK but no content given."
+                  " Recommend 204 No Content.");
+      }
       _contentLength = 0;
       [[fallthrough]];
     case WroteContentPartial: {
@@ -174,7 +142,7 @@ void WebViewResponse::endWrite() noexcept {
     }
     case WroteContentFull:
       // Flush stream.
-      finish();
+      platformFinish();
       [[fallthrough]];
     case WroteAllClosed:
       break;
@@ -194,31 +162,4 @@ bool WebView::callUserCallback(const WebViewRequest &req, WebViewResponse &res)
                req.uri().path().str(), e.what());
     return false;
   }
-}
-
-namespace {
-  struct RouteSeg {
-    std::string_view route;
-    size_t start = 0, end = 0;
-    int state = 0;
-
-    RouteSeg(std::string_view route) noexcept
-      : route{route}
-    {
-      if (route[0] == '/') {
-        route = route.substr(1);
-      }
-    }
-
-    explicit operator bool() const noexcept {
-      return end != std::string_view::npos;
-    }
-
-    std::string_view operator()() noexcept {
-      end = route.find('/', start + 1);
-      auto seg = route.substr(start, end - start);
-      start = end + 1;
-      return seg;
-    }
-  };
 }

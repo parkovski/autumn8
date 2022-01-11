@@ -35,7 +35,7 @@ public:
     : _webview{webview}, _uri{std::move(uri)}
   {}
 
-  const WebView *webview() const noexcept { return _webview; }
+  WebView *webview() const noexcept { return _webview; }
   const Uri &uri() const noexcept { return _uri; }
 };
 
@@ -51,7 +51,7 @@ public:
   WebViewRouterRequest(const WebViewRouterRequest &) = delete;
   WebViewRouterRequest &operator=(const WebViewRouterRequest &) = delete;
 
-  const WebView *webview() const noexcept { return _wvRequest->webview(); }
+  WebView *webview() const noexcept { return _wvRequest->webview(); }
   const Uri &uri() const noexcept { return _wvRequest->uri(); }
 
   operator const WebViewRequest &() const {
@@ -95,7 +95,49 @@ public:
 };
 
 struct WebViewResponseStreamBase {
-  std::stringbuf _buffer;
+  class notifybuf : public std::stringbuf {
+    WebViewResponseStreamBase *_rsb;
+
+    void call_beginWrite() noexcept {
+      auto rsb = _rsb;
+      if (rsb) {
+        _rsb = nullptr;
+        rsb->beginWrite();
+      }
+    }
+
+  public:
+    explicit notifybuf(WebViewResponseStreamBase *rsb)
+      : _rsb{rsb}
+    {}
+
+    using std::stringbuf::char_type;
+    using std::stringbuf::int_type;
+    using std::stringbuf::pos_type;
+    using std::stringbuf::off_type;
+    using std::stringbuf::traits_type;
+
+  protected:
+    int_type overflow(int_type c) override {
+      call_beginWrite();
+      return std::stringbuf::overflow(c);
+    }
+
+    /*std::streamsize
+    xsputn(const char_type *s, std::streamsize n) override {
+      call_beginWrite();
+      return std::stringbuf::xsputn(s, n);
+    }*/
+  };
+
+  notifybuf _buffer;
+
+  explicit WebViewResponseStreamBase()
+    : _buffer{this}
+  {}
+
+protected:
+  virtual void beginWrite() noexcept = 0;
 };
 
 struct WebViewResponse : virtual WebViewResponseStreamBase,
@@ -115,20 +157,21 @@ private:
 
   // HTTP status code, e.g. 200.
   int _status = 0;
+
   // HTTP reason description, e.g. "OK".
   std::string _reason;
 
   static constexpr size_t ContentLengthUnknown = size_t(-1);
+
   // Declared content length; optional.
   size_t _contentLength = ContentLengthUnknown;
+
   // This is a header, but it's the only required header so it's listed
   // separately.
   std::string _contentType;
+
   // All the response headers except Content-Type as a CRLF separated string.
   std::string _headers;
-
-  // Response content.
-  std::stringbuf _buffer;
 
 public:
   WebViewResponse(void *platformData);
@@ -152,23 +195,19 @@ public:
   /// \throws ResponseStateException
   WebViewResponse &header(std::string_view key, std::string_view value);
 
-  /// \throws ResponseStateException
-  WebViewResponse &write(std::string_view data);
+  void sendFile(cstring_view path);
+  void sendResFile(cstring_view path);
 
-  /// \throws ResponseStateException
-  void end(std::string_view data = {});
+  // Check state consistency after content written.
+  void finish() noexcept;
 
-  void sendFile(cstring_view path, cstring_view mimeType = {});
-  void sendResFile(cstring_view path, cstring_view mimeType = {});
+protected:
+  // Set any missing state to begin writing content.
+  void beginWrite() noexcept override;
 
 private:
-  // Set any missing state to begin writing content.
-  void beginWrite() noexcept;
-  // Check state consistency after content written.
-  void endWrite() noexcept;
-
-  // Platform specific submit request. Should _only_ be called by `endWrite`.
-  void finish() noexcept;
+  // Platform specific submit request. Should _only_ be called by `finish`.
+  void platformFinish() noexcept;
 };
 
 class WebView : public View {
@@ -184,6 +223,15 @@ public:
   ~WebView();
 
   void navigate(cstring_view url);
+
+  bool devToolsEnabled() const;
+  void devToolsSetEnabled(bool enable = true);
+
+  bool devToolsVisible() const;
+  bool devToolsSetVisible(bool show);
+
+  bool devToolsAttached() const;
+  void devToolsSetAttached(bool attached);
 
   template<class Callback>
   void setUserCallback(Callback &&callback) {
