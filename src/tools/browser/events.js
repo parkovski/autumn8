@@ -69,10 +69,43 @@ class FileLoadEvent extends Event {
   contentType;
   content;
 
+  inferContentType() {
+    if (this.contentType) {
+      return;
+    }
+    const dot = this.name.lastIndexOf('.');
+    if (dot === -1) {
+      return;
+    }
+    const ext = this.name.substring(dot + 1);
+
+    this.contentType = {
+      'txt': 'text/plain',
+      'c': 'text/plain',
+      'cpp': 'text/plain',
+      'cxx': 'text/plain',
+      'cc': 'text/plain',
+      'h': 'text/plain',
+      'hpp': 'text/plain',
+      'hxx': 'text/plain',
+      'hh': 'text/plain',
+      'js': 'application/javascript',
+      'json': 'application/json',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'wav': 'audio/x-wav',
+      'mp3': 'audio/mpeg',
+      'ogg': 'audio/ogg',
+      'flac': 'audio/x-flac',
+    }[ext];
+  }
+
   constructor(name, contentType, content) {
     super(FileLoadEvent.TYPE);
     this.name = name;
     this.contentType = contentType;
+    this.inferContentType();
     this.content = content;
   }
 }

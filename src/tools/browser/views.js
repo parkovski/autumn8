@@ -35,7 +35,6 @@ class ContextMenuView extends View {
       'text-white', 'select-none', 'py-1');
 
     this._windowClickHandler = (function(e) {
-      console.log('winclick ' + e.constructor.name);
       if (!this._isMenuElement(e.target)) {
         this.hide();
       }
@@ -156,7 +155,6 @@ class HistoryButtonView extends View {
   }
 
   showMenu() {
-    console.log('showmenu');
     if (this.history.length === 0) {
       return;
     }
@@ -235,22 +233,23 @@ class DirNameView extends View {
 }
 
 class DirView extends View {
-  children;
+  container;
   contextMenu;
 
   constructor(el, cx) {
-    super(el);
+    super(document.createElement('ul'));
+    this.container = el;
     this.contextMenu = new ContextMenuView(cx);
     this.contextMenu.setItems(['Open', 'Open with...', '-', 'Cut', 'Copy',
       'Paste', '-', 'Properties...']);
   }
 
   show() {
-    this.el.replaceChildren.apply(this.el, this.children);
+    this.container.replaceChildren(this.el);
   }
 
   onChange(e) {
-    this.children = e.entries.map(entry => {
+    const children = e.entries.map(entry => {
       const li = document.createElement('li');
       const link = document.createElement('a');
       const icon = document.createElement('i');
@@ -268,12 +267,18 @@ class DirView extends View {
       li.appendChild(link);
       return li;
     });
+    this.el.replaceChildren.apply(this.el, children);
     //await e.target.renderReady();
     this.show();
   }
 }
 
 class FileView extends View {
+  constructor(el) {
+    super(document.createElement('ul'));
+    el.replaceChildren(this.el);
+  }
+
   onLoad(e) {
     const li1 = document.createElement('li');
     const back = document.createElement('a');
@@ -292,6 +297,133 @@ class FileView extends View {
     li4.innerText = 'size: ' + e.content.byteLength;
 
     this.el.replaceChildren(li1, li2, li3, li4);
+  }
+}
+
+class TextView extends View {
+  constructor(el, text) {
+    super(document.createElement('pre'));
+    this.el.classList.add('text-white');
+    this.el.innerText = text;
+    el.replaceChildren(this.el);
+  }
+}
+
+class ImageView extends View {
+  constructor(el, data, type) {
+    super(document.createElement('div'));
+    this.el.classList.add('grid', 'place-content-center');
+    const img = document.createElement('img');
+    const blob = new Blob([new Uint8Array(data)], { type });
+    const url = window.URL.createObjectURL(blob);
+    img.src = url;
+    this.el.appendChild(img);
+    el.replaceChildren(this.el);
+  }
+}
+
+class WaveView extends View {
+  canvas;
+
+  constructor(el, data) {
+    super(document.createElement('div'));
+    this.el.classList.add('grid', 'place-content-center');
+    this.canvas = document.createElement('canvas');
+    this.canvas.classList.add('border', 'border-slate-900', 'w-3/4', 'h-3/4');
+    this.el.appendChild(this.canvas);
+    el.replaceChildren(this.el);
+    this.setupCanvas(data);
+  }
+
+  async setupCanvas(/*data*/) {
+    /** @type {WebGLRenderingContext} */
+    const gl = this.canvas.getContext('webgl');
+    const [/*buffer, */vertSource, fragSource] = await Promise.all([
+      //window.AudioContext.decodeAudioData(data),
+      fetch('/wave.vert.glsl').then(x => x.text()),
+      fetch('/wave.frag.glsl').then(x => x.text()),
+    ]);
+    let makeShader = (source, type) => {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.log('Shader error: ', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    };
+    const vertShader = makeShader(vertSource, gl.VERTEX_SHADER);
+    if (!vertShader) return;
+    const fragShader = makeShader(fragSource, gl.FRAGMENT_SHADER);
+    if (!fragShader) return;
+
+    const program = gl.createProgram();
+    gl.attachShader(program, fragShader);
+    gl.attachShader(program, vertShader);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.log('Link error: ', gl.getProgramInfoLog(program));
+      return;
+    }
+
+    const aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
+    const uProjectionMatrix = gl.getUniformLocation(program, 'uProjectionMatrix');
+    const uModelViewMatrix = gl.getUniformLocation(program, 'uModelViewMatrix');
+
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+    const positions = [
+       1.0,  1.0,
+      -1.0,  1.0,
+       1.0, -1.0,
+      -1.0, -1.0,
+    ];
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clearDepth(1);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);;
+
+    const fieldOfView = 45 * Math.PI / 180;
+    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    const zNear = 0.1;
+    const zFar = 100.0;
+    const projectionMatrix = mat4.create();
+    mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+
+    const modelViewMatrix = mat4.create();
+    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -6.0]);
+
+    {
+      const numComponents = 2;
+      const type = gl.FLOAT;
+      const normalize = false;
+      const stride = 0;
+      const offset = 0;
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.vertexAttribPointer(
+        aVertexPosition,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset);
+      gl.enableVertexAttribArray(aVertexPosition);
+    }
+
+    gl.useProgram(program);
+
+    gl.uniformMatrix4fv(uProjectionMatrix, false, projectionMatrix);
+    gl.uniformMatrix4fv(uModelViewMatrix, false, modelViewMatrix);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
 
@@ -319,10 +451,20 @@ class ContentView extends View {
   }
 
   onFileLoaded(e) {
-    this.file.onLoad(e);
+    if (e.contentType === 'text/plain') {
+      this.file = new TextView(this.el, new TextDecoder('utf-8').decode(new Uint8Array(e.content)));
+    } else if (e.contentType.startsWith('image')) {
+      this.file = new ImageView(this.el, e.content, e.contentType);
+    } else if (e.contentType.startsWith('audio')) {
+      this.file = new WaveView(this.el, e.content, e.contentType);
+    } else {
+      this.file = new FileView(this.el);
+      this.file.onLoad(e);
+    }
   }
 
   onFileUnloaded() {
+    this.file.destroy();
     this.dir.show();
   }
 }

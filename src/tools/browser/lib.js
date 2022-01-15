@@ -8,6 +8,10 @@ class View {
   constructor(el) {
     this.el = el;
   }
+
+  destroy() {
+    this.el.remove();
+  }
 }
 
 class Controller extends EventTarget {

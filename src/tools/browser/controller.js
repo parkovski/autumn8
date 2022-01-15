@@ -1,4 +1,6 @@
 class BrowserController extends Controller {
+  hasFileView = false;
+
   ready() {
     this.refresh();
     this.getDevToolsVisibility();
@@ -34,6 +36,13 @@ class BrowserController extends Controller {
   }
 
   back(count) {
+    if (this.hasFileView) {
+      this.unloadFile();
+      if (!count) {
+        return;
+      }
+    }
+
     return this._go('back' + (count ? `/${count}` : ''));
   }
 
@@ -61,15 +70,17 @@ class BrowserController extends Controller {
 
   loadFile(name) {
     fetch(`/view/${name}`)
-      .then(async r => this.emit(
-        FileLoadEvent, name, r.headers.get('Content-Type'),
-        await r.arrayBuffer()
-      ));
+      .then(async r => {
+        this.emit(FileLoadEvent, name, r.headers.get('Content-Type'),
+          await r.arrayBuffer());
+        this.hasFileView = true;
+      });
     return false;
   }
 
   unloadFile() {
     this.emit(FileUnloadEvent);
+    this.hasFileView = false;
     return false;
   }
 
