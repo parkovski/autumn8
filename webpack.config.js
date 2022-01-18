@@ -5,7 +5,7 @@ const app = {
   name: 'browser',
   title: 'Browser',
   root: 'src/tools/browser',
-  entry: './index.js',
+  entry: './index.ts',
 };
 
 module.exports = {
@@ -34,34 +34,9 @@ module.exports = {
         loader: 'babel-loader',
       },
       {
-        test: /\.ts$/,
+        test: /\.tsx?$/,
         exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              ['@babel/preset-typescript', {
-                optimizeConstEnums: true,
-              }],
-            ],
-          },
-        },
-      },
-      {
-        test: /\.tsx$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              ['@babel/preset-typescript', {
-                isTSX: true,
-                allExtensions: true,
-                optimizeConstEnums: true,
-              }],
-            ],
-          },
-        },
+        loader: 'babel-loader',
       },
       {
         test: /\.css$/,
@@ -81,5 +56,8 @@ module.exports = {
         loader: 'glslify-loader',
       },
     ],
+  },
+  resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
 };

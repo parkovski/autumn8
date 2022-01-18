@@ -1,8 +1,8 @@
+import {ContentView} from './content';
 import { BrowserController } from './controller';
-import { DevButtonView, BackButtonView, ForwardButtonView, UpButtonView,
-  DirNameView, ContentView } from './views';
 
 import './style.css';
+import {BackButtonView, DevButtonView, DirNameView, ForwardButtonView, UpButtonView} from './toolbar';
 
 let __cx;
 document.addEventListener('DOMContentLoaded', () => {

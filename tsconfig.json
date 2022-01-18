@@ -6,12 +6,14 @@
 
     /* Modules */
     "module": "ES2020",
+    "moduleResolution": "node",
     "rootDir": "./src/tools/browser",
 
     /* Emit */
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "noEmit": true,
 
     /* Interop Constraints */
     "isolatedModules": true,

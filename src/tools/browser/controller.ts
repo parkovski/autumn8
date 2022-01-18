@@ -25,22 +25,21 @@ export class BrowserController extends Controller {
     return false;
   }
 
-  /** @param {'back'|'forward'} direction */
-  getHistory(direction) {
+  getHistory(direction: 'back' | 'forward') {
     fetch(`/history/${direction}`)
       .then(x => x.json())
       .then(j => this.emit(HistoryEvent, direction, j));
     return false;
   }
 
-  _go(where) {
+  _go(where: string) {
     fetch(`/go/${where}`)
       .then(x => x.json())
       .then(j => this.emit(DirChangeEvent, j.name, j.entries));
     return false;
   }
 
-  back(count) {
+  back(count: number) {
     if (this.hasFileView) {
       this.unloadFile();
       if (!count) {
@@ -51,7 +50,7 @@ export class BrowserController extends Controller {
     return this._go('back' + (count ? `/${count}` : ''));
   }
 
-  forward(count) {
+  forward(count: number) {
     return this._go('forward' + (count ? `/${count}` : ''));
   }
 
@@ -62,18 +61,18 @@ export class BrowserController extends Controller {
     return false;
   }
 
-  enter(subdir) {
+  enter(subdir: string) {
     fetch(`/go/in/${subdir}`)
       .then(x => x.json())
       .then(j => this.emit(DirPushEvent, subdir, j.entries))
     return false;
   }
 
-  cd(path) {
+  cd(path: string) {
     return this._go(`to${path}`);
   }
 
-  loadFile(name) {
+  loadFile(name: string) {
     fetch(`/view/${name}`)
       .then(async r => {
         this.emit(FileLoadEvent, name, r.headers.get('Content-Type'),

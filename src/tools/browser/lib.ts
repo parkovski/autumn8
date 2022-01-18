@@ -1,11 +1,7 @@
 export class View {
-  /** @type {HTMLElement} */
-  el;
+  el: HTMLElement;
 
-  /**
-   * @param {HTMLElement} el
-   */
-  constructor(el) {
+  constructor(el: HTMLElement) {
     this.el = el;
   }
 
@@ -15,14 +11,13 @@ export class View {
 }
 
 export class Controller extends EventTarget {
-  /** @type {(e: Event) => void} */
-  _schedule;
-  __views = [];
+  private readonly _schedule: (e: Event) => void;
+  private __views: View[] = [];
 
   constructor() {
     super();
 
-    let pendingEvents = [];
+    let pendingEvents: Event[] = [];
 
     const dispatchEvent = this.dispatchEvent.bind(this);
 
@@ -40,26 +35,34 @@ export class Controller extends EventTarget {
     };
   }
 
-  emit(E) {
-    const args = [null].concat(Array.prototype.slice.call(arguments, 1));
-    this._schedule(new (Function.prototype.bind.apply(E, args)));
+  emit<E extends Event>(E: new(...args: any[]) => E, ...args: any[]) {
+    this._schedule(new (Function.prototype.bind.apply(E, [null, ...args])));
   }
 
-  emitNow(E) {
-    const args = [null].concat(Array.prototype.slice.call(arguments, 1));
-    this.dispatchEvent(new (Function.prototype.bind.apply(E, args)));
+  emitNow<E extends Event>(E: new(...args: any[]) => E, ...args: any[]) {
+    this.dispatchEvent(new (Function.prototype.bind.apply(E, [null, ...args])));
   }
 
-  subscribe(E, callback) {
-    this.addEventListener(E.TYPE, callback);
+  subscribe<E extends Event>(
+    E: (new(...args: any[]) => E) & { TYPE: string },
+    callback: (e: E) => void
+  ) {
+    this.addEventListener(E.TYPE, callback as EventListener);
     return [E.TYPE, callback];
   }
 
-  unsubscribe(E, callback) {
+  unsubscribe<E extends Event>(
+    E: [(new(...args: any[]) => E) & { TYPE: string }, (e: E) => void]
+  ): void;
+  unsubscribe<E extends Event>(
+    E: (new(...args: any[]) => E) & { TYPE: string },
+    callback: (e: E) => void
+  ): void;
+  unsubscribe(E: any, callback?: any) {
     if (Array.isArray(E)) {
-      this.removeEventListener.apply(this, E);
+      this.removeEventListener.apply(this, E as [string, (e: Event) => void]);
     } else {
-      this.removeEventListener(E.TYPE, callback);
+      this.removeEventListener(E.TYPE, callback as EventListener);
     }
   }
 
@@ -67,9 +70,13 @@ export class Controller extends EventTarget {
    * @param V View class
    * @param {string|HTMLElement} elem Element controlled by view
    */
-  createView(V, elem) {
+  createView<V extends View>(
+    V: new(e: HTMLElement, c: Controller) => V,
+    elem: HTMLElement | string
+  ) {
     if (typeof elem === 'string') {
-      elem = document.getElementById(elem);
+      elem = document.getElementById(elem) ||
+        (() => {throw `Element ${elem} does not exist!`})();
     }
     this.__views.push(new V(elem, this));
   }
@@ -80,6 +87,7 @@ export class Controller extends EventTarget {
   // `createViews([FooView, 'foo', BarView, 'bar'])`
   // Also accepts pairs as arrays:
   // `createViews([FooView, 'foo'], [BarView, 'bar'])`
+  createViews(...args: any[]): void;
   createViews() {
     let list = arguments;
     if (arguments.length === 1) {

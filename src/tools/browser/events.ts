@@ -9,26 +9,22 @@ export class ModelReadyEvent extends Event {
 export class ContextMenuShowEvent extends Event {
   static TYPE = 'context-menu-show';
 
-  /** @type {object} */
-  object;
-  /** @type {HTMLElement} */
-  element;
-
-  constructor(o, el) {
-    this.object = o;
-    this.element = el;
+  constructor(public object: object, public element: HTMLElement) {
+    super(ContextMenuShowEvent.TYPE);
+    this.object = object;
+    this.element = element;
   }
+}
+
+interface DirEntry {
+  name: string;
+  isDir: boolean
 }
 
 export class DirChangeEvent extends Event {
   static TYPE = 'dir-change';
 
-  /** @type {string} */
-  path;
-  /** @type {{name: string, isDir: boolean}[]} */
-  entries;
-
-  constructor(path, entries) {
+  constructor(public path: string, public entries: DirEntry[]) {
     super(DirChangeEvent.TYPE);
     this.path = path;
     this.entries = entries;
@@ -38,12 +34,7 @@ export class DirChangeEvent extends Event {
 export class DirPushEvent extends Event {
   static TYPE = 'dir-push';
 
-  /** @type {string} */
-  name;
-  /** @type {{name: string, isDir: boolean}[]} */
-  entries;
-
-  constructor(name, entries) {
+  constructor(public name: string, public entries: DirEntry[]) {
     super(DirPushEvent.TYPE);
     this.name = name;
     this.entries = entries;
@@ -53,10 +44,7 @@ export class DirPushEvent extends Event {
 export class DirPopEvent extends Event {
   static TYPE = 'dir-pop';
 
-  /** @type {{name: string, isDir: boolean}[]} */
-  entries;
-
-  constructor(entries) {
+  constructor(public entries: DirEntry[]) {
     super(DirPopEvent.TYPE);
     this.entries = entries;
   }
@@ -65,11 +53,7 @@ export class DirPopEvent extends Event {
 export class FileLoadEvent extends Event {
   static TYPE = 'file-load';
 
-  name;
-  contentType;
-  content;
-
-  inferContentType() {
+  private inferContentType() {
     if (this.contentType) {
       return;
     }
@@ -98,10 +82,10 @@ export class FileLoadEvent extends Event {
       'mp3': 'audio/mpeg',
       'ogg': 'audio/ogg',
       'flac': 'audio/x-flac',
-    }[ext];
+    }[ext] || 'application/octet-stream';
   }
 
-  constructor(name, contentType, content) {
+  constructor(public name: string, public contentType: string, public content: ArrayBuffer) {
     super(FileLoadEvent.TYPE);
     this.name = name;
     this.contentType = contentType;
@@ -121,25 +105,24 @@ export class FileUnloadEvent extends Event {
 export class HistoryEvent extends Event {
   static TYPE = 'history-update';
 
-  /** @type {'back'|'forward'} */
-  direction;
-  /** @type {string[]} */
-  list;
-
-  constructor(direction, list) {
+  constructor(public direction: 'back' | 'forward', public list: string[]) {
     super(HistoryEvent.TYPE);
     this.direction = direction;
     this.list = list;
   }
 }
 
+interface NavState {
+  canGoUp: boolean,
+  canGoBack: boolean,
+  canGoForward: boolean,
+}
+
 export class NavStateEvent extends Event {
   static TYPE = 'nav-state-change';
 
-  /** @type {{canGoUp: boolean, canGoBack: boolean, canGoForward: boolean}} */
-  state;
-
-  constructor(state) {
+  constructor(public state: NavState) {
+    super(NavStateEvent.TYPE);
     this.state = state;
   }
 }
@@ -147,10 +130,7 @@ export class NavStateEvent extends Event {
 export class DevToolsVisibilityChangedEvent extends Event {
   static TYPE = 'dev-tools-vis-change';
 
-  /** @type {boolean} */
-  visible;
-
-  constructor(visible) {
+  constructor(public visible: boolean) {
     super(DevToolsVisibilityChangedEvent.TYPE);
     this.visible = visible;
   }
