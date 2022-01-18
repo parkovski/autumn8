@@ -1,4 +1,4 @@
-class ModelReadyEvent extends Event {
+export class ModelReadyEvent extends Event {
   static TYPE = 'model-ready';
 
   constructor() {
@@ -6,7 +6,7 @@ class ModelReadyEvent extends Event {
   }
 }
 
-class ContextMenuShowEvent extends Event {
+export class ContextMenuShowEvent extends Event {
   static TYPE = 'context-menu-show';
 
   /** @type {object} */
@@ -20,7 +20,7 @@ class ContextMenuShowEvent extends Event {
   }
 }
 
-class DirChangeEvent extends Event {
+export class DirChangeEvent extends Event {
   static TYPE = 'dir-change';
 
   /** @type {string} */
@@ -35,7 +35,7 @@ class DirChangeEvent extends Event {
   }
 }
 
-class DirPushEvent extends Event {
+export class DirPushEvent extends Event {
   static TYPE = 'dir-push';
 
   /** @type {string} */
@@ -50,7 +50,7 @@ class DirPushEvent extends Event {
   }
 }
 
-class DirPopEvent extends Event {
+export class DirPopEvent extends Event {
   static TYPE = 'dir-pop';
 
   /** @type {{name: string, isDir: boolean}[]} */
@@ -62,7 +62,7 @@ class DirPopEvent extends Event {
   }
 }
 
-class FileLoadEvent extends Event {
+export class FileLoadEvent extends Event {
   static TYPE = 'file-load';
 
   name;
@@ -110,7 +110,7 @@ class FileLoadEvent extends Event {
   }
 }
 
-class FileUnloadEvent extends Event {
+export class FileUnloadEvent extends Event {
   static TYPE = 'file-unload';
 
   constructor() {
@@ -118,7 +118,7 @@ class FileUnloadEvent extends Event {
   }
 }
 
-class HistoryEvent extends Event {
+export class HistoryEvent extends Event {
   static TYPE = 'history-update';
 
   /** @type {'back'|'forward'} */
@@ -133,7 +133,7 @@ class HistoryEvent extends Event {
   }
 }
 
-class NavStateEvent extends Event {
+export class NavStateEvent extends Event {
   static TYPE = 'nav-state-change';
 
   /** @type {{canGoUp: boolean, canGoBack: boolean, canGoForward: boolean}} */
@@ -144,7 +144,7 @@ class NavStateEvent extends Event {
   }
 }
 
-class DevToolsVisibilityChangedEvent extends Event {
+export class DevToolsVisibilityChangedEvent extends Event {
   static TYPE = 'dev-tools-vis-change';
 
   /** @type {boolean} */

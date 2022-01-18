@@ -1,4 +1,4 @@
-class View {
+export class View {
   /** @type {HTMLElement} */
   el;
 
@@ -14,7 +14,7 @@ class View {
   }
 }
 
-class Controller extends EventTarget {
+export class Controller extends EventTarget {
   /** @type {(e: Event) => void} */
   _schedule;
   __views = [];

@@ -1,4 +1,9 @@
-class BrowserController extends Controller {
+import { Controller } from './lib';
+import { DirChangeEvent, NavStateEvent, HistoryEvent, DirPushEvent,
+  DirPopEvent, FileLoadEvent, FileUnloadEvent, DevToolsVisibilityChangedEvent }
+from './events';
+
+export class BrowserController extends Controller {
   hasFileView = false;
 
   ready() {

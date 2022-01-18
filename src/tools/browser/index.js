@@ -1,5 +1,11 @@
+import { BrowserController } from './controller';
+import { DevButtonView, BackButtonView, ForwardButtonView, UpButtonView,
+  DirNameView, ContentView } from './views';
+
+import './style.css';
+
 let __cx;
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   __cx = new BrowserController;
   __cx.createViews(
     DevButtonView, 'dev',

@@ -1,4 +1,11 @@
-class DevButtonView extends View {
+import { View } from './lib';
+import { DirChangeEvent, HistoryEvent, DirPushEvent, DirPopEvent,
+  FileLoadEvent, FileUnloadEvent, DevToolsVisibilityChangedEvent } from
+'./events';
+
+import { mat4 } from 'gl-matrix';
+
+export class DevButtonView extends View {
   classesOn;
   classesOff;
 
@@ -21,7 +28,7 @@ class DevButtonView extends View {
   }
 }
 
-class ContextMenuView extends View {
+export class ContextMenuView extends View {
   visible = false;
   onSelect;
   onCancel;
@@ -140,7 +147,7 @@ class ContextMenuView extends View {
   }
 }
 
-class HistoryButtonView extends View {
+export class HistoryButtonView extends View {
   direction;
   history;
   contextMenu;
@@ -170,26 +177,26 @@ class HistoryButtonView extends View {
   }
 }
 
-class BackButtonView extends HistoryButtonView {
+export class BackButtonView extends HistoryButtonView {
   constructor(el, cx) {
     super(el, cx, 'back');
   }
 }
 
-class ForwardButtonView extends HistoryButtonView {
+export class ForwardButtonView extends HistoryButtonView {
   constructor(el, cx) {
     super(el, cx, 'forward');
   }
 }
 
-class UpButtonView extends View {
+export class UpButtonView extends View {
   constructor(el, cx) {
     super(el);
     el.onclick = cx.up.bind(cx);
   }
 }
 
-class DirNameView extends View {
+export class DirNameView extends View {
   /** @type {string[]} */
   path;
 
@@ -232,7 +239,7 @@ class DirNameView extends View {
   }
 }
 
-class DirView extends View {
+export class DirView extends View {
   container;
   contextMenu;
 
@@ -273,7 +280,7 @@ class DirView extends View {
   }
 }
 
-class FileView extends View {
+export class FileView extends View {
   constructor(el) {
     super(document.createElement('ul'));
     el.replaceChildren(this.el);
@@ -300,7 +307,7 @@ class FileView extends View {
   }
 }
 
-class TextView extends View {
+export class TextView extends View {
   constructor(el, text) {
     super(document.createElement('pre'));
     this.el.classList.add('text-white');
@@ -309,7 +316,7 @@ class TextView extends View {
   }
 }
 
-class ImageView extends View {
+export class ImageView extends View {
   constructor(el, data, type) {
     super(document.createElement('div'));
     this.el.classList.add('grid', 'place-content-center');
@@ -322,7 +329,7 @@ class ImageView extends View {
   }
 }
 
-class WaveView extends View {
+export class WaveView extends View {
   canvas;
 
   constructor(el, data) {
@@ -427,7 +434,7 @@ class WaveView extends View {
   }
 }
 
-class ContentView extends View {
+export class ContentView extends View {
   /** @type {FileView?} */
   file;
   /** @type {DirView} */

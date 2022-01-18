@@ -166,7 +166,7 @@ int a8main(int argc, char *argv[]) {
 
   // Temporary replacement for res routes.
   router["/:..."] = [](auto const &req, auto &res) {
-    std::filesystem::path path{"browser"};
+    std::filesystem::path path{"../../build/web"};
     for (auto it = req.unnamed_begin(); it != req.unnamed_end(); ++it) {
       path /= *it;
     }
