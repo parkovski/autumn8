@@ -3,28 +3,40 @@ import { View } from './lib';
 import fragSource from './wave.frag.glsl';
 import vertSource from './wave.vert.glsl';
 
-import { mat4 } from 'gl-matrix';
-
 export class WaveView extends View {
   canvas: HTMLCanvasElement;
+  info;
+  ac;
 
-  constructor(el: HTMLElement/*, data: ArrayBuffer*/) {
+  constructor(el: HTMLElement, data: ArrayBuffer) {
     super(document.createElement('div'));
-    this.el.classList.add('grid', 'place-content-center');
+    this.el.classList.add('flex', 'flex-col',
+      'absolute', 'left-0', 'right-0', 'top-0', 'bottom-0', 'items-center',
+      'justify-center');
+
     this.canvas = document.createElement('canvas');
-    this.canvas.classList.add('border', 'border-slate-900', 'w-3/4', 'h-3/4');
+    this.canvas.classList.add('border', 'border-slate-100', 'w-1/2', 'h-1/2', 'flex-initial');
     this.el.appendChild(this.canvas);
+
+    this.info = document.createElement('div');
+    this.info.classList.add('text-white', 'flex-initial');
+    this.el.appendChild(this.info);
+
     el.replaceChildren(this.el);
-    this.setupCanvas(/*data*/);
+
+    this.ac = new AudioContext;
+    this.setupCanvas(data);
   }
 
-  async setupCanvas(/*data: ArrayBuffer*/) {
+  async setupCanvas(data: ArrayBuffer) {
     const gl = this.canvas.getContext('webgl');
     if (!gl) {
       console.log('No WebGL context');
       return;
     }
-    //const buffer = await window.AudioContext.decodeAudioData(data);
+
+    const audioPromise = this.ac.decodeAudioData(data);
+
     let makeShader = (source: string, type: number) => {
       let shader = gl.createShader(type)!;
       gl.shaderSource(shader, source);
@@ -52,44 +64,36 @@ export class WaveView extends View {
     }
 
     const aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
-    const uProjectionMatrix = gl.getUniformLocation(program, 'uProjectionMatrix');
-    const uModelViewMatrix = gl.getUniformLocation(program, 'uModelViewMatrix');
 
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const audioBuffer = await audioPromise;
+    this.info.innerText =
+      `Length: ${audioBuffer.length}, Channels: ${audioBuffer.numberOfChannels}`;
+    const ch0 = audioBuffer.getChannelData(0);
 
-    const positions = [
-       1.0,  1.0,
-      -1.0,  1.0,
-       1.0, -1.0,
-      -1.0, -1.0,
-    ];
-
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    const skip = 6;
+    const nCoords = Math.floor(ch0.length / skip);
+    const coords = new Float32Array(nCoords * 2);
+    for (let i = 0; i < coords.length; i += 2) {
+      coords[  i  ] = i * 2 / coords.length - 1;
+      coords[i + 1] = ch0[(i >> 1) * skip];
+    }
 
     gl.clearColor(0, 0, 0, 1);
     gl.clearDepth(1);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);;
-
-    const fieldOfView = 45 * Math.PI / 180;
-    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    const zNear = 0.1;
-    const zFar = 100.0;
-    const projectionMatrix = mat4.create();
-    mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-
-    const modelViewMatrix = mat4.create();
-    mat4.translate(modelViewMatrix, modelViewMatrix, [0, 0, -6.0]);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     {
+      const sampleBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, sampleBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, coords, gl.STATIC_DRAW);
+
       const numComponents = 2;
       const type = gl.FLOAT;
       const normalize = false;
       const stride = 0;
       const offset = 0;
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
       gl.vertexAttribPointer(
         aVertexPosition,
         numComponents,
@@ -101,10 +105,6 @@ export class WaveView extends View {
     }
 
     gl.useProgram(program);
-
-    gl.uniformMatrix4fv(uProjectionMatrix, false, projectionMatrix);
-    gl.uniformMatrix4fv(uModelViewMatrix, false, modelViewMatrix);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.drawArrays(gl.LINE_STRIP, 0, nCoords);
   }
 }

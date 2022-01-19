@@ -31,7 +31,7 @@ export class ContentView extends View {
     } else if (e.contentType.startsWith('image')) {
       this.file = new ImageView(this.el, e.content, e.contentType);
     } else if (e.contentType.startsWith('audio')) {
-      this.file = new WaveView(this.el/*, e.content*/);
+      this.file = new WaveView(this.el, e.content);
     } else {
       this.file = new FileView(this.el);
       (this.file as FileView).onLoad(e);

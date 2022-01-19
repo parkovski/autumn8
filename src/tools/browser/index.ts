@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ForwardButtonView, 'forward',
     UpButtonView, 'up',
     DirNameView, 'dirname',
-    ContentView, 'items'
+    ContentView, 'container'
   );
   __cx.ready();
 });
