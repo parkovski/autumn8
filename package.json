@@ -2,7 +2,6 @@
   "name": "autumn8",
   "version": "0.1.0",
   "description": "Platform abstraction for graphical and music applications",
-  "main": "index.js",
   "private": true,
   "directories": {
     "doc": "doc",
