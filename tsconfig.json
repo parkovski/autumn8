@@ -7,7 +7,7 @@
     /* Modules */
     "module": "ES2020",
     "moduleResolution": "node",
-    "rootDir": "./src/tools/browser",
+    "rootDir": "./src",
 
     /* Emit */
     "declaration": true,
