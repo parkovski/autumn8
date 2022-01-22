@@ -29,8 +29,15 @@ module.exports = env => {
     }
   }
 
+  let mode = 'development';
+  if (env.production === true) {
+    mode = 'production';
+  } else if (process.env.NODE_ENV) {
+    mode = process.env.NODE_ENV;
+  }
+
   return {
-    mode: process.env.NODE_ENV || 'development',
+    mode,
     context: env.root,
     entry: {
       [env.app]: env.entry,
@@ -50,7 +57,7 @@ module.exports = env => {
     module: {
       rules: [
         {
-          test: /\.m?js$/,
+          test: /\.(m?js|jsx)$/,
           exclude: /node_modules/,
           loader: 'babel-loader',
         },

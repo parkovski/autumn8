@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.15.4",
+    "chroma": "^0.0.1",
     "core-js": "^3.20.3",
     "gl-matrix": "^3.4.3"
   }
