@@ -4,12 +4,14 @@ set(SOURCES
   router.cpp
   uri.cpp
   utf.cpp
+  vm.cpp
 )
 
 add_executable(test ${SOURCES})
 
 target_link_libraries(test
   Catch2::Catch2
+  a8bc
   a8util
 )
 

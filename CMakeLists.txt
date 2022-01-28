@@ -52,6 +52,7 @@ include(cmake/app.cmake)
 add_subdirectory(src/main main)
 add_subdirectory(src/midi midi)
 add_subdirectory(src/util util)
+add_subdirectory(src/vm vm)
 
 if(A8_BUILD_GUI)
   message(STATUS "GUI targets are enabled")
