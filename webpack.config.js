@@ -38,6 +38,7 @@ module.exports = env => {
 
   return {
     mode,
+    devtool: mode !== 'production' ? 'eval' : void 0,
     context: env.root,
     entry: {
       [env.app]: env.entry,
@@ -57,18 +58,13 @@ module.exports = env => {
     module: {
       rules: [
         {
-          test: /\.(m?js|jsx)$/,
-          exclude: /node_modules/,
-          loader: 'babel-loader',
-        },
-        {
-          test: /\.tsx?$/,
+          test: /\.(mjs|[jt]sx?)$/,
           exclude: /node_modules/,
           loader: 'babel-loader',
         },
         {
           test: /\.css$/,
-          use: ['style-loader', 'css-loader', 'postcss-loader'],
+          use: ['style-loader', 'css-loader'],
         },
         {
           test: /\.html$/,
@@ -86,6 +82,9 @@ module.exports = env => {
       ],
     },
     resolve: {
+      alias: {
+        swoll: path.resolve(__dirname, 'src/swoll'),
+      },
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
     },
   };

@@ -1,7 +1,7 @@
-import Container from './views/container';
+import MainView from './views/mainview';
 
 import './style.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-  new Container().attach(document.body);
+  new MainView().attach(document.body);
 });

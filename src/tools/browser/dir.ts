@@ -3,12 +3,19 @@ import {BrowserController} from './controller';
 import {DirChangeEvent, DirPopEvent, DirPushEvent} from './events';
 import {View} from './lib';
 
+import {css} from '@emotion/css';
+
 export class DirView extends View {
   container;
   contextMenu;
 
   constructor(el: HTMLElement) {
     super(document.createElement('ul'));
+    this.el.classList.add(css({
+      listStyleType: 'none',
+      margin: 0,
+      padding: 0,
+    }));
     this.container = el;
     this.contextMenu = new ContextMenuView;
     this.contextMenu.setItems(['Open', 'Open with...', '-', 'Cut', 'Copy',
@@ -20,19 +27,25 @@ export class DirView extends View {
   }
 
   onChange(e: DirChangeEvent | DirPopEvent | DirPushEvent) {
-    const cx = e.target as BrowserController;
+    const clr = e.target as BrowserController;
     const children = e.entries.map(entry => {
       const li = document.createElement('li');
       const link = document.createElement('a');
       const icon = document.createElement('i');
-      icon.classList.add('fas', 'pr-1');
-      link.classList.add('cursor-pointer', 'hover:underline', 'text-yellow-50');
+      icon.classList.add('fas', css({ paddingRight: '0.5rem' }));
+      link.classList.add(css({
+        cursor: 'pointer',
+        color: '#FEFCE8', /* yellow-50 */
+        '&:hover': {
+          textDecoration: 'underline',
+        },
+      }));
       if (entry.isDir) {
-        icon.classList.add('fa-folder', 'text-yellow-200');
-        link.onclick = () => cx.enter(entry.name);
+        icon.classList.add('fa-folder', css({ color: '#FEF08A' /* yellow-200 */ }));
+        link.onclick = () => clr.enter(entry.name);
       } else {
-        icon.classList.add('fa-file', 'text-orange-400');
-        link.onclick = () => cx.loadFile(entry.name);
+        icon.classList.add('fa-file', css({ color: '#FB923C' /* orange-400 */ }));
+        link.onclick = () => clr.loadFile(entry.name);
       }
       link.oncontextmenu = e => { this.contextMenu.show(e.x, e.y); return false; };
       link.append(icon, entry.name);

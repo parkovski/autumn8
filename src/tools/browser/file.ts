@@ -2,6 +2,8 @@ import {BrowserController} from './controller';
 import {FileLoadEvent} from './events';
 import {View} from './lib';
 
+import {css} from '@emotion/css';
+
 export class FileView extends View {
   constructor(el: HTMLElement) {
     super(document.createElement('ul'));
@@ -12,7 +14,13 @@ export class FileView extends View {
     const li1 = document.createElement('li');
     const back = document.createElement('a');
     back.innerText = '< back';
-    back.classList.add('cursor-pointer', 'text-sky-700', 'hover:underline');
+    back.classList.add(css({
+      cursor: 'pointer',
+      color: '#0369A1', /* sky-700 */
+      '&:hover': {
+        textDecoration: 'underline',
+      },
+    }));
     back.onclick = () => (e.target as BrowserController).unloadFile();
     li1.appendChild(back);
 
@@ -32,7 +40,7 @@ export class FileView extends View {
 export class TextView extends View {
   constructor(el: HTMLElement, text: string) {
     super(document.createElement('pre'));
-    this.el.classList.add('text-white');
+    this.el.classList.add(css({ color: 'white' }));
     this.el.innerText = text;
     el.replaceChildren(this.el);
   }
@@ -41,7 +49,10 @@ export class TextView extends View {
 export class ImageView extends View {
   constructor(el: HTMLElement, data: ArrayBuffer, type: string) {
     super(document.createElement('div'));
-    this.el.classList.add('grid', 'place-content-center');
+    this.el.classList.add(css({
+      display: 'grid',
+      placeContent: 'center',
+    }));
     const img = document.createElement('img');
     const blob = new Blob([new Uint8Array(data)], { type });
     const url = window.URL.createObjectURL(blob);

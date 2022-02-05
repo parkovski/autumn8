@@ -3,6 +3,8 @@ import {BrowserController} from './controller';
 import {DevToolsVisibilityChangedEvent, DirChangeEvent, DirPopEvent, DirPushEvent, HistoryEvent} from './events';
 import {View} from './lib';
 
+import {css} from '@emotion/css';
+
 export class DevButtonView extends View {
   classesOn;
   classesOff;
@@ -87,7 +89,13 @@ export class DirNameView extends View {
   makePart(cx: BrowserController, name: string, path: string) {
     const a = document.createElement('a');
     a.innerText = name;
-    a.classList.add('cursor-pointer', 'text-white', 'hover:underline');
+    a.classList.add(css({
+      cursor: 'pointer',
+      color: 'white',
+      '&:hover': {
+        textDecoration: 'underline',
+      },
+    }));
     a.onclick = () => cx.cd(path);
     return a;
   }

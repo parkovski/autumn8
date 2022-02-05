@@ -1,4 +1,5 @@
 {
+  "include": ["src/tools/**/*", "src/swoll/**/*"],
   "compilerOptions": {
     "target": "ES2016",
     "jsx": "react-jsx",
@@ -8,6 +9,14 @@
     "module": "ES2020",
     "moduleResolution": "node",
     "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "swoll/*": ["src/swoll/*"]
+    },
+
+    /* JavaScript */
+    "allowJs": true,
+    "checkJs": false,
 
     /* Emit */
     "declaration": true,

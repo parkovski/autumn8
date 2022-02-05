@@ -1,5 +1,105 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+@import "~sanitize.css";
+@import "~sanitize.css/forms.css";
+@import "~sanitize.css/typography.css";
 @import "@fortawesome/fontawesome-free/css/all.css";
+
+@media (prefers-color-scheme: light) {
+  body {
+    --color-fg-normal: 0 0 0;
+    --color-bg-normal: 168 162 158;
+    --color-bg-light: 214 211 209;
+    --color-bg-dark: 120 113 108;
+    --color-primary-normal: 238 37 0;
+    --color-primary-light: 255 101 56;
+    --color-primary-dark: 176 0 0;
+    --color-primary-dull: 211 78 46;
+    --color-secondary-normal: 238 131 0;
+    --color-secondary-light: 255 182 69;
+    --color-secondary-dark: 178 83 0;
+    --color-secondary-dull: 217 142 75;
+    --color-tertiary-normal: 8 98 151;
+    --color-tertiary-light: 82 145 202;
+    --color-tertiary-dark: 0 55 102;
+    --color-tertiary-dull: 86 94 105;
+    --color-complement-normal: 0 174 59;
+    --color-complement-light: 90 227 108;
+    --color-complement-dark: 0 123 0;
+    --color-complement-dull: 91 167 95;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    --color-fg-normal: 255 255 255;
+    --color-bg-normal: 68 64 60;
+    --color-bg-light: 87 83 78;
+    --color-bg-dark: 41 37 36;
+    --color-primary-normal: 151 38 8;
+    --color-primary-light: 209 88 53;
+    --color-primary-dark: 97 0 0;
+    --color-primary-dull: 124 62 43;
+    --color-secondary-normal: 151 90 8;
+    --color-secondary-light: 207 137 61;
+    --color-secondary-dark: 98 46 0;
+    --color-secondary-dull: 131 98 65;
+    --color-tertiary-normal: 11 60 97;
+    --color-tertiary-light: 68 104 145;
+    --color-tertiary-dark: 0 21 53;
+    --color-tertiary-dull: 58 58 58;
+    --color-complement-normal: 6 107 50;
+    --color-complement-light: 71 156 95;
+    --color-complement-dark: 0 61 7;
+    --color-complement-dull: 70 99 76;
+  }
+}
+
+.theme-light {
+  --color-fg-normal: 0 0 0;
+  --color-bg-normal: 168 162 158;
+  --color-bg-light: 214 211 209;
+  --color-bg-dark: 120 113 108;
+  --color-primary-normal: 238 37 0;
+  --color-primary-light: 255 101 56;
+  --color-primary-dark: 176 0 0;
+  --color-primary-dull: 211 78 46;
+  --color-secondary-normal: 238 131 0;
+  --color-secondary-light: 255 182 69;
+  --color-secondary-dark: 178 83 0;
+  --color-secondary-dull: 217 142 75;
+  --color-tertiary-normal: 8 98 151;
+  --color-tertiary-light: 82 145 202;
+  --color-tertiary-dark: 0 55 102;
+  --color-tertiary-dull: 86 94 105;
+  --color-complement-normal: 0 174 59;
+  --color-complement-light: 90 227 108;
+  --color-complement-dark: 0 123 0;
+  --color-complement-dull: 91 167 95;
+}
+
+.theme-dark {
+  --color-fg-normal: 255 255 255;
+  --color-bg-normal: 68 64 60;
+  --color-bg-light: 87 83 78;
+  --color-bg-dark: 41 37 36;
+  --color-primary-normal: 151 38 8;
+  --color-primary-light: 209 88 53;
+  --color-primary-dark: 97 0 0;
+  --color-primary-dull: 124 62 43;
+  --color-secondary-normal: 151 90 8;
+  --color-secondary-light: 207 137 61;
+  --color-secondary-dark: 98 46 0;
+  --color-secondary-dull: 131 98 65;
+  --color-tertiary-normal: 11 60 97;
+  --color-tertiary-light: 68 104 145;
+  --color-tertiary-dark: 0 21 53;
+  --color-tertiary-dull: 58 58 58;
+  --color-complement-normal: 6 107 50;
+  --color-complement-light: 71 156 95;
+  --color-complement-dark: 0 61 7;
+  --color-complement-dull: 70 99 76;
+}
+
+body {
+  color: rgb(var(--color-fg-normal));
+  background-color: rgb(var(--color-bg-normal));
+}

@@ -1,5 +1,7 @@
 import {View} from './lib';
 
+import {css} from '@emotion/css';
+
 export class ContextMenuView extends View {
   private visible = false;
   private _windowClickHandler;
@@ -9,8 +11,13 @@ export class ContextMenuView extends View {
   constructor() {
     super(document.createElement('div'));
     this.el.style.position = 'fixed';
-    this.el.classList.add('bg-zinc-700', 'border', 'border-zinc-500',
-      'text-white', 'select-none', 'py-1');
+    this.el.classList.add(css({
+      backgroundColor: '#3F3F46', /* zinc-700 */
+      border: '1px solid #71717A', /* zinc-500 */
+      color: 'white',
+      userSelect: 'none',
+      padding: '0.5rem 0',
+    }));
 
     this._windowClickHandler = (function(this: ContextMenuView, e: MouseEvent) {
       if (e.target instanceof HTMLElement && !this._isMenuElement(e.target)) {
@@ -31,8 +38,15 @@ export class ContextMenuView extends View {
 
   private _createItem(text: string, index: number) {
     const el = document.createElement('div');
-    el.classList.add('hover:bg-sky-400/50', 'border', 'border-transparent',
-      'hover:border-sky-400', 'cursor-pointer', 'p-0.5');
+    el.classList.add(css({
+      border: '1px solid transparent',
+      cursor: 'pointer',
+      padding: '0.25rem',
+      '&:hover': {
+        backgroundColor: '#38BDF880', /* sky-400/50 */
+        borderColor: '#38BDF8', /* sky-400 */
+      }
+    }));
     el.innerText = text;
     el.tabIndex = index + 1;
     el.setAttribute('name', 'item-' + index);
@@ -49,8 +63,12 @@ export class ContextMenuView extends View {
 
   private _createSeparator() {
     const el = document.createElement('div');
-    el.classList.add('border-b', 'border-zinc-500',
-      'cursor-default', 'pt-1', 'mb-1');
+    el.classList.add(css({
+      borderBottom: '1px solid #71717A', /* zinc-500 */
+      cursor: 'default',
+      paddingTop: '0.5rem',
+      marginBottom: '0.5rem',
+    }));
     el.onclick = () => false;
     return el;
   }

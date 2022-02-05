@@ -1,4 +1,5 @@
-import { View } from './lib';
+import {View} from './lib';
+import {css} from '@emotion/css';
 
 import fragSource from './wave.frag.glsl';
 import vertSource from './wave.vert.glsl';
@@ -10,16 +11,32 @@ export class WaveView extends View {
 
   constructor(el: HTMLElement, data: ArrayBuffer) {
     super(document.createElement('div'));
-    this.el.classList.add('flex', 'flex-col',
-      'absolute', 'left-0', 'right-0', 'top-0', 'bottom-0', 'items-center',
-      'justify-center');
+    this.el.classList.add(css({
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }));
 
     this.canvas = document.createElement('canvas');
-    this.canvas.classList.add('border', 'border-slate-100', 'w-1/2', 'h-1/2', 'flex-initial');
+    this.canvas.classList.add(css({
+      border: '1px solid #F1F5F9', /* slate-100 */
+      width: '50%',
+      height: '50%',
+      flex: '0 1 auto',
+    }));
     this.el.appendChild(this.canvas);
 
     this.info = document.createElement('div');
-    this.info.classList.add('text-white', 'flex-initial');
+    this.info.classList.add(css({
+      color: 'white',
+      flex: '0 1 auto',
+    }));
     this.el.appendChild(this.info);
 
     el.replaceChildren(this.el);
