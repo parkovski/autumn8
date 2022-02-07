@@ -1,6 +1,6 @@
-import SwollController from 'swoll/controller';
+import AsyncEventTarget from 'swoll/asynceventtarget';
 
-export default class Controller extends SwollController {
+export default class Controller extends AsyncEventTarget {
 }
 
-export const cx = new Controller;
+export const ctl = new Controller;

@@ -1,4 +1,8 @@
-export default class Controller extends EventTarget {
+/**
+ * Same interface as EventTarget, but events are saved and dispatched together
+ * at the next animation frame.
+ */
+export default class AsyncEventTarget extends EventTarget {
   dispatchEventImmediate: (e: Event) => boolean;
 
   constructor() {
