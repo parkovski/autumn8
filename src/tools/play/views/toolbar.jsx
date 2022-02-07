@@ -5,12 +5,12 @@ import {css, cx} from '@emotion/css';
 
 const buttonClass = color => css({
   position: 'relative',
-  margin: '0 0.125rem',
+  marginLeft: '0.125rem',
   padding: '0.5rem',
-  minWidth: '1rem',
+  minWidth: '2rem',
   backgroundColor: `rgb(var(--color-${color}-normal))`,
   border: `1px solid rgb(var(--color-bg-normal))`,
-  lineHeight: 1,
+  lineHeight: '1rem',
   '&:hover': {
     backgroundColor: `rgb(var(--color-${color}-light))`,
     borderColor: `rgb(var(--color-${color}-normal))`,
@@ -52,7 +52,7 @@ export default class Toolbar extends View {
   onCreate() {
     return (
       <div class={css({
-        position: 'absolute',
+        position: 'relative',
         left: 0,
         right: 0,
         backgroundColor: 'rgb(var(--color-bg-light))',
@@ -60,7 +60,7 @@ export default class Toolbar extends View {
         lineHeight: '1.75rem',
         padding: '0.5rem 0.375rem',
       })}>
-        <div class={css({float: 'right'})}>
+        <div class={css({float: 'right', paddingRight: '0.125rem'})}>
           <button
             class={cx('fas', 'fa-palette', buttonClass('primary'))}
             onClick={e => this.themeMenu.toggle(e.target)}>
