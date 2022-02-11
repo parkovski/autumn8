@@ -11,7 +11,7 @@ add_executable(test ${SOURCES})
 
 target_link_libraries(test
   Catch2::Catch2
-  a8bc
+  a8vm
   a8util
 )
 
