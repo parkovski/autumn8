@@ -1,17 +1,17 @@
-#ifndef a8_vm_program_h_
-#define a8_vm_program_h_
+#ifndef A8_VM_INTERNAL_PROGRAM_H_
+#define A8_VM_INTERNAL_PROGRAM_H_
 
 #include "string_map.h"
 #include "symbol_table.h"
 #include "scope.h"
-#include "code_buffer.h"
+#include "ibuf.h"
 #include "stack.h"
 
 struct a8_vm_program {
   a8_vm_string_map _strings;
   a8_vm_symbol_table _symtab;
   a8_vm_scope _root;
-  a8_vm_code_buffer _buffer;
+  a8_vm_ibuf _buffer;
   a8_vm_stack _stack;
 
   explicit a8_vm_program() {
@@ -32,4 +32,4 @@ struct a8_vm_program {
   }
 };
 
-#endif // a8_vm_program_h_
+#endif // A8_VM_INTERNAL_PROGRAM_H_

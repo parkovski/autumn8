@@ -1,7 +1,8 @@
-#ifndef a8_vm_scope_h_
-#define a8_vm_scope_h_
+#ifndef A8_VM_INTERNAL_SCOPE_H_
+#define A8_VM_INTERNAL_SCOPE_H_
 
-#include "a8/vm/vm.h"
+#include "../scope.h"
+#include "../stdsym.h"
 
 #include <vector>
 #include <unordered_map>
@@ -66,4 +67,4 @@ struct a8_vm_scope {
   }
 };
 
-#endif // a8_vm_scope_h_
+#endif // A8_VM_INTERNAL_SCOPE_H_

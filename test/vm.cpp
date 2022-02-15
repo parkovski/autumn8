@@ -1,4 +1,4 @@
-#include "../src/vm/program.h"
+#include "a8/vm/internal/program.h"
 
 #include <string>
 

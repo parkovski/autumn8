@@ -102,7 +102,8 @@ typedef struct a8_vm_string_map a8_vm_string_map;
 typedef struct a8_vm_symbol_table a8_vm_symbol_table;
 typedef struct a8_vm_scope a8_vm_scope;
 typedef struct a8_vm_stack a8_vm_stack;
-typedef struct a8_vm_code_buffer a8_vm_code_buffer;
+typedef struct a8_vm_ibuf a8_vm_ibuf;
+typedef a8_vm_usize a8_vm_regfile[32];
 typedef struct a8_vm_program a8_vm_program;
 
 /*
@@ -153,7 +154,7 @@ enum {
   a8_vm_symid_string_map,
   a8_vm_symid_scope,
   a8_vm_symid_stack,
-  a8_vm_symid_code_buffer,
+  a8_vm_symid_ibuf,
   a8_vm_symid_program,
   a8_vm_symid_data,
 
@@ -173,7 +174,7 @@ using string = a8_vm_string;
 using string_map = a8_vm_string_map;
 using scope = a8_vm_scope;
 using stack = a8_vm_stack;
-using code_buffer = a8_vm_code_buffer;
+using ibuf = a8_vm_ibuf;
 using program = a8_vm_program;
 using data = a8_vm_data;
 } /* namespace a8::vm */

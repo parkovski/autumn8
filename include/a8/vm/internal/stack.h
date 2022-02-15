@@ -1,7 +1,9 @@
-#ifndef a8_vm_stack_h_
-#define a8_vm_stack_h_
+#ifndef A8_VM_INTERNAL_STACK_H_
+#define A8_VM_INTERNAL_STACK_H_
 
-#include "a8/vm/vm.h"
+#include "../stack.h"
+#include "../stdsym.h"
+
 #include <memory>
 
 const a8_vm_usize A8_VM_DEFAULT_STACK_SIZE =
@@ -90,4 +92,4 @@ struct a8_vm_stack {
   }
 };
 
-#endif // a8_vm_stack_h_
+#endif // A8_VM_INTERNAL_STACK_H_
