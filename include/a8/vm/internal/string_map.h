@@ -79,6 +79,9 @@ struct a8_vm_string_map {
   }
 
   a8_vm_strid operator[](std::string_view sv);
+  a8_vm_strid get(std::string_view sv) {
+    return (*this)[sv];
+  }
 
   a8_vm_string string(a8_vm_strid strid) const noexcept {
     return *_strings[strid];

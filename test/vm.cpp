@@ -1,4 +1,6 @@
-#include "a8/vm/internal/program.h"
+#include "a8/vm/internal/string_map.h"
+#include "a8/vm/internal/stack.h"
+#include "a8/vm/internal/symbol_table.h"
 
 #include <string>
 

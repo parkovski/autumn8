@@ -19,10 +19,23 @@ extern "C" {
 
 typedef A8_VM_USIZE_T a8_vm_usize;
 typedef A8_VM_SSIZE_T a8_vm_ssize;
-typedef A8_VM_USIZE_T a8_vm_symid;
-typedef A8_VM_USIZE_T a8_vm_strid;
 
+typedef a8_vm_usize a8_vm_symid;
+typedef a8_vm_usize a8_vm_strid;
+
+/** Invalid index (-1). */
 const a8_vm_usize a8_vm_no_index = (a8_vm_usize)(-1);
+
+/**
+ * A symbol ID that does not exist. This should be used for lookup failures
+ * and not as a placeholder - for that, use `empty`.
+ */
+const a8_vm_symid a8_vm_symid_undef = (a8_vm_symid)(-1);
+
+/**
+ * The empty string. Since interned strings are null terminated, this is a
+ * pointer to the null character.
+ */
 const a8_vm_strid a8_vm_strid_empty = 0;
 
 const a8_vm_usize a8_vm_std_align = alignof(a8_vm_usize);
@@ -32,6 +45,12 @@ const a8_vm_usize a8_vm_std_align = alignof(a8_vm_usize);
 
 #define a8_vm_align_floor(T, p, alignval) \
   ((T)((((size_t)(p)) & (-(alignval)))))
+
+#define a8_vm_const_struct_after(T, Struct, p) \
+  a8_vm_align_ceil(T const *, ((char const *)(p)) + sizeof(Struct), alignof(T))
+
+#define a8_vm_struct_after(T, Struct, p) \
+  a8_vm_align_ceil(T *, ((char *)(p)) + sizeof(Struct), alignof(T))
 
 #define a8_vm_std_align_ceil(T, p) a8_vm_align_ceil(T, p, a8_vm_std_align)
 #define a8_vm_std_align_floor(T, p) a8_vm_align_floor(T, p, a8_vm_std_align)
@@ -43,141 +62,130 @@ const a8_vm_usize a8_vm_std_align = alignof(a8_vm_usize);
 #define a8_vm_assert_size_std_aligned(T) \
   a8_vm_assert_size_aligned(T, a8_vm_std_align)
 
-typedef struct a8_vm_symbol a8_vm_symbol;
-
-typedef struct a8_vm_symbol_base {
-  /*
-   * ID of the symbol that describes the content of this base. For all symbols,
-   * that is, the base header of a8_vm_symbol, this is a8_vm_symid_symbol. For
-   * all other bases (sub-bases), this is the ID of that symbol.
-   */
-  a8_vm_symid meta;
-
-  /*
-   * ID of the symbol whose value this base is part of. This value is the same
-   * for all bases in a symbol and is used for casting.
-   */
-  a8_vm_symid self;
-
-  /*
-   * Total allocation size of this base, including the base header, the data
-   * that follows, and any necessary alignment space in between.
-   */
-  a8_vm_usize size;
-} a8_vm_symbol_base;
-a8_vm_assert_size_std_aligned(a8_vm_symbol_base);
-
-struct a8_vm_symbol {
-#ifdef __cplusplus
-  /*
-   * Don't rely on this! It only frees the dynamic base list. If this symbol
-   * contains other owned pointers, they will be leaked.
-   */
-  ~a8_vm_symbol() {
-    if (this->dynamic_base) {
-      delete [] this->dynamic_base;
-    }
-  }
-#endif
-
-  a8_vm_symbol_base base;
-  a8_vm_strid name;
-  a8_vm_symid parent;
-  uint16_t dynamic_alloc;
-  uint16_t dynamic_count;
-  uint16_t static_count;
-  uint16_t flags; /* reserved */
-  /* TODO: Pointers to usize */
-  a8_vm_symbol_base **dynamic_base;
-};
-a8_vm_assert_size_std_aligned(a8_vm_symbol);
-
 typedef struct a8_vm_string {
   /* TODO: Pointers to usize */
   const char *str;
   a8_vm_usize len;
 } a8_vm_string;
 
-typedef struct a8_vm_string_map a8_vm_string_map;
+typedef struct a8_vm_symbol a8_vm_symbol;
+typedef struct a8_vm_meta_entry a8_vm_meta_entry;
+typedef struct a8_vm_meta_entry_s a8_vm_meta_entry_s;
+typedef struct a8_vm_meta_object a8_vm_meta_object;
+typedef struct a8_vm_meta_object_m a8_vm_meta_object_m;
+typedef struct a8_vm_meta_object_s a8_vm_meta_object_s;
 typedef struct a8_vm_symbol_table a8_vm_symbol_table;
-typedef struct a8_vm_scope a8_vm_scope;
-typedef struct a8_vm_stack a8_vm_stack;
-typedef struct a8_vm_ibuf a8_vm_ibuf;
-typedef a8_vm_usize a8_vm_regfile[32];
-typedef struct a8_vm_program a8_vm_program;
-
-/*
- * 4 bits is enough to encode up to 8kB in powers of 2. 5 bits can encode
- * up to 2GB.
- */
-const uint32_t A8_VM_DATA_ALIGN_BITS = 5;
-const uint32_t A8_VM_DATA_MAX_ALIGN_VALUE = (1U << A8_VM_DATA_ALIGN_BITS) - 1;
-const uint64_t A8_VM_DATA_MAX_ALIGN = 1U << A8_VM_DATA_MAX_ALIGN_VALUE;
-
-typedef enum a8_vm_data_flag {
-  /* The data can be modified. */
-  a8_vm_data_flag_mutable         = 0x1,
-  /* The data can be moved by a generic memcpy. */
-  a8_vm_data_flag_move            = 0x2,
-  /* The data can be copied by a generic memcpy. */
-  a8_vm_data_flag_copy            = 0x4,
-  /* The data does not contain any pointers to itself. */
-  a8_vm_data_flag_no_self_link    = 0x8,
-  /* The data does not contain any pointers outside itself. */
-  a8_vm_data_flag_no_foreign_link = 0x10,
-  /* The data does not contain any pointers. */
-  a8_vm_data_flag_no_link         = 0x18,
-  /* The size of the data is not greater than the size field. */
-  a8_vm_data_flag_max_size        = 0x20,
-  /* The size of the data is not less than the size field. */
-  a8_vm_data_flag_min_size        = 0x40,
-  /* The exact size of the data is known. */
-  a8_vm_data_flag_const_size      = 0x60,
-} a8_vm_data_flag;
-
-typedef struct a8_vm_data {
-  a8_vm_usize size;
-  uint16_t align : A8_VM_DATA_ALIGN_BITS;
-  uint16_t flags : 16 - A8_VM_DATA_ALIGN_BITS;
-} a8_vm_data;
-a8_vm_assert_size_std_aligned(a8_vm_data);
+typedef struct a8_vm_symbol_table_s a8_vm_symbol_table_s;
 
 enum {
-  a8_vm_symid_undef,
+  /*
+   * Zero size symbol. In contrast to `undef` which represents a name that does
+   * not exist, `empty` is a name that exists but has no value.
+   */
+  a8_vm_symid_empty,
+  /*
+   * "Black box" type. More abstract than a `void*` - it's not known whether a
+   * value exists here and if it does, its size and alignment are unknown, so
+   * unlike `void*`, any operations at all including casting this to another
+   * type are undefined.
+   */
+  a8_vm_symid_unknown,
+  /* The always-error type. */
+  a8_vm_symid_never,
+
+  /* Symbolic root of the VM. */
+  a8_vm_symid_root,
+
+  /* Core meta symbols. */
+  a8_vm_symid_meta,
+  /* Data-related builtins. */
+  a8_vm_symid_data,
+  /* Type construction utilities. */
+  a8_vm_symid_type,
+  /* Execution-related builtins. */
+  a8_vm_symid_exec,
+  /* Execution environments. */
+  a8_vm_symid_env,
+
   a8_vm_symid_symid,
   a8_vm_symid_strid,
-  a8_vm_symid_usize,
-  a8_vm_symid_ssize,
   a8_vm_symid_symbol,
-  a8_vm_symid_symbol_base_header,
+  a8_vm_symid_meta_entry,
+  a8_vm_symid_meta_object,
+  a8_vm_symid_meta_ctor,
+  a8_vm_symid_meta_dtor,
+
+  a8_vm_symid_bit,
+  a8_vm_symid_byte,
+  a8_vm_symid_word,
   a8_vm_symid_string,
+  a8_vm_symid_address,
+  a8_vm_symid_bool,
+  a8_vm_symid_true,
+  a8_vm_symid_false,
+  a8_vm_symid_num,
+  a8_vm_symid_int,
+  a8_vm_symid_sign2c,
+  a8_vm_symid_lossy,
+  a8_vm_symid_ieee_float,
+
+  a8_vm_symid_type_field_set,
+  /*  T = U | V
+   *  T = U (+{+)+} V
+   * ::  all t --> t < U || t < V
+   * && some t --> t < U && t < V
+   * &&  all u --> u < T
+   * &&  all v --> v < T. */
+  a8_vm_symid_type_union,
+  /*  T = U & V
+   *  T = U ( {+) } V
+   * ::  all t --> t < U && t < V
+   * && some u --> u < T
+   * && some v --> v < T. */
+  a8_vm_symid_type_intersection,
+  /*  T = U + V
+   *  T = U (+{*)+} V
+   *  * When overlapping values are present, a type tag is required.
+   * ::  all t --> t < U || t < V
+   * &&  all u --> u < T
+   * &&  all v --> v < T. */
+  a8_vm_symid_type_sum,
+  /*  T = U \ V (U - V)
+   *  T = U (+{ ) } V
+   * ::  all t --> t < U
+   * && some u --> u < T. */
+  a8_vm_symid_type_difference,
+  /*  T = U x V (U * V)
+   *  T = (U (+), V (+))
+   * ::  all t --> t < U
+   * &&  all u --> all v --> (u, v) < T. */
+  a8_vm_symid_type_product,
+  /* T = U ? V :: T < U || T < V */
+
+  a8_vm_symid_text,
+  a8_vm_symid_abi,
+  a8_vm_symid_function,
+  a8_vm_symid_memo,
+
+  /* Host machine ("outside world") environment. */
+  a8_vm_symid_env_host,
+  /* Pure introspection environment. */
+  a8_vm_symid_env_meta,
+  /* VM direct control environment. */
+  a8_vm_symid_env_control,
+
+  a8_vm_symid_symbol_table,
+  /*a8_vm_symid_constant_table,*/
   a8_vm_symid_string_map,
-  a8_vm_symid_scope,
   a8_vm_symid_stack,
   a8_vm_symid_ibuf,
   a8_vm_symid_program,
-  a8_vm_symid_data,
 
   a8_vm_std_symid_count__,
 };
 
 #ifdef __cplusplus
 } /* extern "C" */
-
-namespace a8::vm {
-using symid = a8_vm_symid;
-using strid = a8_vm_strid;
-using symbol_table = a8_vm_symbol_table;
-using symbol = a8_vm_symbol;
-using symbol_base = a8_vm_symbol_base;
-using string = a8_vm_string;
-using string_map = a8_vm_string_map;
-using scope = a8_vm_scope;
-using stack = a8_vm_stack;
-using ibuf = a8_vm_ibuf;
-using program = a8_vm_program;
-using data = a8_vm_data;
-} /* namespace a8::vm */
 #endif
 
 #endif /* A8_VM_STDSYM_H_ */
