@@ -53,7 +53,6 @@ const BlackKey = css({
   verticalAlign: 'bottom',
   position: 'relative',
   flex: `0 0 ${blackKeyWidthPx}px`,
-  marginLeft: `-${2 * blackKeyWidthPx / 3}px`,
   background: 'linear-gradient(to right, #000, #202020 30% 70%, #000)',
   borderWidth: '0 3px 3px',
   borderStyle: 'solid',
@@ -78,21 +77,31 @@ const BlackKey = css({
   },
 });
 
-const keyclass_CF = WhiteKey;
-const keyclass_DEGAB = cx(WhiteKey, AfterBlack);
+const KeyOffset2_3 = css({
+  marginLeft: `-${2 * blackKeyWidthPx / 3}px`,
+});
+
+const KeyOffset1_2 = css({
+  marginLeft: `-${blackKeyWidthPx / 2}px`,
+});
+
+const KeyOffset1_3 = css({
+  marginLeft: `-${blackKeyWidthPx / 3}px`,
+});
+
 const keyinfo = {
-  'a': { next: 'a#', class: keyclass_DEGAB },
-  'a#': { next: 'b', class: BlackKey },
-  'b': { next: 'c', class: keyclass_DEGAB },
-  'c': { next: 'c#', class: keyclass_CF },
-  'c#': { next: 'd', class: BlackKey },
-  'd': { next: 'd#', class: keyclass_DEGAB },
-  'd#': { next: 'e', class: BlackKey },
-  'e': { next: 'f', class: keyclass_DEGAB },
-  'f': { next: 'f#', class: keyclass_CF },
-  'f#': { next: 'g', class: BlackKey },
-  'g': { next: 'g#', class: keyclass_DEGAB },
-  'g#': { next: 'a', class: BlackKey },
+  'a':  { next: 'a#', class: cx(WhiteKey, KeyOffset1_2) },
+  'a#': { next: 'b',  class: cx(BlackKey, KeyOffset1_3) },
+  'b':  { next: 'c',  class: cx(WhiteKey, KeyOffset2_3) },
+  'c':  { next: 'c#', class: WhiteKey },
+  'c#': { next: 'd',  class: cx(BlackKey, KeyOffset2_3) },
+  'd':  { next: 'd#', class: cx(WhiteKey, KeyOffset1_3) },
+  'd#': { next: 'e',  class: cx(BlackKey, KeyOffset1_3) },
+  'e':  { next: 'f',  class: cx(WhiteKey, KeyOffset2_3) },
+  'f':  { next: 'f#', class: WhiteKey },
+  'f#': { next: 'g',  class: cx(BlackKey, KeyOffset2_3) },
+  'g':  { next: 'g#', class: cx(WhiteKey, KeyOffset1_3) },
+  'g#': { next: 'a',  class: cx(BlackKey, KeyOffset1_2) },
 };
 
 const WhiteKeyLabelClass = css({

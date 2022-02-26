@@ -1,6 +1,7 @@
 import View from 'swoll/view';
 import Toolbar from './toolbar';
-import Keyboard from './keyboard';
+//import Keyboard from './keyboard';
+import MPK249 from './mpk249';
 
 import {css} from '@emotion/css';
 
@@ -16,7 +17,7 @@ export default class MainView extends View {
     return (
       <div class={MainClass}>
         {new Toolbar().render()}
-        {new Keyboard({start: 'c2', keys: 49}).render()}
+        {new MPK249().render()}
       </div>
     );
   }
