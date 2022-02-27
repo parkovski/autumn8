@@ -33,7 +33,8 @@ export default class Toolbar extends View {
     const onClick = function() { setTheme(['default', 'light', 'dark'][this.props.key]) };
 
     this.themeMenu = new Menu(
-      new Menu.Item({ key: 0, onClick }, 'System'),
+      new Menu.Title('Theme'),
+      new Menu.Item({ key: 0, onClick }, 'Follow System'),
       new Menu.Separator,
       new Menu.Item({ key: 1, onClick }, 'Light'),
       new Menu.Item({ key: 2, onClick }, 'Dark'),

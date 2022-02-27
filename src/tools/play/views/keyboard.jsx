@@ -16,6 +16,7 @@ const KeyboardClass = css({
   flexDirection: 'row',
   height: `${keyboardHeightPx}px`,
 });
+
 const WhiteKey = css({
   color: 'black',
   verticalAlign: 'bottom',
@@ -40,10 +41,6 @@ const WhiteKey = css({
     borderRight: '1px solid #808080',
     borderBottom: '2px solid #808080',
   },
-});
-
-const AfterBlack = css({
-  marginLeft: `-${blackKeyWidthPx / 3}px`,
 });
 
 const BlackKey = css({
