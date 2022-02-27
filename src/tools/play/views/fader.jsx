@@ -10,25 +10,37 @@ const FaderClass = css({
   bottom: '10%',
   left: '3px',
   right: '3px',
-  borderWidth: '1px',
-  borderStyle: 'solid',
-  borderColor: '#444',
+  zIndex: 1,
 });
 
 const HandleClass = css({
   position: 'absolute',
-  top: '40%',
+  top: '80%',
   height: '20%',
   left: '2px',
   right: '2px',
-  border: '1px solid #444',
+  border: '1px solid #333',
   background: 'linear-gradient(#000, #333 33% 44%, #eee 44% 56%, #333 56% 67%, #000)',
+});
+
+const TrackClass = css({
+  position: 'absolute',
+  top: 0,
+  bottom: 0,
+  left: '50%',
+  width: '6px',
+  marginLeft: '-3px',
+  border: '2px solid #333',
+  borderRadius: '3px',
+  backgroundColor: '#000',
+  zIndex: -1,
 });
 
 export default class Fader extends View {
   onCreate() {
     return (
       <div class={FaderClass}>
+        <div class={TrackClass}></div>
         <div class={HandleClass}></div>
       </div>
     );

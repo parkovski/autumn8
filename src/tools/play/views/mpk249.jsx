@@ -6,6 +6,7 @@ import Menu from 'swoll/menu';
 import Keyboard from './keyboard';
 import Wheel from './wheel';
 import PadBank from './padbank';
+import LCD from './lcd';
 import Knob from './knob';
 import Fader from './fader';
 import Switch from './switch';
@@ -87,8 +88,15 @@ const FaderPanelClass = cx(FSBorderClass, css({
 }));
 
 const SwitchPanelClass = cx(FSBorderClass, css({
-  padding: '8px 8px 0',
+  padding: '10px 8px 0',
 }));
+
+const LCDPanelClass = css({
+  display: 'inline-block',
+  position: 'relative',
+  height: '100%',
+  width: '250px',
+});
 
 const SpacerClass = css({
   display: 'inline-block',
@@ -170,7 +178,9 @@ export default class MPK249 extends View {
           </div>
           <div class={SpacerClass} style="width: 150px"></div>
           {new PadBank().render()}
-          <div class={SpacerClass} style="width: 250px"></div>
+          <div class={LCDPanelClass}>
+            {new LCD().render()}
+          </div>
           <div class={KFSPanelClass}>
             {getKnobs()}
             {getFaders()}
