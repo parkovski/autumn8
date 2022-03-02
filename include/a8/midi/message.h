@@ -13,36 +13,39 @@ A8_PRAGMA_MS(warning(disable: 4250)); // Inheritance via dominance
 
 namespace a8::midi {
 
+// FIXME Understand endianness!
 namespace detail {
   // Combines two 7-bit unsigned numbers into one 14-bit unsigned.
-  // Careful: MIDI uses big-endian order (lsb, msb).
+  // Careful: MIDI uses big-endian order.
   static inline uint16_t to_14bit_unsigned(uint8_t msb, uint8_t lsb) {
+    assert(((msb | lsb) & 0x80) == 0 && "msb and lsb must be less than 0x80.");
     return (uint16_t)msb << 7 | lsb;
   }
 
   // Combines two 7-bit unsigned numbers into one 14-bit signed. The resulting
   // value is shifted into the range [-0x2000, 0x1FFF].
-  // Careful: MIDI uses big-endian order (lsb, msb).
+  // Careful: MIDI uses big-endian order.
   static inline int16_t to_14bit_signed(uint8_t msb, uint8_t lsb) {
+    assert(((msb | lsb) & 0x80) == 0 && "msb and lsb must be less than 0x80.");
     return ((int16_t)msb << 7 | (int16_t)lsb) - 0x2000;
   }
 
   // Returns the high order (most significant) byte in a 14-bit uint.
-  // Careful: MIDI uses big-endian order (lsb, msb).
+  // Careful: MIDI uses big-endian order.
   static inline uint8_t from_14bit_msb(uint16_t u14) {
     assert((u14 & 0xC000) == 0 && "Only the lower 14 bits are valid.");
     return (uint8_t)(u14 >> 7);
   }
 
   // Returns the low order (least significant) byte in a 14-bit uint.
-  // Careful: MIDI uses big-endian order (lsb, msb).
+  // Careful: MIDI uses big-endian order.
   static inline uint8_t from_14bit_lsb(uint16_t u14) {
     return (uint8_t)(u14 & 0x7F);
   }
 
   // Returns the high order (most significant) byte in a 14-bit signed int,
   // normalized from the range [-0x2000, 0x1FFF] to [0, 0x3FFF].
-  // Careful: MIDI uses big-endian order (lsb, msb).
+  // Careful: MIDI uses big-endian order.
   static inline uint8_t from_14bit_msb(int16_t i14) {
     assert(i14 >= -0x2000 && i14 <= 0x1FFF && "Value out of range.");
     return from_14bit_msb((uint16_t)(i14 + 0x2000));
@@ -50,7 +53,7 @@ namespace detail {
 
   // Returns the low order (least significant) byte in a 14-bit signed int,
   // normalized from the range [-0x2000, 0x1FFF] to [0, 0x3FFF].
-  // Careful: MIDI uses big-endian order (lsb, msb).
+  // Careful: MIDI uses big-endian order.
   static inline uint8_t from_14bit_lsb(int16_t i14) {
     return from_14bit_lsb((uint16_t)(i14 + 0x2000));
   }
