@@ -34,7 +34,7 @@ const TopClass = css({
 
 const WheelPanelClass = css({
   display: 'inline-block',
-  padding: '3rem 2px 0 18px', // left align w/ 1st black key.
+  padding: '4rem 2px .5rem 18px', // left align w/ 1st black key.
 });
 
 const KFSPanelClass = css({

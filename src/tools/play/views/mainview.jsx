@@ -3,6 +3,8 @@ import Toolbar from './toolbar';
 //import Keyboard from './keyboard';
 import MPK249 from './mpk249';
 
+import LogView from './log';
+
 import {css} from '@emotion/css';
 
 const MainClass = css({
@@ -18,6 +20,7 @@ export default class MainView extends View {
       <div class={MainClass}>
         {new Toolbar().render()}
         {new MPK249().render()}
+        {new LogView().render()}
       </div>
     );
   }
