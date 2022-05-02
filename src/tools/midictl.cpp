@@ -1,5 +1,6 @@
 #include "a8/a8.h"
-#include "a8/midi/midi.h"
+#include "a8/midi/access.h"
+#include "a8/midi/port.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -9,44 +10,59 @@ using namespace a8;
 using namespace a8::midi;
 
 int a8main(int argc, char *argv[]) {
-  std::unique_ptr<PortManager> pm;
+  std::shared_ptr<Access> access;
   if (argc == 2) {
     auto backend = parseBackend(argv[1]);
     if (backend == Backend::Null) {
       Log::error("Invalid backend {}", argv[1]);
       return 1;
     }
-    pm = PortManager::create(backend);
+    access = Access::request(backend).get();
   } else {
-    pm = PortManager::create();
+    access = Access::request().get();
   }
-  if (!pm) {
-    Log::critical("Port manager creation failed");
+  if (!access) {
+    Log::critical("MIDI access denied.");
+    return 1;
   }
 
-  //std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  {
+    std::cout << "Inputs:\n";
+    auto [inputLock, inputs] = access->inputsRead();
+    for (auto &i : inputs) {
+      auto const &port = i.second;
+      std::cout << port->id() << " - " << port->name() << "\n";
+    }
+  }
 
-  std::string sel;
-  std::cout << "press enter to exit.\n";
-  std::getline(std::cin, sel);
-  if (!sel.empty()) {
-    std::stringstream ss;
-    ss << sel;
-    int port, client;
-    ss >> port >> client;
-    Log::info("doing things {} {}", port, client);
-    port = (client << 16) | port;
-    auto it = pm->find(port);
-    if (it != pm->end()) {
-      auto *port = it->asInputPort();
-      if (!port) {
-        Log::debug("port is not input port");
-      } else {
-        port->open().wait();
-        std::cout << "press enter to close port.\n";
-        std::getline(std::cin, sel);
-        port->close().wait();
-      }
+  {
+    std::cout << "\nOutputs:\n";
+    auto [outputLock, outputs] = access->outputsRead();
+    for (auto &o : outputs) {
+      auto const &port = o.second;
+      std::cout << port->id() << " - " << port->name() << "\n";
+    }
+  }
+
+  std::cout << "\nOpen? ";
+  std::string line;
+  getline(std::cin, line);
+  if (!line.empty()) {
+    auto [inputLock, inputs] = access->inputsRead();
+    auto it = inputs.find(line);
+    if (it == inputs.end()) {
+      std::cout << "Not found.\n";
+    } else {
+      auto p = it->second;
+      inputLock.release();
+      std::cout << "Open " << p->id() << " - " << p->name()
+                << "\nPress enter when done.\n";
+
+      p->open();
+
+      getline(std::cin, line);
+
+      p->close();
     }
   }
 

@@ -1,9 +1,118 @@
-#include "a8/midi/midi.h"
+#include "a8/a8.h"
+#include "a8/midi/access.h"
+#include "a8/midi/port.h"
+#include "a8/midi/control.h"
+
 #include <ostream>
 
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace a8::midi {
+
+Port::~Port() {}
+
+Port::Type Input::type() const noexcept {
+  return Port::Type::Input;
+}
+
+Port::Type Output::type() const noexcept {
+  return Port::Type::Output;
+}
+
+std::future<std::shared_ptr<Access>>
+Access::request(Options options) {
+#if A8_IS_PLATFORM(Linux)
+  return request<Backend::AlsaSeq>(options);
+#else
+
+#if 0
+#define TRY_BE(BE) if (auto p = request<Backend::BE>(options)) return p
+
+#if A8_IS_PLATFORM(Windows)
+  TRY_BE(UWP);
+  TRY_BE(Winmm);
+#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
+  TRY_BE(CoreMIDI);
+#elif A8_IS_PLATFORM(Android)
+  TRY_BE(AMidi);
+  TRY_BE(AndroidMediaMidi);
+#elif A8_IS_PLATFORM(Linux)
+# if A8_HAS_PIPEWIRE
+  TRY_BE(PipeWire);
+# endif
+  TRY_BE(AlsaSeq);
+  TRY_BE(AlsaRaw);
+#elif A8_IS_PLATFORM(Emscripten)
+  TRY_BE(WebMIDI);
+#endif
+
+#if A8_HAS_JACK
+  TRY_BE(Jack);
+#endif
+
+#undef TRY_BE
+#endif
+
+  std::promise<std::shared_ptr<Access>> promise;
+  promise.set_exception(
+    std::make_exception_ptr(std::runtime_error("unimplemented")));
+  return promise.get_future();
+#endif
+}
+
+std::future<std::shared_ptr<Access>>
+Access::request(Backend be, Options options) {
+  switch (be) {
+    case Backend::Null:
+      return request<Backend::Null>(options);
+
+#if A8_IS_PLATFORM(Windows)
+    case Backend::UWP:
+      return request<Backend::UWP>(options);
+    case Backend::Winmm:
+      return request<Backend::Winmm>(options);
+
+#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
+    case Backend::CoreMIDI:
+      return request<Backend::CoreMIDI>(options);
+
+#elif A8_IS_PLATFORM(Android)
+    case Backend::AMidi:
+      return request<Backend::AMidi>(options);
+    case Backend::AndroidMediaMidi:
+      return request<Backend::AndroidMediaMidi>(options);
+
+#elif A8_IS_PLATFORM(Linux)
+    case Backend::AlsaSeq:
+      return request<Backend::AlsaSeq>(options);
+
+    //case Backend::AlsaRaw:
+    //  return request<Backend::AlsaRaw>(options);
+
+# if A8_HAS_PIPEWIRE
+    case Backend::PipeWire:
+      return request<Backend::PipeWire>(options);
+# endif
+
+#elif A8_IS_PLATFORM(Emscripten)
+    case Backend::WebMIDI:
+      return request<Backend::WebMIDI>(options);
+#endif
+
+#if A8_HAS_JACK
+    case Backend::Jack:
+      return request<Backend::Jack>(options);
+#endif
+
+    default:
+      break;
+  }
+
+  std::promise<std::shared_ptr<Access>> promise;
+  promise.set_exception(
+    std::make_exception_ptr(std::runtime_error("No MIDI backend")));
+  return promise.get_future();
+}
 
 std::ostream &operator<<(std::ostream &os, Backend backend) {
   switch (backend) {
@@ -30,113 +139,6 @@ Backend parseBackend(std::string_view name) {
   return Backend::Null;
 
 #undef BACKEND
-}
-
-Port::Port(id_t id, std::string name) noexcept
-  : _id{id},
-    _name{std::move(name)}
-{}
-
-Port::~Port() {}
-
-InputPort *Port::asInputPort() noexcept {
-  return nullptr;
-}
-
-OutputPort *Port::asOutputPort() noexcept {
-  return nullptr;
-}
-
-InputPort *InputPort::asInputPort() noexcept {
-  return this;
-}
-
-void InputPort::nop(InputPort *, const IMessage &, Port::timestamp_t) {}
-
-OutputPort *OutputPort::asOutputPort() noexcept {
-  return this;
-}
-
-PortManager::~PortManager() {}
-
-std::unique_ptr<PortManager>
-PortManager::create(Backend backend) {
-  switch (backend) {
-    case Backend::Null:
-      return createInternal<Backend::Null>();
-
-#if A8_IS_PLATFORM(Windows)
-    case Backend::UWP:
-      return createInternal<Backend::UWP>();
-    case Backend::Winmm:
-      return createInternal<Backend::Winmm>();
-
-#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
-    case Backend::CoreMIDI:
-      return createInternal<Backend::CoreMIDI>();
-
-#elif A8_IS_PLATFORM(Android)
-    case Backend::AMidi:
-      return createInternal<Backend::AMidi>();
-    case Backend::AndroidMediaMidi:
-      return createInternal<Backend::AndroidMediaMidi>();
-
-#elif A8_IS_PLATFORM(Linux)
-    case Backend::AlsaSeq:
-      return createInternal<Backend::AlsaSeq>();
-
-    case Backend::AlsaRaw:
-      return createInternal<Backend::AlsaRaw>();
-
-# if A8_HAS_PIPEWIRE
-    case Backend::PipeWire:
-      return createInternal<Backend::PipeWire>();
-# endif
-
-#elif A8_IS_PLATFORM(Emscripten)
-    case Backend::WebMIDI:
-      return createInternal<Backend::WebMIDI>();
-#endif
-
-#if A8_HAS_JACK
-    case Backend::Jack:
-      return createInternal<Backend::Jack>();
-#endif
-
-    default:
-      return std::unique_ptr<PortManager>{};
-  }
-}
-
-std::unique_ptr<PortManager>
-PortManager::create() {
-#define TRY_BE(BE) if (auto p = createInternal<Backend::BE>()) return p
-
-#if A8_IS_PLATFORM(Windows)
-  TRY_BE(UWP);
-  TRY_BE(Winmm);
-#elif A8_IS_PLATFORM(macOS) || A8_IS_PLATFORM(iOS)
-  TRY_BE(CoreMIDI);
-#elif A8_IS_PLATFORM(Android)
-  TRY_BE(AMidi);
-  TRY_BE(AndroidMediaMidi);
-#elif A8_IS_PLATFORM(Linux)
-# if A8_HAS_PIPEWIRE
-  TRY_BE(PipeWire);
-# endif
-  TRY_BE(AlsaSeq);
-  TRY_BE(AlsaRaw);
-#elif A8_IS_PLATFORM(Emscripten)
-  TRY_BE(WebMIDI);
-#endif
-
-#if A8_HAS_JACK
-  TRY_BE(Jack);
-#endif
-
-#undef TRY_BE
-
-  return {};
 }
 
 std::string_view ControlNames[128] = {

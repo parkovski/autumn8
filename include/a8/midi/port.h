@@ -28,14 +28,23 @@ public:
 
 protected:
   explicit Port(std::string id, std::string manufacturer, std::string name,
-                std::string version);
+                std::string version) noexcept
+    : _id{std::move(id)},
+      _manufacturer{std::move(manufacturer)},
+      _name{std::move(name)},
+      _version{std::move(version)}
+  {
+  }
 
 public:
   virtual ~Port() = 0;
 
-  virtual std::future<Port *> open() = 0;
-  virtual std::future<Port *> close() = 0;
-  void *onStateChange();
+  virtual std::future<Port *> open() noexcept = 0;
+  virtual std::future<Port *> close() noexcept = 0;
+
+  void onStateChange(std::function<void (Port *)> listener) noexcept {
+    _stateChangeListener = std::move(listener);
+  }
 
   std::string_view id() const noexcept {
     return _id;
@@ -59,6 +68,9 @@ public:
 
   virtual ConnectionState connection() const noexcept = 0;
 
+protected:
+  std::function<void (Port *)> _stateChangeListener;
+
 private:
   std::string _id;
   std::string _manufacturer;
@@ -66,22 +78,28 @@ private:
   std::string _version;
 };
 
-class Input : public Port {
+class Input : public virtual Port {
 public:
+  using message_type = void (uint32_t, size_t, const unsigned char *);
+  //using message_type = void (uint32_t, std::span<unsigned char>);
+
   Type type() const noexcept override final;
 
-  void onMIDIMessage();
+  void onMIDIMessage(std::function<message_type> listener);
+
+private:
+  std::function<message_type> _listener;
 };
 
-class Output : public Port {
+class Output : public virtual Port {
 public:
   Type type() const noexcept override final;
 
-  void send(const unsigned char *data, size_t length, uint32_t time = 0);
+  virtual void send(size_t length, const unsigned char *data,
+                    uint32_t time = 0) = 0;
+  //virtual void send(std::span<unsigned char> data, uint32_t time = 0) = 0;
 
-  //void send(std::span<unsigned char> data, uint32_t time = 0);
-
-  void clear();
+  virtual void clear() = 0;
 };
 
 } // namespace a8::midi
