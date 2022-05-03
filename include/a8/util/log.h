@@ -30,55 +30,55 @@ public:
   }
 
   template<typename... Args>
-  static inline void debug(Args &&...args) {
+  static inline void debug(spdlog::format_string_t<Args...> f, Args &&...args) {
     if (g_logger) {
-      g_logger->log(::spdlog::level::debug, std::forward<Args>(args)...);
+      g_logger->log(::spdlog::level::debug, f, std::forward<Args>(args)...);
     }
   }
 
   template<typename... Args>
-  static inline void trace(Args &&...args) {
+  static inline void trace(spdlog::format_string_t<Args...> f, Args &&...args) {
     if (g_logger) {
-      g_logger->log(::spdlog::level::trace, std::forward<Args>(args)...);
+      g_logger->log(::spdlog::level::trace, f, std::forward<Args>(args)...);
     }
   }
 
   template<typename... Args>
-  static inline void info(Args &&...args) {
+  static inline void info(spdlog::format_string_t<Args...> f, Args &&...args) {
     if (g_logger) {
-      g_logger->log(::spdlog::level::info, std::forward<Args>(args)...);
+      g_logger->log(::spdlog::level::info, f, std::forward<Args>(args)...);
     }
   }
 
   template<typename... Args>
-  static inline void warn(Args &&...args) {
+  static inline void warn(spdlog::format_string_t<Args...> f, Args &&...args) {
     if (g_logger) {
-      g_logger->log(::spdlog::level::warn, std::forward<Args>(args)...);
+      g_logger->log(::spdlog::level::warn, f, std::forward<Args>(args)...);
     }
   }
 
   template<typename... Args>
-  static inline void error(Args &&...args) {
+  static inline void error(spdlog::format_string_t<Args...> f, Args &&...args) {
     if (g_logger) {
-      g_logger->log(::spdlog::level::err, std::forward<Args>(args)...);
+      g_logger->log(::spdlog::level::err, f, std::forward<Args>(args)...);
     }
   }
 
   template<typename... Args>
-  static inline void critical(Args &&...args) {
+  static inline void critical(spdlog::format_string_t<Args...> f, Args &&...args) {
     if (g_logger) {
-      g_logger->log(::spdlog::level::critical, std::forward<Args>(args)...);
+      g_logger->log(::spdlog::level::critical, f, std::forward<Args>(args)...);
     }
   }
 
   template<typename... Args>
-  static inline void print(Args &&...args) {
-    fmt::print(std::forward<Args>(args)...);
+  static inline void print(fmt::format_string<Args...> f, Args &&...args) {
+    fmt::print(f, std::forward<Args>(args)...);
   }
 
   template<typename... Args>
-  static inline void eprint(Args &&...args) {
-    fmt::print(stderr, std::forward<Args>(args)...);
+  static inline void eprint(fmt::format_string<Args...> f, Args &&...args) {
+    fmt::print(stderr, f, std::forward<Args>(args)...);
   }
 };
 
