@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 #include <future>
+#include <span>
 
 namespace a8::midi {
 
@@ -95,9 +96,7 @@ class Output : public virtual Port {
 public:
   Type type() const noexcept override final;
 
-  virtual void send(size_t length, const unsigned char *data,
-                    uint32_t time = 0) = 0;
-  //virtual void send(std::span<unsigned char> data, uint32_t time = 0) = 0;
+  virtual void send(std::span<unsigned char> data, uint32_t time = 0) = 0;
 
   virtual void clear() = 0;
 };

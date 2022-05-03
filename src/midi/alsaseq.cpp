@@ -122,9 +122,7 @@ public:
   std::future<Port *> open() noexcept override;
   std::future<Port *> close() noexcept override;
 
-  void send(size_t length, const unsigned char *data, uint32_t time = 0)
-            override;
-  //void send(std::span<unsigned char> data, uint32_t time = 0) override;
+  void send(std::span<unsigned char> data, uint32_t time = 0) override;
 
   void clear() override;
 };
@@ -288,8 +286,7 @@ std::future<Port *> AlsaOutput::close() noexcept {
   return promise.get_future();
 }
 
-void AlsaOutput::send(size_t length, const unsigned char *data, uint32_t time)
-{
+void AlsaOutput::send(std::span<unsigned char> data, uint32_t time) {
 #if 0
   snd_seq_event_t ev;
   snd_seq_ev_clear(&ev);
