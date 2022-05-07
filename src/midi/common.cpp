@@ -2,7 +2,9 @@
 #include "a8/midi/access.h"
 #include "a8/midi/port.h"
 #include "a8/midi/control.h"
+#include "a8/midi/message.h"
 
+#include <iomanip>
 #include <ostream>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -310,6 +312,48 @@ std::ostream &operator<<(std::ostream &os, rpnvalue_t rpn) {
   }
 
   return os << "(unknown)";
+}
+
+std::ostream &operator<<(std::ostream &os, Status status) {
+  switch (status) {
+  default: os << "(invalid)"; break;
+#define CASE(Name) case Status::Name: os << #Name; break
+  CASE(None);
+  CASE(NoteOff);
+  CASE(NoteOn);
+  CASE(PolyphonicAftertouch);
+  CASE(ControlChange);
+  CASE(ProgramChange);
+  CASE(ProgramBank);
+  CASE(ChannelAftertouch);
+  CASE(PitchBend);
+  CASE(SysEx);
+  CASE(QuarterFrame);
+  CASE(SongPosition);
+  CASE(SongSelect);
+  CASE(TuneRequest);
+  CASE(TimingClock);
+  CASE(Start);
+  CASE(Continue);
+  CASE(Stop);
+  CASE(ActiveSensing);
+  CASE(Reset);
+#undef CASE
+  }
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Message &message) {
+  auto span = message.span();
+
+  os << message.status() << "[" << std::hex << std::uppercase;
+  if (!span.empty()) {
+    os << std::setw(2) << std::setfill('0') << (unsigned)span[0];
+    for (auto c : span.subspan(1)) {
+      os << " " << std::setw(2) << std::setfill('0') << (unsigned)c;
+    }
+  }
+  return os << std::dec << std::nouppercase << "]";
 }
 
 } // namespace a8::midi

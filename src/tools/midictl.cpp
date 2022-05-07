@@ -2,6 +2,7 @@
 #include "a8/midi/access.h"
 #include "a8/midi/port.h"
 
+#include <iomanip>
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -59,6 +60,11 @@ int a8main(int argc, char *argv[]) {
                 << "\nPress enter when done.\n";
 
       p->open();
+      p->onMIDIMessage(
+        [](Input *port, uint32_t time, const Message &message) {
+          std::cout << "Port " << port->name() << "(" << time << "): "
+            << message << "\n";
+        });
 
       getline(std::cin, line);
 

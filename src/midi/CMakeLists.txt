@@ -4,8 +4,13 @@ project(Autumn8Midi)
 # set(SOURCES_macOS coremidi.cpp)
 # set(SOURCES_iOS coremidi.cpp)
 # set(SOURCES_Android amidi.cpp androidmediamidi.cpp)
-set(SOURCES_Linux alsaseq.cpp)
-# set(SOURCES_Linux alsaseq.cpp alsaraw.cpp)
+set(SOURCES_Linux
+  alsaseq/access.cpp
+  alsaseq/alsaseq.cpp
+  alsaseq/input.cpp
+  alsaseq/output.cpp
+  alsaseq/port.cpp
+)
 # set(SOURCES_Emscripten webmidi.cpp)
 
 if(NOT SOURCES_${A8_PLATFORM})

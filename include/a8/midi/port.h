@@ -1,6 +1,8 @@
 #ifndef A8_MIDI_PORT_H_
 #define A8_MIDI_PORT_H_
 
+#include "message.h"
+
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -81,12 +83,18 @@ private:
 
 class Input : public virtual Port {
 public:
-  using message_type = void (uint32_t, size_t, const unsigned char *);
-  //using message_type = void (uint32_t, std::span<unsigned char>);
+  using message_type = void (Input *, uint32_t, const Message &);
 
   Type type() const noexcept override final;
 
-  void onMIDIMessage(std::function<message_type> listener);
+  void onMIDIMessage(std::function<message_type> listener) {
+    _listener = std::move(listener);
+  }
+
+protected:
+  void emit(uint32_t time, const Message &message) {
+    _listener(this, time, message);
+  }
 
 private:
   std::function<message_type> _listener;
@@ -96,7 +104,7 @@ class Output : public virtual Port {
 public:
   Type type() const noexcept override final;
 
-  virtual void send(std::span<unsigned char> data, uint32_t time = 0) = 0;
+  virtual void send(const Message &message, uint32_t time = 0) = 0;
 
   virtual void clear() = 0;
 };

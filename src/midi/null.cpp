@@ -50,8 +50,7 @@ public:
     : Port("null", "null", "null", "0")
   {}
 
-  void send(size_t length, const unsigned char *data, uint32_t time = 0)
-            override {}
+  void send(const Message &message, uint32_t time = 0) override {}
   void clear() override {}
 };
 
