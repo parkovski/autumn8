@@ -13,8 +13,13 @@ find_package(uriparser 0.9.2 REQUIRED COMPONENTS ${uriparser_COMPONENTS})
 
 find_package(uWebSockets)
 
-if(A8_BUILD_GUI AND A8_FLSTUDIO_PLATFORM)
-  find_package(fpsdk)
+if(A8_BUILD_GUI)
+  find_package(bgfx)
+  find_package(RmlUi)
+
+  if(A8_FLSTUDIO_PLATFORM)
+    find_package(fpsdk)
+  endif()
 endif()
 
 if(A8_BUILD_TESTS)

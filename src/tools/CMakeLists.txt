@@ -21,6 +21,7 @@ a8_app(midictl
 a8_app(minigfx
   minigfx.cpp
   TARGETS GUI
+  IF_DEPENDENCIES bgfx::bgfx
 )
 
 a8_app(play
