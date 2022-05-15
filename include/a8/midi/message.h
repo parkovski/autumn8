@@ -10,33 +10,6 @@
 
 namespace a8::midi {
 
-#if 0
-enum MessageKind {
-  ChannelVoice             =      0x1,
-    KeyValue               =      0x3,
-      NoteOnOff            =      0x7,
-        NoteOff            =      0xF,
-        NoteOn             =     0x17,
-      PolyphonicAftertouch =     0x23,
-      ControlChange        =     0x43,
-    ProgramChange          =     0x81,
-    ChannelAftertouch      =    0x101,
-    PitchBend              =    0x201,
-  TimeCodeQuarterFrame     =    0x400,
-  SongPositionPointer      =    0x800,
-  SongSelect               =   0x1000,
-  TuneRequest              =   0x2000,
-  RealTime                 =   0x4000,
-    TimingClock            =   0xC000,
-    Start                  =  0x14000,
-    Continue               =  0x24000,
-    Stop                   =  0x44000,
-    ActiveSensing          =  0x84000,
-    Reset                  = 0x104000,
-  SysEx                    = 0x200000,
-};
-#endif
-
 enum class Status : uint8_t {
   None                 = 0x00,
   NoteOff              = 0x80,
@@ -44,14 +17,14 @@ enum class Status : uint8_t {
   PolyphonicAftertouch = 0xA0,
   ControlChange        = 0xB0,
   ProgramChange        = 0xC0,
-  ProgramBank          = 0x0F, // FIXME
   ChannelAftertouch    = 0xD0,
   PitchBend            = 0xE0,
   SysEx                = 0xF0,
   QuarterFrame         = 0xF1,
   SongPosition         = 0xF2,
   SongSelect           = 0xF3,
-  TuneRequest          = 0xF4,
+  TuneRequest          = 0xF6,
+  EOX                  = 0xF7,
   TimingClock          = 0xF8,
   Start                = 0xFA,
   Continue             = 0xFB,
@@ -62,41 +35,89 @@ enum class Status : uint8_t {
 
 std::ostream &operator<<(std::ostream &os, Status status);
 
-inline uint8_t msbu(uint16_t u14) noexcept {
+constexpr inline bool message_has_channel(Status status) noexcept {
+  return status != Status::None && ((uint8_t)status & 0xF0) != 0xF0;
+}
+
+constexpr inline unsigned message_size(Status status) noexcept {
+  switch (status) {
+  default:                           return 0;
+  case Status::NoteOff:              return 3;
+  case Status::NoteOn:               return 3;
+  case Status::PolyphonicAftertouch: return 3;
+  case Status::ControlChange:        return 3;
+  case Status::ProgramChange:        return 2; // or ProgramBank: 4
+  case Status::ChannelAftertouch:    return 2;
+  case Status::PitchBend:            return 3;
+  case Status::SysEx:                return 0;
+  case Status::QuarterFrame:         return 2;
+  case Status::SongPosition:         return 3;
+  case Status::SongSelect:           return 2;
+  case Status::TuneRequest:          return 1;
+  case Status::EOX:                  return 0;
+  case Status::TimingClock:          return 1;
+  case Status::Start:                return 1;
+  case Status::Continue:             return 1;
+  case Status::Stop:                 return 1;
+  case Status::ActiveSensing:        return 1;
+  case Status::Reset:                return 1;
+  }
+}
+
+constexpr inline uint8_t msbu(uint16_t u14) noexcept {
   assert((u14 & 0xC000) == 0 && "Expected 14-bit number");
   return (uint8_t)(u14 >> 7);
 }
 
-inline uint8_t msbi(int16_t i14) noexcept {
+constexpr inline uint8_t msbi(int16_t i14) noexcept {
   return msbu((uint16_t)(i14 + 0x2000));
 }
 
-inline uint8_t lsbu(uint16_t u14) noexcept {
+constexpr inline uint8_t lsbu(uint16_t u14) noexcept {
   assert((u14 & 0xC000) == 0 && "Expected 14-bit number");
   return (uint8_t)(u14 & 0x7F);
 }
 
-inline uint8_t lsbi(int16_t i14) noexcept {
+constexpr inline uint8_t lsbi(int16_t i14) noexcept {
   return lsbu((uint16_t)(i14 + 0x2000));
 }
 
+constexpr inline uint16_t make_u14(uint8_t msb, uint8_t lsb) noexcept {
+  assert((msb & 0xF0) == 0 && "Expected 7-bit msb");
+  assert((lsb & 0xF0) == 0 && "Expected 7-bit lsb");
+  return (uint16_t)((uint16_t)(msb << 7) | lsb);
+}
+
+constexpr inline int16_t make_i14(uint8_t msb, uint8_t lsb) noexcept {
+  return (int16_t)make_u14(msb, lsb) - 0x2000;
+}
+
 struct Message {
-  explicit Message(Status status, uint8_t b0, uint8_t b1, uint8_t b2) noexcept
-    : _ptr{nullptr}, _bytes{(uint8_t)status, b0, b1, b2}
+private:
+  explicit Message(Status status, uint8_t ch, uint8_t b0, uint8_t b1,
+                   uint8_t b2) noexcept
+    : _ptr{nullptr},
+      _bytes{(uint8_t)status, b0, b1, b2}
+  {
+    if (message_has_channel(status)) {
+      assert(ch >= 1 && ch <= 16);
+      _bytes[0] |= (ch - 1);
+    }
+  }
+
+  explicit Message(Status status, uint8_t ch, uint8_t b0, uint8_t b1) noexcept
+    : Message(status, ch, b0, b1, 0)
   {}
 
-  explicit Message(Status status, uint8_t b0, uint8_t b1) noexcept
-    : Message(status, b0, b1, 0)
-  {}
-
-  explicit Message(Status status, uint8_t b0) noexcept
-    : Message(status, b0, 0, 0)
+  explicit Message(Status status, uint8_t ch, uint8_t b0) noexcept
+    : Message(status, ch, b0, 0, 0)
   {}
 
   explicit Message(Status status) noexcept
-    : Message(status, 0, 0, 0)
+    : Message(status, 0, 0, 0, 0)
   {}
 
+public:
   explicit Message(std::span<const uint8_t> data) noexcept
     : _ptr{data.data()}, _len{(uint32_t)data.size()}
   {}
@@ -123,10 +144,6 @@ struct Message {
   static Message ProgramChange(uint8_t channel, uint8_t program) noexcept
   { return Message(Status::ProgramChange, channel, program); }
 
-  static Message ProgramBank(uint8_t channel, uint8_t program, uint8_t msb,
-                             uint8_t lsb) noexcept
-  { return Message(Status::ProgramBank, channel, program); }
-
   static Message ChannelAftertouch(uint8_t channel, uint8_t value) noexcept
   { return Message(Status::ChannelAftertouch, channel, value); }
 
@@ -134,13 +151,13 @@ struct Message {
   { return Message(Status::PitchBend, channel, msbi(value), lsbi(value)); }
 
   static Message QuarterFrame(uint8_t type, uint8_t value) noexcept
-  { return Message(Status::QuarterFrame, type, value); }
+  { return Message(Status::QuarterFrame, 0, type, value); }
 
   static Message SongPosition(uint16_t value) noexcept
-  { return Message(Status::SongPosition, msbu(value), lsbu(value)); }
+  { return Message(Status::SongPosition, 0, msbu(value), lsbu(value)); }
 
   static Message SongSelect(uint8_t song) noexcept
-  { return Message(Status::SongSelect, song); }
+  { return Message(Status::SongSelect, 0, song); }
 
   static Message TuneRequest() noexcept
   { return Message(Status::TuneRequest); }
@@ -167,15 +184,30 @@ struct Message {
   { return Message(data); }
 
   Status status() const noexcept {
-    return _ptr ? Status::SysEx : (Status)_bytes[0];
+    uint8_t b = data()[0];
+    // MIDI status codes are either 1111NNNN or 1NNNCCCC,
+    // where N is part of the status byte and C is a channel.
+    if ((b & 0xF0) == 0xF0) {
+      return (Status)b;
+    }
+    return (Status)(b & 0xF0);
+  }
+
+  // Returns the message channel from 1 to 16, or 0 if the message has no
+  // channel.
+  uint8_t channel() const noexcept {
+    if (!message_has_channel(status())) {
+      return 0;
+    }
+    return (data()[0] & 0xF) + 1;
   }
 
   const uint8_t *data() const noexcept {
     return _ptr ? _ptr : _bytes;
   }
 
-  const uint32_t size() const noexcept {
-    return _ptr ? _len : 4;
+  const unsigned size() const noexcept {
+    return _ptr ? _len : message_size(status());
   }
 
   std::span<const uint8_t> span() const noexcept {

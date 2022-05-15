@@ -324,7 +324,6 @@ std::ostream &operator<<(std::ostream &os, Status status) {
   CASE(PolyphonicAftertouch);
   CASE(ControlChange);
   CASE(ProgramChange);
-  CASE(ProgramBank);
   CASE(ChannelAftertouch);
   CASE(PitchBend);
   CASE(SysEx);
@@ -344,16 +343,24 @@ std::ostream &operator<<(std::ostream &os, Status status) {
 }
 
 std::ostream &operator<<(std::ostream &os, const Message &message) {
-  auto span = message.span();
+  auto data = message.data();
+  auto size = message.size();
 
-  os << message.status() << "[" << std::hex << std::uppercase;
-  if (!span.empty()) {
-    os << std::setw(2) << std::setfill('0') << (unsigned)span[0];
-    for (auto c : span.subspan(1)) {
-      os << " " << std::setw(2) << std::setfill('0') << (unsigned)c;
+  os << message.status();
+  if (size > 1) {
+    os << "[";
+    if (auto ch = message.channel()) {
+      os << "Ch" << std::setw(2) << std::setfill('0') << (unsigned)ch << ": ";
     }
+
+    os << std::hex << std::uppercase;
+    os << std::setw(2) << std::setfill('0') << (unsigned)data[1];
+    for (unsigned i = 2; i < size; ++i) {
+      os << " " << std::setw(2) << std::setfill('0') << (unsigned)data[i];
+    }
+    os << std::dec << std::nouppercase << "]";
   }
-  return os << std::dec << std::nouppercase << "]";
+  return os;
 }
 
 } // namespace a8::midi

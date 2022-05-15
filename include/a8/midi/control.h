@@ -252,8 +252,6 @@ constexpr detail::defined_control_tag_t DefinedControls;
 // messages.
 constexpr detail::defined_control_and_channel_mode_tag_t
   DefinedControlsAndChannelModes;
-using detail::begin;
-using detail::end;
 
 enum class ChannelMode {
   AllSoundOff = 120,
@@ -265,11 +263,10 @@ enum class ChannelMode {
   MonoModeOn,
   PolyModeOn,
 };
-
-std::ostream &operator<<(std::ostream &os, ChannelMode mode);
-
 static_assert((uint8_t)ChannelMode::PolyModeOn == 127,
               "Channel mode number mismatch");
+
+std::ostream &operator<<(std::ostream &os, ChannelMode mode);
 
 struct rpnvalue_t {
   constexpr uint16_t value() const {
