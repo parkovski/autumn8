@@ -18,12 +18,6 @@ a8_app(midictl
   DEPENDENCIES a8midi
 )
 
-a8_app(minigfx
-  minigfx.cpp
-  TARGETS GUI
-  IF_DEPENDENCIES bgfx::bgfx
-)
-
 a8_app(play
   play/main.cpp
   TARGETS GUI

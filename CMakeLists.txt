@@ -75,4 +75,5 @@ endif()
 configure_file(
   ${CMAKE_SOURCE_DIR}/config.h.in
   ${CMAKE_BINARY_DIR}/config.h
+  @ONLY
 )
