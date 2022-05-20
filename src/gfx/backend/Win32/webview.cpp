@@ -34,7 +34,7 @@ static constexpr std::wstring_view RsrcDomain = L"appres.a8.parkovski.com";
 static constexpr std::string_view UserUriBase = "http://appusr.a8.parkovski.com";
 static constexpr std::wstring_view UserDomain = L"appusr.a8.parkovski.com";
 
-#define LOGHR(Msg, X) if (auto _hr_ = (X); FAILED(_hr_)) a8::Log::error(Msg ": 0x{:X}", (unsigned)_hr_)
+#define LOGHR(Msg, X) if (auto _hr_ = (X); FAILED(_hr_)) A8_ERROR(Msg ": 0x{:X}", (unsigned)_hr_)
 
 void WebView::initFinished() {
   using namespace std::string_view_literals;
@@ -48,7 +48,7 @@ void WebView::initFinished() {
         args->get_Request(&request);
         wchar_t *uri;
         request->get_Uri(&uri);
-        a8::Log::debug(L"Requested URI {}", uri);
+        A8_DEBUG(L"Requested URI {}", uri);
         wchar_t *uriDomain = nullptr;
         if (a8::starts_with(uri, L"http"sv)) {
           if (a8::starts_with(uri + 4, L"://"sv)) {
@@ -65,7 +65,7 @@ void WebView::initFinished() {
             // TODO: Look up the app's actual path or allow configuring this.
             std::wstring filepath{L"C:\\dev\\autumn8\\src\\tools"};
             filepath.append(uriDomain + RsrcDomain.length());
-            a8::Log::debug(L"File: {}", filepath);
+            A8_DEBUG(L"File: {}", filepath);
             IStream *stream;
             RETURN_IF_FAILED(
               SHCreateStreamOnFileEx(filepath.c_str(),
@@ -109,21 +109,21 @@ void WebView::initFinished() {
               }
 
               if (!_userCallback(this, wvreq, wvres)) {
-                a8::Log::debug("User response: false; 404 Not Found.");
+                A8_DEBUG("User response: false; 404 Not Found.");
                 wvres.status = 404;
                 wvres.reason = "Not Found";
                 wvres.content.clear();
                 wvres.headers.clear();
                 wvres.contentType.clear();
               } else {
-                a8::Log::debug("User response: {} {}; {}; {}B.",
-                               wvres.status, wvres.reason, wvres.contentType,
-                               wvres.content.size());
+                A8_DEBUG("User response: {} {}; {}; {}B.",
+                         wvres.status, wvres.reason, wvres.contentType,
+                         wvres.content.size());
               }
             } else {
               wvres.status = 501;
               wvres.reason = "Not Implemented";
-              a8::Log::debug("User response: null; 501 Not Implemented.");
+              A8_DEBUG("User response: null; 501 Not Implemented.");
             }
 
             std::wstring headers{L"Content-Type: "};
@@ -167,7 +167,7 @@ void WebView::navigate(std::string_view url) {
   to_utf16(urlw, url);
   auto result = _webView->Navigate(urlw.c_str());
   if (result != S_OK) {
-    a8::Log::error("WebView Navigate: 0x{:X}", (unsigned)result);
+    A8_ERROR("WebView Navigate: 0x{:X}", (unsigned)result);
   }
 }
 
@@ -180,7 +180,7 @@ std::string_view WebView::userUri() const noexcept {
 }
 
 void WebView::init(Window *window) {
-  Log::debug("WebView init");
+  A8_DEBUG("WebView init");
   auto hwnd = static_cast<HWND>(window->nativeHandle());
 
   /*std::wstring*/ const wchar_t *userDataFolder = nullptr;
@@ -188,8 +188,8 @@ void WebView::init(Window *window) {
     Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
       [this, hwnd](HRESULT result, ICoreWebView2Environment *env) -> HRESULT {
         if (FAILED(result)) {
-          Log::error("CreateCoreWebView2EnvironmentWithOptions: 0x{:X}.",
-                     result);
+          A8_ERROR("CreateCoreWebView2EnvironmentWithOptions: 0x{:X}.",
+                   result);
           return result;
         }
 
@@ -201,7 +201,7 @@ void WebView::init(Window *window) {
             [this, hwnd](HRESULT result, ICoreWebView2Controller *controller)
                         -> HRESULT {
               if (FAILED(result)) {
-                Log::error("CreateCoreWebView2Controller: 0x{:X}.", result);
+                A8_ERROR("CreateCoreWebView2Controller: 0x{:X}.", result);
                 return result;
               }
 
@@ -210,7 +210,7 @@ void WebView::init(Window *window) {
 
               result = controller->get_CoreWebView2(&this->_webView);
               if (FAILED(result)) {
-                Log::error("get_CoreWebView2: 0x{:X}", result);
+                A8_ERROR("get_CoreWebView2: 0x{:X}", result);
                 return result;
               }
 

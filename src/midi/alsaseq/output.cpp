@@ -52,9 +52,9 @@ void AlsaOutput::send(const Message &message, uint32_t time) {
 
   snd_seq_event_output(_seq, &ev);
 #endif
-  Log::error("MIDI send not implemented");
+  A8_ERROR("MIDI send not implemented");
 }
 
 void AlsaOutput::clear() {
-  Log::warn("MIDI queue not implemented");
+  A8_WARN("MIDI queue not implemented");
 }

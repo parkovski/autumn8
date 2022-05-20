@@ -15,7 +15,7 @@ int a8main(int argc, char *argv[]) {
   if (argc == 2) {
     auto backend = parseBackend(argv[1]);
     if (backend == Backend::Null) {
-      Log::error("Invalid backend {}", argv[1]);
+      A8_ERROR("Invalid backend {}", argv[1]);
       return 1;
     }
     access = Access::request(backend).get();
@@ -23,7 +23,7 @@ int a8main(int argc, char *argv[]) {
     access = Access::request().get();
   }
   if (!access) {
-    Log::critical("MIDI access denied.");
+    A8_CRITICAL("MIDI access denied.");
     return 1;
   }
 

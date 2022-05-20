@@ -144,16 +144,16 @@ int FLAPI FLSaw::ProcessParam(int index, int value, int recflags) {
     if (recflags & flag) return name;
     return "";
   };
-  Log::debug("ProcessParam({}, {}, 0x{:X} ={}{}{}{}{}{}{}{})",
-             index, value, recflags,
-             fn(REC_GetValue,      " GetValue"),
-             fn(REC_UpdateValue,   " UpdateValue"),
-             fn(REC_UpdateControl, " UpdateControl"),
-             fn(REC_InternalCtrl,  " InternalCtrl"),
-             fn(REC_FromMIDI,      " FromMIDI"),
-             fn(REC_NoLink,        " NoLink"),
-             fn(REC_PlugReserved,  " PlugReserved"),
-             fn(REC_ShowHint,      " ShowHint"));
+  A8_DEBUG("ProcessParam({}, {}, 0x{:X} ={}{}{}{}{}{}{}{})",
+           index, value, recflags,
+           fn(REC_GetValue,      " GetValue"),
+           fn(REC_UpdateValue,   " UpdateValue"),
+           fn(REC_UpdateControl, " UpdateControl"),
+           fn(REC_InternalCtrl,  " InternalCtrl"),
+           fn(REC_FromMIDI,      " FromMIDI"),
+           fn(REC_NoLink,        " NoLink"),
+           fn(REC_PlugReserved,  " PlugReserved"),
+           fn(REC_ShowHint,      " ShowHint"));
 
   if (recflags & REC_FromMIDI) {
     //value = _params[index];

@@ -8,7 +8,7 @@
 
 #pragma comment(lib, "mincore.lib")
 
-using a8::Log;
+using a8::Logger;
 using namespace a8::platform::Windows;
 using a8::to_utf8;
 
@@ -43,9 +43,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int nCmdShow) {
   }
   argv8[0] = buffer.data();
 
+  Logger::s_main_logger.load_from_command_line(argc, argv8.get());
   g_platformState.init(hInstance, nCmdShow);
-
-  Log log{argc, argv8.get()};
-
   return a8main(argc, argv8.get());
 }

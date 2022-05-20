@@ -30,13 +30,13 @@ namespace {
       auto ext = path.substr(dot + 1);
       auto it = dictionary.find(ext);
       if (it != dictionary.end()) {
-        a8::Log::trace("Mime type for .{} = {}", ext, it->second);
+        A8_TRACE("Mime type for .{} = {}", ext, it->second);
         return it->second;
       }
-      a8::Log::trace("Mime type for .{} = ???", ext);
+      A8_TRACE("Mime type for .{} = ???", ext);
     }
 
-    a8::Log::trace("Mime type for path {} defaulting to {}", pathsv, unknown);
+    A8_TRACE("Mime type for path {} defaulting to {}", pathsv, unknown);
     return unknown;
   }
 
@@ -65,7 +65,7 @@ namespace {
     if (!mimeType) {
       mimeType = getMimeTypeForPath(path.c_str());
     }
-    a8::Log::trace("Sending {} {}", mimeType, path);
+    A8_TRACE("Sending {} {}", mimeType, path);
     webkit_uri_scheme_request_finish(req, stream, -1, mimeType);
   }
 
@@ -106,8 +106,8 @@ void WebViewResponse::platformFinish() noexcept {
 #endif
   auto stream = g_memory_input_stream_new_from_data(
     content.data(), static_cast<gssize>(content.size()), nullptr);
-  Log::trace("webkit_uri_scheme_request_finish: size = {}, contentType = {}",
-             content.size(), _contentType);
+  A8_TRACE("webkit_uri_scheme_request_finish: size = {}, contentType = {}",
+           content.size(), _contentType);
   webkit_uri_scheme_request_finish(
     req, stream, static_cast<gint64>(content.size()), _contentType.c_str());
 }
@@ -192,7 +192,7 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
   auto webview = static_cast<WebView *>(data);
 
   auto uristr = webkit_uri_scheme_request_get_uri(req);
-  a8::Log::debug("WebKitURISchemeRequest {}", uristr);
+  A8_DEBUG("WebKitURISchemeRequest {}", uristr);
   Uri uri{uristr};
   if (!uri) {
     auto err = g_error_new(webkit_network_error_quark(),

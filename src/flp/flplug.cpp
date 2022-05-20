@@ -8,7 +8,7 @@
 
 #pragma comment(lib, "mincore.lib")
 
-using a8::Log;
+using a8::Logger;
 using namespace a8::flp;
 
 static struct A8FLPlugInfo {
@@ -23,15 +23,17 @@ static struct A8FLPlugInfo {
   bool loadModulePath() noexcept;
 } gs_PlugInfo;
 
-std::shared_ptr<spdlog::logger> Log::g_logger;
+//std::shared_ptr<spdlog::logger> Log::g_logger;
 
 extern "C" __declspec(dllexport)
 TFruityPlug * FLAPI
 CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
-  char x[sizeof(Log)];
-  new (x) Log(spdlog::basic_logger_mt("A8", "C:\\Users\\parker\\a8fl.txt"));
+  A8_SCOPE_EXIT { spdlog::drop_all(); }
+  Logger::s_main_logger.set(
+    spdlog::basic_logger_mt("A8", "C:\\Users\\parker\\a8fl.txt")
+  );
   spdlog::set_level(spdlog::level::trace);
-  spdlog::set_pattern(a8::Log::pattern_no_color_explicit);
+  spdlog::set_pattern(Logger::pattern_no_color_explicit);
   spdlog::flush_on(spdlog::level::trace);
 
   a8::platform::g_platformState.init(HInstance);
@@ -39,7 +41,7 @@ CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
   gs_PlugInfo.host = Host;
   gs_PlugInfo.hostTag = Tag;
   if (!gs_PlugInfo.loadModulePath()) {
-    Log::warn("Using temp dir '{}' as module path.", gs_PlugInfo.modulePath);
+    A8_WARN("Using temp dir '{}' as module path.", gs_PlugInfo.modulePath);
   }
 
   return FLPlugin::create(gs_PlugInfo.moduleName);
@@ -125,7 +127,7 @@ void FLPlugin::fillPlugInfo(int version, const char *name, int flags,
                             int params, int polyVoices, int outControls,
                             int outVoices) noexcept {
   if (gs_PlugInfo.fruityPlugInfo.ShortName) {
-    Log::warn("Plugin info already initialized");
+    A8_WARN("Plugin info already initialized");
   }
 
   assert(version > 0 &&
@@ -148,11 +150,11 @@ void FLPlugin::fillPlugInfo(int version, const char *name, int flags,
   if (!gs_PlugInfo.moduleName[0]) {
     // Something went wrong, just use the short name.
     gs_PlugInfo.fruityPlugInfo.LongName = const_cast<char *>(name);
-    Log::warn("Plugin '{}' long name missing; using short name.", name);
+    A8_WARN("Plugin '{}' long name missing; using short name.", name);
   } else {
     gs_PlugInfo.fruityPlugInfo.LongName = gs_PlugInfo.moduleName;
-    Log::debug("Plugin '{}' (module {}) info initialized.", name,
-               gs_PlugInfo.moduleName);
+    A8_DEBUG("Plugin '{}' (module {}) info initialized.", name,
+             gs_PlugInfo.moduleName);
   }
 }
 

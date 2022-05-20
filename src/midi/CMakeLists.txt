@@ -18,6 +18,7 @@ if(NOT SOURCES_${A8_PLATFORM})
 endif()
 
 add_library(a8midi STATIC common.cpp null.cpp ${SOURCES_${A8_PLATFORM}})
+target_compile_definitions(a8midi PRIVATE A8_MODULE_NAME="a8-midi")
 #if(A8_HAS_PIPEWIRE)
 #  target_sources(a8midi PRIVATE pipewire.cpp)
 #endif()

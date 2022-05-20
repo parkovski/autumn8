@@ -68,22 +68,22 @@ const char *const docFoot = R"(
 )";
 
 static void configureHttpServer(uWS::App &app, int wsPort) {
-  a8::Log::debug("configureHttpServer wsPort={}.", wsPort);
+  A8_DEBUG("configureHttpServer wsPort={}.", wsPort);
   std::stringstream docss;
   docss << docHead;
   docss << "    const wsUrl = 'ws://localhost:" << wsPort << "/ws';\n";
   docss << docFoot;
   app.get("/", [doc = docss.str()](auto *res, auto *req) {
-    a8::Log::debug("HTTP request. Doc size = {}.", doc.length());
+    A8_DEBUG("HTTP request. Doc size = {}.", doc.length());
     res->end(doc);
   });
 }
 
 static void configureWebSocketServer(uWS::App &app) {
-  a8::Log::debug("configureWebSocketServer.");
+  A8_DEBUG("configureWebSocketServer.");
   uWS::App::WebSocketBehavior<int> behavior;
   behavior.open = [](auto *ws) {
-    a8::Log::debug("WebSocket open");
+    A8_DEBUG("WebSocket open");
   };
   behavior.message = [](auto *ws, std::string_view msg, uWS::OpCode op) {
     const char *opName;
@@ -98,11 +98,11 @@ static void configureWebSocketServer(uWS::App &app) {
       case uWS::OpCode::PONG: opName = "PONG"; break;
       default: opName = "unknown"; break;
     }
-    a8::Log::debug("WebSocket message ({}): {}", opName, msg);
+    A8_DEBUG("WebSocket message ({}): {}", opName, msg);
   };
   behavior.close = [](auto *ws, int code, std::string_view reason) {
-    a8::Log::debug("WebSocket close ({}){}{}", code,
-                   reason.length() ? ": " : "", reason);
+    A8_DEBUG("WebSocket close ({}){}{}", code,
+             reason.length() ? ": " : "", reason);
   };
 
   app.ws("/ws", std::move(behavior));
@@ -112,7 +112,7 @@ static void configureListener(uWS::App &app, int port, uWS::Loop **loop,
                               us_listen_socket_t **listenSocket,
                               std::mutex &mutex,
                               std::condition_variable &cond) {
-  a8::Log::debug("configureListener port={}.", port);
+  A8_DEBUG("configureListener port={}.", port);
   *loop = nullptr;
   app.listen(port, [=, &mutex, &cond](auto *socket) {
     if ((*listenSocket = socket)) {
@@ -136,15 +136,15 @@ static std::thread server(int wsPort, int devPort, uWS::Loop **loop,
     if (!devPort) {
       configureHttpServer(app, wsPort);
     } else {
-      a8::Log::debug("Using external dev server on port {}.", devPort);
+      A8_DEBUG("Using external dev server on port {}.", devPort);
     }
     configureWebSocketServer(app);
     configureListener(app, wsPort, loop, socket, mutex, cond);
-    a8::Log::debug("Starting uWS app.");
+    A8_DEBUG("Starting uWS app.");
     app.run();
   }};
   cond.wait(lock);
-  a8::Log::debug("uWS app initialization finished.");
+  A8_DEBUG("uWS app initialization finished.");
   return thread;
 }
 
@@ -190,7 +190,7 @@ int a8main(int argc, char *argv[]) {
       char *endp;
       devPort = (int)strtol(pport, &endp, 10);
       if (devPort <= 0 || *endp != 0) {
-        a8::Log::error("Invalid port: '{}'.", pport);
+        A8_ERROR("Invalid port: '{}'.", pport);
         return 1;
       }
       continue;
@@ -202,7 +202,7 @@ int a8main(int argc, char *argv[]) {
       char *endp;
       port = (int)strtol(pport, &endp, 10);
       if (port <= 0 || *endp != 0) {
-        a8::Log::error("Invalid port: '{}'.", pport);
+        A8_ERROR("Invalid port: '{}'.", pport);
         return 1;
       }
     }
@@ -222,10 +222,10 @@ int a8main(int argc, char *argv[]) {
   us_listen_socket_t *socket;
   auto serverThread = server(port, devPort, &loop, &socket);
   if (!socket) {
-    a8::Log::error("Server creation failed.");
+    A8_ERROR("Server creation failed.");
     return 1;
   }
-  a8::Log::info("Listening on port {}.", port);
+  A8_INFO("Listening on port {}.", port);
 
   Window *mainWindow = new Window("UWS Server");
   mainWindow->resize(0, 0, 500, 500);
@@ -237,9 +237,9 @@ int a8main(int argc, char *argv[]) {
   mainWindow->show();
 
   auto x = runMessageLoop();
-  a8::Log::debug("Message loop returned {}.", x);
+  A8_DEBUG("Message loop returned {}.", x);
   loop->defer([socket](){ us_listen_socket_close(0, socket); });
   serverThread.join();
-  a8::Log::debug("Server thread finished.");
+  A8_DEBUG("Server thread finished.");
   return x;
 }

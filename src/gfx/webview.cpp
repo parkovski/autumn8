@@ -97,19 +97,19 @@ WebViewResponse::header(std::string_view key, std::string_view value) {
 void WebViewResponse::beginWrite() noexcept {
   switch (_state) {
     case WroteNone:
-      Log::debug("WebViewResponse - default status 200 OK");
+      A8_DEBUG("WebViewResponse - default status 200 OK");
       _status = 200;
       _reason = http::HTTP_200_OK.second;
       [[fallthrough]];
     case WroteStatus:
       if (_contentType.empty()) {
-        Log::debug("WebViewResponse - default content type text/plain");
+        A8_DEBUG("WebViewResponse - default content type text/plain");
         _contentType = "text/plain";
       }
       _state = WroteContentPartial;
       break;
     default:
-      Log::error("WebViewResponse::beginWrite called twice");
+      A8_ERROR("WebViewResponse::beginWrite called twice");
       break;
   }
 }
@@ -117,14 +117,14 @@ void WebViewResponse::beginWrite() noexcept {
 void WebViewResponse::finish() noexcept {
   switch (_state) {
     case WroteNone:
-      Log::debug("WebViewResponse - default status 204 No Content");
+      A8_DEBUG("WebViewResponse - default status 204 No Content");
       _status = 204;
       _reason = http::HTTP_204_No_Content.second;
       [[fallthrough]];
     case WroteStatus:
       if (_status == 200) {
-        Log::warn("WebViewResponse - status is 200 OK but no content given."
-                  " Recommend 204 No Content.");
+        A8_WARN("WebViewResponse - status is 200 OK but no content given."
+                " Recommend 204 No Content.");
       }
       _contentLength = 0;
       [[fallthrough]];
@@ -132,8 +132,8 @@ void WebViewResponse::finish() noexcept {
       size_t writeSize = streamWriteSize(this->_buffer);
       if (_contentLength != ContentLengthUnknown &&
           writeSize < _contentLength) {
-        Log::error("WebViewResponse closed but {} declared bytes not written",
-                   _contentLength - writeSize);
+        A8_ERROR("WebViewResponse closed but {} declared bytes not written",
+                 _contentLength - writeSize);
         for (size_t i = 0; i < _contentLength - writeSize; ++i) {
           *this << '\0';
         }
@@ -158,8 +158,8 @@ bool WebView::callUserCallback(const WebViewRequest &req, WebViewResponse &res)
     _userCallback(req, res);
     return true;
   } catch (std::exception &e) {
-    Log::error("WebView request for {} threw exception: {}",
-               req.uri().path().str(), e.what());
+    A8_ERROR("WebView request for {} threw exception: {}",
+             req.uri().path().str(), e.what());
     return false;
   }
 }

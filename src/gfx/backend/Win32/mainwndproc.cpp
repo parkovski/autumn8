@@ -25,20 +25,20 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
   switch (msg) {
   case WM_NCCREATE: {
-    Log::trace("WM_NCCREATE");
+    A8_TRACE("WM_NCCREATE");
     auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
     window = reinterpret_cast<Window *>(createStruct->lpCreateParams);
     window->_nativeHandle = hWnd;
     window->_eventThread = std::thread{[window]() {
       auto result = window->processEvents();
-      Log::debug("Event thread returned {}.", result);
+      A8_DEBUG("Event thread returned {}.", result);
     }};
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
   }
     return true;
 
   case WM_CREATE: {
-    Log::trace("WM_CREATE");
+    A8_TRACE("WM_CREATE");
     auto *createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
     float scale = GetDpiForWindow(hWnd) / (float)USER_DEFAULT_SCREEN_DPI;
     window->_scale = scale;
@@ -63,19 +63,19 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     return 0;
 
   case WM_CLOSE:
-    Log::trace("WM_CLOSE");
+    A8_TRACE("WM_CLOSE");
     window->postEvent(SystemEvent::Close);
     return 0;
 
   case WM_USER:
     switch (wParam) {
       case A8M_ASYNCDESTROY:
-        Log::trace("A8M_ASYNCDESTROY");
+        A8_TRACE("A8M_ASYNCDESTROY");
         DestroyWindow(hWnd);
         break;
 
       case A8M_EXECONMSGTHREAD: {
-        Log::trace("A8M_EXECONMSGTHREAD");
+        A8_TRACE("A8M_EXECONMSGTHREAD");
         auto f = *(void (**)(void *data))lParam;
         void *data = ((void **)lParam)[1];
         f(data);
@@ -85,7 +85,7 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     return 0;
 
   case WM_DESTROY: {
-    Log::trace("WM_DESTROY");
+    A8_TRACE("WM_DESTROY");
     // TODO: OMG
     if (window->_view) {
       delete window->_view;
@@ -96,7 +96,7 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
   }
 
   case WM_NCDESTROY: {
-    Log::trace("WM_NCDESTROY");
+    A8_TRACE("WM_NCDESTROY");
     if (window->_quitOnClose) {
       PostQuitMessage(0);
     }
@@ -119,7 +119,7 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
   case WM_SIZE: {
     RawSize size{(int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam)};
-    //Log::debug("WM_SIZE; wParam = 0x{:X}", wParam);
+    //A8_DEBUG("WM_SIZE; wParam = 0x{:X}", wParam);
     switch (wParam) {
     case SIZE_MINIMIZED:
       window->postEvent(SystemEvent::Minimize);
@@ -171,7 +171,7 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       side = Anchor::None;
       break;
     }
-    //Log::trace("WM_SIZING {}", side);
+    //A8_TRACE("WM_SIZING {}", side);
 
     RECT *rc = reinterpret_cast<RECT *>(lParam);
     auto size = toSize(rc) - getNonClientBorders(hWnd);
@@ -186,11 +186,11 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     return true;
 
   case WM_ENTERSIZEMOVE:
-    Log::trace("WM_ENTERSIZEMOVE");
+    A8_TRACE("WM_ENTERSIZEMOVE");
     break;
 
   case WM_EXITSIZEMOVE:
-    Log::trace("WM_EXITSIZEMOVE");
+    A8_TRACE("WM_EXITSIZEMOVE");
     break;
 
   /*case WM_WINDOWPOSCHANGING: {
@@ -201,8 +201,8 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     if (size.width > 0 && size.height > 0) {
       size -= borderSize;
     }
-    Log::trace("WM_WINDOWPOSCHANGING: {}, {} : {}x{}, flags=0x{:X}",
-               pos->x, pos->y, pos->cx, pos->cy, pos->flags);
+    A8_TRACE("WM_WINDOWPOSCHANGING: {}, {} : {}x{}, flags=0x{:X}",
+             pos->x, pos->y, pos->cx, pos->cy, pos->flags);
     switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
     case 0:
       window->postEvents(RawSizingEvent{size, Anchor::None}, RawMovingEvent{point});
@@ -225,40 +225,40 @@ a8::platform::Windows::mainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
       RawSize{pos->cx, pos->cy} - getNonClientBorders(hWnd)
     };
     const RawPoint point{pos->x, pos->y};
-    Log::trace("WM_WINDOWPOSCHANGED: {}, {} : {}x{}; flags=0x{:X}",
-               pos->x, pos->y, pos->cx, pos->cy, pos->flags);
+    A8_TRACE("WM_WINDOWPOSCHANGED: {}, {} : {}x{}; flags=0x{:X}",
+             pos->x, pos->y, pos->cx, pos->cy, pos->flags);
     switch (pos->flags & (SWP_NOMOVE | SWP_NOSIZE)) {
     case 0:
       window->postEvents(RawResizeEvent{size}, RawMovingEvent{point});
       break;
     case SWP_NOMOVE:
-      //Log::trace("WindowPos: {}, {}", pos->cx, pos->cy);
+      //A8_TRACE("WindowPos: {}, {}", pos->cx, pos->cy);
       window->postEvents(RawResizeEvent{size});
       break;
     case SWP_NOSIZE:
-      //Log::trace("WindowPos: {}x{}", pos->x, pos->y);
+      //A8_TRACE("WindowPos: {}x{}", pos->x, pos->y);
       window->postEvent(RawMovingEvent{point});
       break;
     default:
-      //Log::trace("WindowPos");
+      //A8_TRACE("WindowPos");
       break;
     }
   }
     return 0;*/
 
   case WM_SETFOCUS:
-    Log::trace("WM_SETFOCUS");
+    A8_TRACE("WM_SETFOCUS");
     window->postEvent(SystemEvent::Focus);
     break;
 
   case WM_KILLFOCUS:
-    Log::trace("WM_KILLFOCUS");
+    A8_TRACE("WM_KILLFOCUS");
     window->postEvent(SystemEvent::Unfocus);
     break;
 
   case WM_DPICHANGED: {
     window->_scale = LOWORD(wParam) / (float)USER_DEFAULT_SCREEN_DPI;
-    Log::trace("WM_DPICHANGED: {}", window->_scale);
+    A8_TRACE("WM_DPICHANGED: {}", window->_scale);
     auto rect = reinterpret_cast<LPRECT>(lParam);
     auto x = rect->left;
     auto y = rect->top;

@@ -8,7 +8,7 @@
 #include <catch2/catch_all.hpp>
 
 int main(int argc, char *argv[]) {
-  a8::Log log(spdlog::stderr_color_mt("Autumn8"));
+  a8::Logger::s_main_logger.set(spdlog::stderr_color_mt(A8_MODULE_NAME));
 
   // Use --spdlog=n (reverse of level values):
   // 0=off

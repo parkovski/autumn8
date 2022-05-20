@@ -37,7 +37,7 @@ void PlatformState::gfxinit() noexcept {
   cls.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
 
   if (!RegisterClassEx(&cls)) {
-    Log::error("RegisterClassEx failed.");
+    A8_ERROR("RegisterClassEx failed.");
   }
 
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -46,7 +46,7 @@ void PlatformState::gfxinit() noexcept {
 void PlatformState::gfxdeinit() const noexcept {
   CoUninitialize();
   if (!UnregisterClass(A8WindowClass, hInstance)) {
-    Log::warn("UnregisterClass failed.");
+    A8_WARN("UnregisterClass failed.");
   }
 }
 

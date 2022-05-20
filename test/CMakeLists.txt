@@ -7,6 +7,7 @@ set(SOURCES
 )
 
 add_executable(test ${SOURCES})
+target_compile_definitions(test PRIVATE A8_MODULE_NAME="a8-test")
 
 target_link_libraries(test
   Catch2::Catch2

@@ -1,5 +1,7 @@
 project(Autumn8Tools)
 
+add_compile_definitions(A8_MODULE_NAME="app")
+
 a8_app(browser
   browser/browser.cpp
   TARGETS GUI

@@ -22,6 +22,7 @@ set(SOURCES_Gtk
 )
 
 add_library(a8gfx STATIC ${SOURCES} ${SOURCES_${A8_GFXBACKEND}})
+target_compile_definitions(a8gfx PRIVATE A8_MODULE_NAME="a8-gfx")
 target_compile_definitions(a8gfx PUBLIC A8_HAS_GUI)
 target_link_libraries(a8gfx PUBLIC
   a8util

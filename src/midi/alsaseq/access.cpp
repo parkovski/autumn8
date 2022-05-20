@@ -68,23 +68,22 @@ void AlsaAccess::isInOutPort(snd_seq_client_info_t *ci,
   int clientId = snd_seq_client_info_get_client(ci);
 
   if (clientId == _clientId) {
-    Log::trace("Skip own MIDI port {}: {} ({}:{}) [{}; {}]", clientName,
-               name, clientId, portId, AlsaPortCaps{cap},
-               AlsaPortType{type});
+    A8_TRACE("Skip own MIDI port {}: {} ({}:{}) [{}; {}]", clientName,
+             name, clientId, portId, AlsaPortCaps{cap}, AlsaPortType{type});
     input = output = false;
     return;
   }
   if (!(type & SND_SEQ_PORT_TYPE_MIDI_GENERIC)) {
-    Log::trace("Skip non-MIDI_GENERIC port {}: {} ({}:{}) [{}; {}]",
-               clientName, name, clientId, portId, AlsaPortCaps{cap},
-               AlsaPortType{type});
+    A8_TRACE("Skip non-MIDI_GENERIC port {}: {} ({}:{}) [{}; {}]",
+             clientName, name, clientId, portId, AlsaPortCaps{cap},
+             AlsaPortType{type});
     input = output = false;
     return;
   }
   if (!(cap & (PortCapInput | PortCapOutput))) {
-    Log::trace("Skip non-read/write MIDI port {}: {} ({}:{}) [{}; {}]",
-               clientName, name, clientId, portId, AlsaPortCaps{cap},
-               AlsaPortType{type});
+    A8_TRACE("Skip non-read/write MIDI port {}: {} ({}:{}) [{}; {}]",
+             clientName, name, clientId, portId, AlsaPortCaps{cap},
+             AlsaPortType{type});
     input = output = false;
     return;
   }
@@ -93,27 +92,27 @@ void AlsaAccess::isInOutPort(snd_seq_client_info_t *ci,
   output = (cap & PortCapOutput) != 0;
 
   if (input | output) {
-    Log::trace("MIDI {} port {}: {} ({}:{}) [{}; {}]",
-               input ? output ? "in/out" : "in" : "out", clientName, name,
-               clientId, portId, AlsaPortCaps{cap}, AlsaPortType{type});
+    A8_TRACE("MIDI {} port {}: {} ({}:{}) [{}; {}]",
+             input ? output ? "in/out" : "in" : "out", clientName, name,
+             clientId, portId, AlsaPortCaps{cap}, AlsaPortType{type});
   }
 }
 
 bool AlsaAccess::internalEvent(snd_seq_event_t *ev) noexcept {
   if (!memcmp(ev->data.raw8.d, ShutdownCmd, CmdLength)) {
-    Log::trace("MIDI event loop shutdown");
+    A8_TRACE("MIDI event loop shutdown");
     return false;
   } else {
     char data[CmdLength + 1];
     memcpy(data, ev->data.raw8.d, CmdLength);
     data[CmdLength] = 0;
-    Log::warn("Unknown internal MIDI event '{}'.", data);
+    A8_WARN("Unknown internal MIDI event '{}'.", data);
   }
   return true;
 }
 
 void AlsaAccess::inputPortEvent(snd_seq_event_t *ev) noexcept {
-  Log::debug("Input port event {}", ev->type);
+  A8_DEBUG("Input port event {}", ev->type);
 }
 
 void AlsaAccess::announcePortEvent(snd_seq_event_t *ev) noexcept {
@@ -124,8 +123,8 @@ void AlsaAccess::announcePortEvent(snd_seq_event_t *ev) noexcept {
 
   switch (ev->type) {
     case SND_SEQ_EVENT_PORT_START: {
-      Log::debug("MIDI port start {} ({}):{}", name, ev->data.addr.client,
-                 ev->data.addr.port);
+      A8_DEBUG("MIDI port start {} ({}):{}", name, ev->data.addr.client,
+               ev->data.addr.port);
 
       snd_seq_port_info_t *pi;
       snd_seq_port_info_alloca(&pi);
@@ -148,29 +147,29 @@ void AlsaAccess::announcePortEvent(snd_seq_event_t *ev) noexcept {
 
     case SND_SEQ_EVENT_PORT_EXIT:
       // TODO Remove port from maps.
-      Log::debug("MIDI port exit {} ({}):{}", name, ev->data.addr.client,
-                 ev->data.addr.port);
+      A8_DEBUG("MIDI port exit {} ({}):{}", name, ev->data.addr.client,
+               ev->data.addr.port);
       break;
 
     case SND_SEQ_EVENT_CLIENT_START:
-      Log::debug("MIDI client start {} ({})", name, ev->data.addr.client);
+      A8_DEBUG("MIDI client start {} ({})", name, ev->data.addr.client);
       break;
 
     case SND_SEQ_EVENT_CLIENT_EXIT:
       // TODO Remove all client ports from maps.
-      Log::debug("MIDI client exit {} ({})", name, ev->data.addr.client);
+      A8_DEBUG("MIDI client exit {} ({})", name, ev->data.addr.client);
       break;
 
     case SND_SEQ_EVENT_PORT_SUBSCRIBED:
-      Log::debug("Port subscribed {}:{} -> {}:{}",
-                 ev->data.connect.sender.client, ev->data.connect.sender.port,
-                 ev->data.connect.dest.client, ev->data.connect.dest.port);
+      A8_DEBUG("Port subscribed {}:{} -> {}:{}",
+               ev->data.connect.sender.client, ev->data.connect.sender.port,
+               ev->data.connect.dest.client, ev->data.connect.dest.port);
       break;
 
     case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
-      Log::debug("Port unsubscribed {}:{} -> {}:{}",
-                 ev->data.connect.sender.client, ev->data.connect.sender.port,
-                 ev->data.connect.dest.client, ev->data.connect.dest.port);
+      A8_DEBUG("Port unsubscribed {}:{} -> {}:{}",
+               ev->data.connect.sender.client, ev->data.connect.sender.port,
+               ev->data.connect.dest.client, ev->data.connect.dest.port);
       break;
   }
 }
@@ -188,15 +187,15 @@ void AlsaAccess::generalEvent(snd_seq_event_t *ev) noexcept {
     auto [lock, inputs] = inputsRead();
     auto it = inputs.find(portId);
     if (it == inputs.end()) {
-      Log::trace("Ignore input port event {} for {}", AlsaEventType{ev->type},
-                 portId);
+      A8_TRACE("Ignore input port event {} for {}", AlsaEventType{ev->type},
+               portId);
       return;
     }
     port = it->second;
   }
 
-  Log::debug("Input port event {} for {} ({})", AlsaEventType{ev->type},
-             port->name(), portId);
+  A8_DEBUG("Input port event {} for {} ({})", AlsaEventType{ev->type},
+           port->name(), portId);
 
   std::static_pointer_cast<AlsaInput>(port)
     ->emit(ev->time.tick, to_message(*ev));
@@ -213,10 +212,10 @@ void AlsaAccess::eventLoop() noexcept {
     int err = poll(pollfds, (nfds_t)pollDescriptors, -1);
     if (err == -1) {
       if (errno == EINTR) {
-        Log::warn("MIDI event loop EINTR");
+        A8_WARN("MIDI event loop EINTR");
         return;
       } else {
-        Log::error("MIDI event loop poll failed: {}", strerror(errno));
+        A8_ERROR("MIDI event loop poll failed: {}", strerror(errno));
         return;
       }
     }
@@ -227,12 +226,12 @@ void AlsaAccess::eventLoop() noexcept {
       err = snd_seq_event_input(_seq, &ev);
       pending = snd_seq_event_input_pending(_seq, 0) > 0;
       if (err == -ENOSPC) {
-        Log::warn("MIDI event loop ENOSPC");
+        A8_WARN("MIDI event loop ENOSPC");
       } else if (err == -EAGAIN) {
-        Log::warn("MIDI event loop EAGAIN");
+        A8_WARN("MIDI event loop EAGAIN");
         break;
       } else if (err < 0) {
-        Log::error("MIDI event loop: {}", strerror(-err));
+        A8_ERROR("MIDI event loop: {}", strerror(-err));
         return;
       } else if (ev->source.client == _clientId &&
                  ev->source.port == _inputPortId) {
@@ -265,7 +264,7 @@ AlsaAccess::AlsaAccess(Options options, snd_seq_t *seq, unsigned char clientId,
 }
 
 AlsaAccess::~AlsaAccess() {
-  Log::debug("AlsaAccess::~AlsaAccess()");
+  A8_DEBUG("AlsaAccess::~AlsaAccess()");
 
   snd_seq_event_t ev;
   snd_seq_ev_clear(&ev);
@@ -274,11 +273,11 @@ AlsaAccess::~AlsaAccess() {
   snd_seq_ev_set_direct(&ev);
   ev.type = SND_SEQ_EVENT_USR0;
   memcpy(ev.data.raw8.d, ShutdownCmd, CmdLength);
-  Log::debug("MIDI event loop shutdown.");
+  A8_DEBUG("MIDI event loop shutdown.");
   snd_seq_event_output_direct(_seq, &ev);
-  Log::debug("MIDI event thread join.");
+  A8_DEBUG("MIDI event thread join.");
   _eventLoopThread.join();
-  Log::debug("snd_seq_close");
+  A8_DEBUG("snd_seq_close");
   snd_seq_close(_seq);
 }
 
@@ -302,7 +301,7 @@ void AlsaAccess::create(std::promise<std::shared_ptr<Access>> promise,
 
   err = snd_seq_open(&seq, "default", SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
   if (err != 0) {
-    Log::error("snd_seq_open failed with error {}", snd_strerror(-err));
+    A8_ERROR("snd_seq_open failed with error {}", snd_strerror(-err));
     return;
   }
 
@@ -316,13 +315,13 @@ void AlsaAccess::create(std::promise<std::shared_ptr<Access>> promise,
     SND_SEQ_PORT_TYPE_MIDI_GENERIC | SND_SEQ_PORT_TYPE_APPLICATION);
   if (inputPortId < 0) {
     err = inputPortId;
-    Log::error("snd_seq_create_simple_port failed: {}", snd_strerror(-err));
+    A8_ERROR("snd_seq_create_simple_port failed: {}", snd_strerror(-err));
     return;
   }
 
   err = subscribeToAnnouncePort(seq, clientId, inputPortId);
   if (err != 0) {
-    Log::error("Subscribe to announce port failed: {}", snd_strerror(-err));
+    A8_ERROR("Subscribe to announce port failed: {}", snd_strerror(-err));
     return;
   }
 

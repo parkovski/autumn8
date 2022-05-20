@@ -1,11 +1,12 @@
-#include "a8/util/log.h"
+#include "a8/a8.h"
+//#include "a8/util/log.h"
 
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-using a8::Log;
+using a8::Logger;
 
-std::shared_ptr<spdlog::logger> Log::g_logger;
+Logger Logger::s_main_logger;
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -47,15 +48,52 @@ static void getTermCaps(bool &vt, bool &ttyout, bool &ttyerr) {
 
 #endif // _WIN32
 
-Log::Log(int argc, char *argv[]) {
+void Logger::load_main_logger() {
   bool vt, ttyout, ttyerr;
   getTermCaps(vt, ttyout, ttyerr);
 
+  spdlog::color_mode color_mode = spdlog::color_mode::automatic;
   std::string pattern;
   if (ttyerr && vt) {
     pattern = pattern_color;
+    color_mode = spdlog::color_mode::always;
   } else {
     pattern = pattern_no_color;
+    color_mode = spdlog::color_mode::never;
+  }
+
+  spdlog::level::level_enum level =
+#ifdef NDEBUG
+    spdlog::level::warn
+#else
+    spdlog::level::trace
+#endif
+    ;
+
+  spdlog::set_pattern(std::move(pattern));
+  spdlog::set_level(level);
+
+  s_main_logger._logger =
+    spdlog::stderr_color_mt(std::move(s_main_logger._name));
+  A8_INFO("Hello from A8 😀");
+}
+
+void Logger::load_from_command_line(int argc, char *argv[]) {
+  if (_logger) {
+    return;
+  }
+
+  bool vt, ttyout, ttyerr;
+  getTermCaps(vt, ttyout, ttyerr);
+
+  spdlog::color_mode color_mode = spdlog::color_mode::automatic;
+  std::string pattern;
+  if (ttyerr && vt) {
+    pattern = pattern_color;
+    color_mode = spdlog::color_mode::always;
+  } else {
+    pattern = pattern_no_color;
+    color_mode = spdlog::color_mode::never;
   }
 
   spdlog::level::level_enum level =
@@ -140,12 +178,16 @@ Log::Log(int argc, char *argv[]) {
       pattern = argv[++i];
       if (pattern == "no-color") {
         pattern = pattern_no_color;
+        color_mode = spdlog::color_mode::never;
       } else if (pattern == "color") {
         pattern = pattern_color;
+        color_mode = spdlog::color_mode::always;
       } else if (pattern == "no-color-explicit") {
         pattern = pattern_no_color_explicit;
+        color_mode = spdlog::color_mode::never;
       } else if (pattern == "color-explicit") {
         pattern = pattern_color_explicit;
+        color_mode = spdlog::color_mode::always;
       } else if (pattern.find("%v") == std::string::npos) {
         pattern += " %v";
       }
@@ -154,10 +196,6 @@ Log::Log(int argc, char *argv[]) {
 
   spdlog::set_pattern(std::move(pattern));
   spdlog::set_level(level);
-  if (ttyerr) {
-    g_logger = spdlog::stderr_color_mt("Autumn8");
-  } else {
-    g_logger = spdlog::stderr_logger_mt("Autumn8");
-  }
-  g_logger->debug("Hello from A8 😀");
+  _logger = spdlog::stderr_color_mt(std::move(_name), color_mode);
+  A8_INFO("Hello from A8 😀");
 }

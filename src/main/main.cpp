@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
 #endif // defined(_WIN32)
 
-  a8::Log log{argc, argv};
+  a8::Logger::s_main_logger.load_from_command_line(argc, argv);
   g_platformState.init(argc, argv);
   return a8main(argc, argv);
 }

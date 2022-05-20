@@ -1,6 +1,7 @@
 project(Autumn8Main)
 
 add_library(a8main STATIC main.cpp platform/${A8_PLATFORM}.cpp)
+target_compile_definitions(a8main PRIVATE A8_MODULE_NAME="a8-main")
 # Logger
 target_link_libraries(a8main PUBLIC a8util)
 
@@ -30,5 +31,6 @@ else()
   add_library(a8gfxmain STATIC main.cpp platform/${A8_PLATFORM}.cpp)
 endif()
 
+target_compile_definitions(a8gfxmain PRIVATE A8_MODULE_NAME="a8-main")
 target_compile_definitions(a8gfxmain PUBLIC A8_HAS_GUI)
 target_link_libraries(a8gfxmain PUBLIC a8util a8gfx)
