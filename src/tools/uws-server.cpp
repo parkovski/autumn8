@@ -5,8 +5,8 @@
 
 A8_PRAGMA_MS(warning(push))
 A8_PRAGMA_MS(warning(disable: 4244))
-#include <uwebsockets/App.h>
-#include <uwebsockets/WebSocket.h>
+#include <uWebSockets/App.h>
+#include <uWebSockets/WebSocket.h>
 A8_PRAGMA_MS(warning(pop))
 
 #include <thread>

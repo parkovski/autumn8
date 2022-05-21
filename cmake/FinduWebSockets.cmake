@@ -1,4 +1,4 @@
-find_path(uWebSockets_INCLUDE_DIR uwebsockets/App.h)
+find_path(uWebSockets_INCLUDE_DIR uWebSockets/App.h)
 find_path(uSockets_INCLUDE_DIR libusockets.h HINTS ${uWebSockets_INCLUDE_DIR})
 find_library(uSockets_LIBRARY NAMES uSockets)
 
