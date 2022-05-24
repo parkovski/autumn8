@@ -77,33 +77,33 @@ std::ostream &operator<<(std::ostream &os, AlsaEventType type) {
 Message to_message(const snd_seq_event_t &ev) {
   switch (ev.type) {
   case SND_SEQ_EVENT_NOTEON:
-    return Message::NoteOn(ev.data.note.channel, ev.data.note.note,
+    return Message::NoteOn(ev.data.note.channel + 1, ev.data.note.note,
                            ev.data.note.velocity);
 
   case SND_SEQ_EVENT_NOTEOFF:
-    return Message::NoteOff(ev.data.note.channel, ev.data.note.note,
+    return Message::NoteOff(ev.data.note.channel + 1, ev.data.note.note,
                             ev.data.note.velocity);
 
   case SND_SEQ_EVENT_KEYPRESS:
-    return Message::PolyphonicAftertouch(ev.data.note.channel,
+    return Message::PolyphonicAftertouch(ev.data.note.channel + 1,
                                          ev.data.note.note,
                                          ev.data.note.velocity);
 
   case SND_SEQ_EVENT_CONTROLLER:
-    return Message::ControlChange(ev.data.control.channel,
+    return Message::ControlChange(ev.data.control.channel + 1,
                                   ev.data.control.param,
                                   (uint8_t)ev.data.control.value);
 
   case SND_SEQ_EVENT_PGMCHANGE:
-    return Message::ProgramChange(ev.data.control.channel,
+    return Message::ProgramChange(ev.data.control.channel + 1,
                                   (uint8_t)ev.data.control.value);
 
   case SND_SEQ_EVENT_CHANPRESS:
-    return Message::ChannelAftertouch(ev.data.control.channel,
+    return Message::ChannelAftertouch(ev.data.control.channel + 1,
                                       (uint8_t)ev.data.control.value);
 
   case SND_SEQ_EVENT_PITCHBEND:
-    return Message::PitchBend(ev.data.control.channel,
+    return Message::PitchBend(ev.data.control.channel + 1,
                               (int16_t)ev.data.control.value);
 
   case SND_SEQ_EVENT_CONTROL14:

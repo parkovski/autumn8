@@ -2,10 +2,7 @@
 #include "a8/midi/access.h"
 #include "a8/midi/port.h"
 
-#include <iomanip>
 #include <iostream>
-#include <cstdlib>
-#include <sstream>
 
 using namespace a8;
 using namespace a8::midi;
@@ -28,42 +25,40 @@ int a8main(int argc, char *argv[]) {
   }
 
   {
-    std::cout << "Inputs:\n";
+    A8_PRINT("Inputs:\n");
     auto [inputLock, inputs] = access->inputsRead();
     for (auto &i : inputs) {
       auto const &port = i.second;
-      std::cout << port->id() << " - " << port->name() << "\n";
+      A8_PRINT("{} - {}\n", port->id(), port->name());
     }
   }
 
   {
-    std::cout << "\nOutputs:\n";
+    A8_PRINT("\nOutputs:\n");
     auto [outputLock, outputs] = access->outputsRead();
     for (auto &o : outputs) {
       auto const &port = o.second;
-      std::cout << port->id() << " - " << port->name() << "\n";
+      A8_PRINT("{} - {}\n", port->id(), port->name());
     }
   }
 
-  std::cout << "\nOpen? ";
+  A8_PRINT("\nOpen? ");
   std::string line;
   getline(std::cin, line);
   if (!line.empty()) {
     auto [inputLock, inputs] = access->inputsRead();
     auto it = inputs.find(line);
     if (it == inputs.end()) {
-      std::cout << "Not found.\n";
+      A8_PRINT("Not found.\n");
     } else {
       auto p = it->second;
       inputLock.release();
-      std::cout << "Open " << p->id() << " - " << p->name()
-                << "\nPress enter when done.\n";
+      A8_PRINT("Open {} - {}.\nPress enter when done.\n", p->id(), p->name());
 
       p->open();
       p->onMIDIMessage(
         [](Input *port, uint32_t time, const Message &message) {
-          std::cout << "Port " << port->name() << "(" << time << "): "
-            << message << "\n";
+          A8_PRINT("Port {} (T+{}): {}\n", port->name(), time, message);
         });
 
       getline(std::cin, line);
