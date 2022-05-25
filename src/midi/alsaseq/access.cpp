@@ -213,7 +213,7 @@ void AlsaAccess::eventLoop() noexcept {
     if (err == -1) {
       if (errno == EINTR) {
         A8_WARN("MIDI event loop EINTR");
-        return;
+        continue;
       } else {
         A8_ERROR("MIDI event loop poll failed: {}", strerror(errno));
         return;

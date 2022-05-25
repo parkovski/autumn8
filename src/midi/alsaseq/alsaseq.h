@@ -12,8 +12,8 @@
 namespace a8::midi {
 inline namespace alsaseq {
 
-Message to_message(const snd_seq_event_t &ev);
-snd_seq_event_t from_message(const Message &msg);
+Message to_message(const snd_seq_event_t &ev) noexcept;
+snd_seq_event_t from_message(const Message &msg) noexcept;
 
 class AlsaAccess : public Access {
   static constexpr size_t CmdLength =
