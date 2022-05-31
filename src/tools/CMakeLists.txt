@@ -8,6 +8,11 @@ a8_app(browser
   DEPENDENCIES nlohmann_json::nlohmann_json
 )
 
+a8_app(b2
+  b2/main.cpp
+  TARGETS GUI
+)
+
 a8_app(flsaw
   flsaw.cpp
   NAME A8Saw

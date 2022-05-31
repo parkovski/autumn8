@@ -67,12 +67,12 @@ function withOpacityValue(variable: string) {
   }
 }
 
-function getThemeVariables(theme: object, prefix?: string, obj?: object):
+function getThemeVariables(theme: any, prefix?: string, obj?: any):
   Record<string, string>
 {
   prefix = prefix || 'color';
   obj = obj || {};
-  return Object.keys(theme).reduce((a, c) => {
+  return Object.keys(theme).reduce((a: any, c: string) => {
     if (typeof theme[c] === 'object') {
       return getThemeVariables(theme[c], `${prefix}-${c}`, a);
     }
