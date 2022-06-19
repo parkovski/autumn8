@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 /**
  * @param {{app: string, root?: string, entry?: string}} env
@@ -30,15 +31,26 @@ module.exports = env => {
   }
 
   let mode = 'development';
-  if (env.production === true) {
+  if (env.production) {
     mode = 'production';
   } else if (process.env.NODE_ENV) {
     mode = process.env.NODE_ENV;
   }
+  const isDevMode = mode !== 'production';
+
+  let writeLineColored;
+  if (process.stdout.isTTY) {
+    writeLineColored = function(text) {
+      process.stdout.write(`\x1b[45m\x1b[30m${text}\x1b[m\n`);
+    };
+  } else {
+    writeLineColored  = function(text) { process.stdout.write(text + '\n'); };
+  }
+  writeLineColored(`Building ${env.app} for ${mode}.`);
 
   return {
     mode,
-    devtool: mode !== 'production' ? 'eval' : void 0,
+    devtool: isDevMode ? 'eval' : void 0,
     context: env.root,
     entry: {
       [env.app]: env.entry,
@@ -53,10 +65,34 @@ module.exports = env => {
       new HtmlWebpackPlugin({
         filename: 'index.html',
         template: 'index.html',
-      })
-    ],
+      }),
+      /*new class {
+        apply(compiler) {
+          const PluginName = 'ImportWebComponentTemplates';
+
+          compiler.hooks.compilation.tap(
+            PluginName,
+            /** @param {import('webpack').Compilation} compilation * /
+            compilation => {
+              HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(
+                PluginName,
+                data => {
+                  const templates = compilation.namedChunkGroups.get('templates');
+                  const html = templates?.join('') ?? '<!-- no templates -->';
+                  data.html = data.html.replace('<!-- IMPORT TEMPLATES -->', html);
+                }
+              );
+            }
+          );
+        }
+      },*/
+    ].concat(isDevMode ? [] : new MiniCssExtractPlugin()),
     module: {
       rules: [
+        {
+          test: /components\/.+\.html$/,
+          loader: path.resolve(__dirname, 'scripts/webcomponent-loader'),
+        },
         {
           test: /\.tsx?$/,
           exclude: /node_modules/,
@@ -69,10 +105,14 @@ module.exports = env => {
         },
         {
           test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
+          use: [
+            isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+            'css-loader'
+          ],
         },
         {
           test: /\.html$/,
+          exclude: /components/,
           loader: 'html-loader',
         },
         {

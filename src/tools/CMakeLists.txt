@@ -10,6 +10,8 @@ a8_app(browser
 
 a8_app(b2
   b2/main.cpp
+  b2/browser.cpp
+  b2/routes.cpp
   TARGETS GUI
 )
 
