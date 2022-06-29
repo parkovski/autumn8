@@ -81,7 +81,7 @@ for (; i < process.argv.length; ++i) {
 }
 
 const builddir =
-  fixpath(path.join(__dirname, '..', 'build', 'android', kind, arch));
+  fixpath(path.join(__dirname, '..', 'build', 'android-' + arch, kind));
 
 if (!fs.existsSync(builddir)) {
   fs.mkdirSync(builddir, { recursive: true });

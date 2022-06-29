@@ -14,22 +14,26 @@ module.exports = function(source) {
   if (!source.endsWith('\n')) {
     source += '\n';
   }
-  const id = Math.floor(Math.random() * 0x1000000).toString(16);
+  const id = `tmpl-${Math.floor(Math.random() * 0x80000000).toString(16)}`;
   const styleFile = path.resolve(this.context, 'style.css');
 
   const finish = style => {
     if (templates.length === 0) {
       HtmlWebpackPlugin.getHooks(this._compilation)
-        .afterTemplateExecution
+        .alterAssetTagGroups
         .tap('WebComponentLoader', pluginData => {
-          pluginData.html =
-            pluginData.html.replace('<!-- {{TEMPLATES}} -->', templates.join('\n'));
+          pluginData.bodyTags = pluginData.bodyTags.concat(templates);
           return pluginData;
         });
     }
 
-    templates.push(`<template id="${id}-template">\n${style}${source}</template>`);
-    callback(null, `export default document.getElementById('${id}-template');`);
+    let innerHTML = style ? `${style}${source}` : source;
+    templates.push({
+      tagName: 'template',
+      innerHTML,
+      attributes: { id },
+    });
+    callback(null, `module.exports=require('_gettmpobj')('${id}')`);
   };
 
   fs.readFile(styleFile, 'utf8').then(text => {
@@ -45,4 +49,17 @@ module.exports = function(source) {
       callback(e);
     }
   });
+
+  // How to add the CSS file to the build and get its ID here?
+  /*
+  fs.access(styleFile, fs.constants.R_OK).then(err => {
+    if (!err) {
+      this.importModule(styleFile)
+        .then(m => finish(`<link rel="stylesheet" href="???">`))
+        .catch(err => callback(err));
+    } else {
+      finish();
+    }
+  });
+  */
 }

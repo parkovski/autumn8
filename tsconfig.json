@@ -1,5 +1,5 @@
 {
-  "include": ["src/tools/**/*", "src/swoll/**/*"],
+  "include": ["src/tools/**/*", "src/swoll/**/*", "scripts/types/*"],
   "compilerOptions": {
     "pretty": true,
     "target": "ES2016",

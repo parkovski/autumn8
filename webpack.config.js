@@ -8,7 +8,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
  * `root` defaults to `src/tools/[env.app]`.
  * `entry` defauls to first defined `./index.[js|jsx|ts|tsx]`.
  */
-module.exports = env => {
+module.exports = (env, argv) => {
   if (!env.app) {
     throw 'Must define webpack env `app`';
   }
@@ -30,12 +30,7 @@ module.exports = env => {
     }
   }
 
-  let mode = 'development';
-  if (env.production) {
-    mode = 'production';
-  } else if (process.env.NODE_ENV) {
-    mode = process.env.NODE_ENV;
-  }
+  const mode = argv.mode || 'development';
   const isDevMode = mode !== 'production';
 
   let writeLineColored;
@@ -128,6 +123,7 @@ module.exports = env => {
     },
     resolve: {
       alias: {
+        _gettmpobj: path.resolve(__dirname, 'scripts/webcomponent-loader/template.js'),
         swoll: path.resolve(__dirname, 'src/swoll'),
       },
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
