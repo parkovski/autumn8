@@ -5,7 +5,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 /**
  * @param {{app: string, root?: string, entry?: string}} env
- * `root` defaults to `src/tools/[env.app]`.
+ * `root` defaults to `app/[env.app]`.
  * `entry` defauls to first defined `./index.[js|jsx|ts|tsx]`.
  */
 module.exports = (env, argv) => {
@@ -18,7 +18,7 @@ module.exports = (env, argv) => {
       env.root = path.resolve(__dirname, env.root);
     }
   } else {
-    env.root = path.resolve(__dirname, `src/tools/${env.app}`);
+    env.root = path.resolve(__dirname, `app/${env.app}`);
   }
 
   if (!env.entry) {
@@ -124,7 +124,7 @@ module.exports = (env, argv) => {
     resolve: {
       alias: {
         _gettmpobj: path.resolve(__dirname, 'scripts/webcomponent-loader/template.js'),
-        swoll: path.resolve(__dirname, 'src/swoll'),
+        swoll: path.resolve(__dirname, 'lib/swoll'),
       },
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
     },

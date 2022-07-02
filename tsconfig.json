@@ -1,5 +1,5 @@
 {
-  "include": ["src/tools/**/*", "src/swoll/**/*", "scripts/types/*"],
+  "include": ["app/**/*", "lib/swoll/**/*", "scripts/types/*"],
   "compilerOptions": {
     "pretty": true,
     "target": "ES2016",
@@ -10,10 +10,10 @@
     /* Modules */
     "module": "ES2020",
     "moduleResolution": "node",
-    "rootDir": "./src",
+    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "swoll/*": ["src/swoll/*"]
+      "swoll/*": ["lib/swoll/*"]
     },
 
     /* JavaScript */

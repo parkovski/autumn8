@@ -1,4 +1,4 @@
-project(Autumn8Tools)
+project(Autumn8Apps)
 
 add_compile_definitions(A8_MODULE_NAME="app")
 
