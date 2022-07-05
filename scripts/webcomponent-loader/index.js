@@ -4,6 +4,8 @@ const path = require('path');
 
 const templates = [];
 
+const getTemplatePath = path.resolve(__dirname, 'template.js');
+
 module.exports = function(source) {
   const callback = this.async();
   if (!this.resourcePath.endsWith('.html')) {
@@ -33,7 +35,7 @@ module.exports = function(source) {
       innerHTML,
       attributes: { id },
     });
-    callback(null, `module.exports=require('_gettmpobj')('${id}')`);
+    callback(null, `module.exports=require('${getTemplatePath}')('${id}')`);
   };
 
   fs.readFile(styleFile, 'utf8').then(text => {

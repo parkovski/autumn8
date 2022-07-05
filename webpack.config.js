@@ -3,10 +3,26 @@ const fs = require('fs');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
+function writeTitle(text) {
+  if (process.stdout.isTTY) {
+    process.stdout.write(`\x1b[33m${text}\x1b[m\n`);
+  } else {
+    process.stdout.write(text + '\n');
+  }
+}
+
+// TODO: Support multiple pages.
 /**
- * @param {{app: string, root?: string, entry?: string}} env
+ * @param {{
+ *  app: string,
+ *  root?: string,
+ *  entry?: string,
+ *  outputPath?: string,
+ * }} env
+ * `app` is the app name.
  * `root` defaults to `app/[env.app]`.
  * `entry` defauls to first defined `./index.[js|jsx|ts|tsx]`.
+ * `outputPath` defaults to `./build/web/[env.app]`.
  */
 module.exports = (env, argv) => {
   if (!env.app) {
@@ -33,15 +49,10 @@ module.exports = (env, argv) => {
   const mode = argv.mode || 'development';
   const isDevMode = mode !== 'production';
 
-  let writeLineColored;
-  if (process.stdout.isTTY) {
-    writeLineColored = function(text) {
-      process.stdout.write(`\x1b[45m\x1b[30m${text}\x1b[m\n`);
-    };
-  } else {
-    writeLineColored  = function(text) { process.stdout.write(text + '\n'); };
-  }
-  writeLineColored(`Building ${env.app} for ${mode}.`);
+  const outputPath = env.outputPath
+    || path.resolve(__dirname, 'build/web', env.app);
+
+  writeTitle(`Building ${env.app} for ${mode}.`);
 
   return {
     mode,
@@ -51,8 +62,8 @@ module.exports = (env, argv) => {
       [env.app]: env.entry,
     },
     output: {
-      path: path.resolve(__dirname, 'build/web', env.app),
-      filename: '[name].bundle.js',
+      path: outputPath,
+      filename: 'index.js',
       clean: true,
       uniqueName: `autumn8-${env.app}`,
     },
@@ -61,26 +72,6 @@ module.exports = (env, argv) => {
         filename: 'index.html',
         template: 'index.html',
       }),
-      /*new class {
-        apply(compiler) {
-          const PluginName = 'ImportWebComponentTemplates';
-
-          compiler.hooks.compilation.tap(
-            PluginName,
-            /** @param {import('webpack').Compilation} compilation * /
-            compilation => {
-              HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(
-                PluginName,
-                data => {
-                  const templates = compilation.namedChunkGroups.get('templates');
-                  const html = templates?.join('') ?? '<!-- no templates -->';
-                  data.html = data.html.replace('<!-- IMPORT TEMPLATES -->', html);
-                }
-              );
-            }
-          );
-        }
-      },*/
     ].concat(isDevMode ? [] : new MiniCssExtractPlugin()),
     module: {
       rules: [
@@ -102,7 +93,30 @@ module.exports = (env, argv) => {
           test: /\.css$/,
           use: [
             isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
-            'css-loader'
+            'css-loader',
+            {
+              loader: 'postcss-loader',
+              options: {
+                postcssOptions: {
+                  plugins: [
+                    [
+                      'postcss-preset-env',
+                      {
+                        stage: 3,
+                        minimumVendorImplementations: 2,
+                        preserve: false,
+                      },
+                    ],
+                  ].concat(isDevMode ? [] : [
+                    [
+                      'cssnano',
+                      {
+                      }
+                    ]
+                  ]),
+                },
+              },
+            },
           ],
         },
         {
@@ -123,7 +137,6 @@ module.exports = (env, argv) => {
     },
     resolve: {
       alias: {
-        _gettmpobj: path.resolve(__dirname, 'scripts/webcomponent-loader/template.js'),
         swoll: path.resolve(__dirname, 'lib/swoll'),
       },
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
