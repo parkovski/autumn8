@@ -225,11 +225,29 @@ public:
                         const CharT* s) const;
   constexpr int compare(size_type pos1, size_type count1,
                         const CharT* s, size_type count2) const;
+#endif
 
-  constexpr bool starts_with(basic_cstring_view sv) const noexcept;
-  constexpr bool starts_with(CharT c) const noexcept;
-  constexpr bool starts_with(const CharT* s) const;
+  constexpr bool starts_with(basic_cstring_view sv) const noexcept {
+    if (!_data) {
+      return false;
+    }
+    for (size_t i = 0; ; ++i) {
+      if (_data[i] != sv._data[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
 
+  constexpr bool starts_with(CharT c) const noexcept {
+    return _data && _data[0] == c;
+  }
+
+  constexpr bool starts_with(const CharT* s) const {
+    return starts_with(basic_cstring_view<CharT>{s});
+  }
+
+#if 0
   constexpr bool ends_with(basic_cstring_view sv) const noexcept;
   constexpr bool ends_with(CharT c) const noexcept;
   constexpr bool ends_with(const CharT* s) const;

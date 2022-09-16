@@ -35,7 +35,7 @@ module.exports = function(source) {
       innerHTML,
       attributes: { id },
     });
-    callback(null, `module.exports=require('${getTemplatePath}')('${id}')`);
+    callback(null, `module.exports=require('${getTemplatePath}').default('${id}')`);
   };
 
   fs.readFile(styleFile, 'utf8').then(text => {

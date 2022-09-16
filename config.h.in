@@ -17,6 +17,8 @@
 # define A8_GFX_BACKEND A8_GFX_BACKEND_NULL
 #endif
 
+#define A8_WEB_ASSET_PATH "@A8_WEB_ASSET_PATH@"
+
 #cmakedefine A8_GTK_VERSION @A8_GTK_VERSION@
 
 #cmakedefine A8_HAS_JACK

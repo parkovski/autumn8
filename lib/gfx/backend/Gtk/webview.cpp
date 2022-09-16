@@ -1,3 +1,4 @@
+#include "a8/util/inline.h"
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 #include "a8/gfx/views/webview.h"
@@ -41,7 +42,7 @@ namespace {
   }
 
   void webViewSendFile(WebKitURISchemeRequest *req, a8::cstring_view path,
-                       a8::cstring_view mimeType) {
+                       a8::cstring_view mimeType, a8::cstring_view origin) {
     auto file = g_file_new_for_path(path.c_str());
     if (!file) {
       auto error = g_error_new(
@@ -66,28 +67,39 @@ namespace {
       mimeType = getMimeTypeForPath(path.c_str());
     }
     A8_TRACE("Sending {} {}", mimeType, path);
-    webkit_uri_scheme_request_finish(req, stream, -1, mimeType);
+    auto *res = webkit_uri_scheme_response_new(stream, -1);
+    auto *headers = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
+    // if (origin.starts_with("a8://app")) {
+      soup_message_headers_append(headers, "Access-Control-Allow-Origin",
+                                  "a8://app");
+    // }
+    webkit_uri_scheme_response_set_content_type(res, mimeType);
+    webkit_uri_scheme_response_set_http_headers(res, headers);
+    webkit_uri_scheme_request_finish_with_response(req, res);
   }
 
   static void webViewSendResFile(WebKitURISchemeRequest *req,
                                  a8::cstring_view path,
-                                 a8::cstring_view mimeType) {
-    const char *resdir = "/home/parker/Documents/dev/autumn8/src/tools";
-    auto fullPath = g_build_filename(resdir, path.c_str(), nullptr);
-    webViewSendFile(req, fullPath, mimeType);
+                                 a8::cstring_view mimeType,
+                                 a8::cstring_view origin) {
+    // TODO Web asset path is app specific.
+    auto exeName = a8::platform::getExeName();
+    auto fullPath = g_build_filename(A8_WEB_ASSET_PATH, exeName.c_str(),
+                                     path.c_str(), nullptr);
+    webViewSendFile(req, fullPath, mimeType, origin);
     g_free(fullPath);
   }
 } // anonymous namespace
 
 void WebViewResponse::sendFile(cstring_view path) {
   auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
-  webViewSendFile(req, path, _contentType);
+  webViewSendFile(req, path, _contentType, "");
   _state = WroteAllClosed;
 }
 
 void WebViewResponse::sendResFile(cstring_view path) {
   auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
-  webViewSendResFile(req, path, _contentType);
+  webViewSendResFile(req, path, _contentType, "");
   _state = WroteAllClosed;
 }
 
@@ -201,20 +213,38 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
     webkit_uri_scheme_request_finish_error(req, err);
     return;
   }
+
   if (uri.scheme() != CustomScheme) {
     auto err = g_error_new(webkit_network_error_quark(),
                            WEBKIT_NETWORK_ERROR_UNKNOWN_PROTOCOL,
                            "Unknown protocol '%.*s'",
                            static_cast<int>(uri.scheme().size()),
                            uri.scheme().data());
+    webkit_uri_scheme_request_finish_error(req, err);
+    return;
   }
+
+  auto mtd = webkit_uri_scheme_request_get_http_method(req);
+  auto hdr = webkit_uri_scheme_request_get_http_headers(req);
+  auto origin = soup_message_headers_get_one(hdr, "Origin");
+
+  A8_DEBUG("{} from {} -> {}", mtd, origin ? origin : "??", uri.host());
+  /*auto res = webkit_uri_scheme_response_new(nullptr, 0);
+  auto reshdr = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
+  webkit_uri_scheme_response_set_content_type(res, "text/plain");
+  webkit_uri_scheme_response_set_status(res, 200, "OK");
+  webkit_uri_scheme_response_set_http_headers(res, reshdr);
+  webkit_uri_scheme_request_finish_with_response(req, res);*/
 
   if (uri.host() == "res") {
     std::string path{uri.path()};
-    webViewSendResFile(req, path, {});
+    webViewSendResFile(req, path, {}, origin);
   } else if (uri.host() == "app") {
     WebViewRequest wvreq{webview, std::move(uri)};
     WebViewResponse wvres{req};
+    // if (a8::starts_with(origin, "a8://res")) {
+      wvres.header("Access-Control-Allow-Origin", "a8://res");
+    // }
     if (!webview->callUserCallback(wvreq, wvres)) {
       auto err = g_error_new(webkit_network_error_quark(),
                              WEBKIT_NETWORK_ERROR_FAILED,

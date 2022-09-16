@@ -164,15 +164,6 @@ int a8main(int argc, char *argv[]) {
   //router.notFound() = ...
   //router.ise() = ...
 
-  // Temporary replacement for res routes.
-  router["/:..."] = [](auto const &req, auto &res) {
-    std::filesystem::path path{"../../build/web/browser"};
-    for (auto it = req.unnamed_begin(); it != req.unnamed_end(); ++it) {
-      path /= *it;
-    }
-    res.sendResFile(path.string());
-  };
-
   router["/view/:name"] = [&browser](auto const &req, auto &res) {
     std::filesystem::path path = browser.curdir() / req[0];
     std::error_code noone_cares;
@@ -306,7 +297,7 @@ int a8main(int argc, char *argv[]) {
     }
   };
 
-  wv->navigate("a8://app/index.html");
+  wv->navigate("a8://res/index.html");
 
   win->show();
   using std::string_view_literals::operator""sv;

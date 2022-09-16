@@ -12,28 +12,28 @@ export class BrowserController extends Controller {
   }
 
   refresh() {
-    fetch('/ls')
+    fetch('//app/ls')
       .then(r => r.json())
       .then(r => this.emit(DirChangeEvent, r.name, r.entries));
     return false;
   }
 
   getNavState() {
-    fetch('/navstate')
+    fetch('//app/navstate')
       .then(x => x.json())
       .then(j => this.emit(NavStateEvent, j));
     return false;
   }
 
   getHistory(direction: 'back' | 'forward') {
-    fetch(`/history/${direction}`)
+    fetch(`//app/history/${direction}`)
       .then(x => x.json())
       .then(j => this.emit(HistoryEvent, direction, j));
     return false;
   }
 
   _go(where: string) {
-    fetch(`/go/${where}`)
+    fetch(`//app/go/${where}`)
       .then(x => x.json())
       .then(j => this.emit(DirChangeEvent, j.name, j.entries));
     return false;
@@ -55,14 +55,14 @@ export class BrowserController extends Controller {
   }
 
   up() {
-    fetch('/go/up')
+    fetch('//app/go/up')
       .then(x => x.json())
       .then(j => this.emit(DirPopEvent, j.entries));
     return false;
   }
 
   enter(subdir: string) {
-    fetch(`/go/in/${subdir}`)
+    fetch(`//app/go/in/${subdir}`)
       .then(x => x.json())
       .then(j => this.emit(DirPushEvent, subdir, j.entries))
     return false;
@@ -73,7 +73,7 @@ export class BrowserController extends Controller {
   }
 
   loadFile(name: string) {
-    fetch(`/view/${name}`)
+    fetch(`//app/view/${name}`)
       .then(async r => {
         this.emit(FileLoadEvent, name, r.headers.get('Content-Type'),
           await r.arrayBuffer());
@@ -89,14 +89,14 @@ export class BrowserController extends Controller {
   }
 
   toggleDevTools() {
-    fetch('/dev/toggle')
+    fetch('//app/dev/toggle')
       .then(r => r.text())
       .then(r => this.emit(DevToolsVisibilityChangedEvent, r === 'show'));
     return false;
   }
 
   getDevToolsVisibility() {
-    fetch('/dev/visible')
+    fetch('//app/dev/visible')
       .then(r => r.text())
       .then(r => this.emit(DevToolsVisibilityChangedEvent, r === 'true'));
     return false;

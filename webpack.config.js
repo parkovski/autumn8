@@ -3,11 +3,11 @@ const fs = require('fs');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-function writeTitle(text) {
+function ttyColor(text, color) {
   if (process.stdout.isTTY) {
-    process.stdout.write(`\x1b[33m${text}\x1b[m\n`);
+    return `\x1b[${color}m${text}\x1b[m`;
   } else {
-    process.stdout.write(text + '\n');
+    return text;
   }
 }
 
@@ -52,7 +52,8 @@ module.exports = (env, argv) => {
   const outputPath = env.outputPath
     || path.resolve(__dirname, 'build/web', env.app);
 
-  writeTitle(`Building ${env.app} for ${mode}.`);
+  const modeColor = isDevMode ? 33 /* yellow */ : 32 /* green */;
+  console.log(`Building ${ttyColor(env.app, 34 /* blue */)} for ${ttyColor(mode, modeColor)}`);
 
   return {
     mode,

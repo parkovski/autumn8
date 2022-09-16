@@ -7,7 +7,7 @@
 #include <filesystem>
 
 using namespace std::string_view_literals;
-namespace stdfs = std::filesystem;
+//namespace stdfs = std::filesystem;
 
 using namespace a8;
 using namespace a8::gfx;
@@ -15,13 +15,6 @@ using namespace a8::gfx;
 namespace {
 
 void configureRouter(Router<WebViewRouterRequest> &r) {
-  r["/:..."] = [](auto const &req, auto &res) {
-    stdfs::path path{"../../build/web/play"};
-    for (auto it = req.unnamed_begin(); it != req.unnamed_end(); ++it) {
-      path /= *it;
-    }
-    res.sendResFile(path.string());
-  };
 }
 
 } // anonymous namespace
@@ -38,7 +31,7 @@ int a8main(int argc, char *argv[]) {
   configureRouter(router);
   webview->setUserCallback(std::ref(router));
 
-  webview->navigate("a8://app/index.html");
+  webview->navigate("a8://res/index.html");
   win->show();
 
   if (argc > 1 && argv[1] == "-dev"sv) {

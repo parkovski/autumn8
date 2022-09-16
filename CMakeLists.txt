@@ -46,6 +46,10 @@ set(Autumn8_INCLUDE_DIRS
 )
 include_directories(${Autumn8_INCLUDE_DIRS})
 
+# TODO: Install? Build dir layout? debug/release?
+cmake_path(SET A8_WEB_ASSET_PATH build/web)
+cmake_path(ABSOLUTE_PATH A8_WEB_ASSET_PATH NORMALIZE)
+
 include(cmake/app.cmake)
 
 add_subdirectory(lib/main main)
