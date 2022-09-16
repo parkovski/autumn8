@@ -4,6 +4,8 @@
 #include <iosfwd>
 #include <string_view>
 
+#include <fmt/ostream.h>
+
 namespace a8::midi {
 
 #define A8_MIDI_BACKENDS(M) \
@@ -45,5 +47,9 @@ std::ostream &operator<<(std::ostream &os, Backend be);
 Backend parseBackend(std::string_view name);
 
 } // namespace a8::midi
+
+namespace fmt {
+  template<> struct formatter<a8::midi::Backend> : ostream_formatter {};
+}
 
 #endif /* A8_MIDI_BACKEND_H_ */

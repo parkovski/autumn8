@@ -7,6 +7,7 @@
 
 #include <alsa/asoundlib.h>
 
+#include <fmt/ostream.h>
 #include <iosfwd>
 
 namespace a8::midi {
@@ -116,5 +117,11 @@ std::ostream &operator<<(std::ostream &os, AlsaEventType type);
 
 } // inline namespace alsaseq
 } // namespace a8::midi
+
+namespace fmt {
+  template<> struct formatter<a8::midi::AlsaPortCaps> : ostream_formatter {};
+  template<> struct formatter<a8::midi::AlsaPortType> : ostream_formatter {};
+  template<> struct formatter<a8::midi::AlsaEventType> : ostream_formatter {};
+}
 
 #endif /* A8_MIDI_ALSA_H_ */

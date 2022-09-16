@@ -8,6 +8,8 @@
 #include <iterator>
 #include <array>
 
+#include <fmt/ostream.h>
+
 namespace a8::midi {
 
 enum class Control : uint8_t {
@@ -331,5 +333,11 @@ constexpr std::array<rpnvalue_t, 17> DefinedRPNs {
 };
 
 } // namespace a8::midi
+
+namespace fmt {
+  template<> struct formatter<a8::midi::Control> : ostream_formatter {};
+  template<> struct formatter<a8::midi::ChannelMode> : ostream_formatter {};
+  template<> struct formatter<a8::midi::rpnvalue_t> : ostream_formatter {};
+}
 
 #endif // A8_MIDI_CONTROL_H_

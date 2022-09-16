@@ -264,4 +264,9 @@ std::ostream &operator<<(std::ostream &os, const Message &message);
 
 } // namespace a8::midi
 
+namespace fmt {
+  template<> struct formatter<a8::midi::Status> : ostream_formatter {};
+  template<> struct formatter<a8::midi::Message> : ostream_formatter {};
+}
+
 #endif // A8_MIDI_MESSAGE_H_
