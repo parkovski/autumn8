@@ -66,13 +66,16 @@ namespace {
     if (!mimeType) {
       mimeType = getMimeTypeForPath(path.c_str());
     }
-    A8_TRACE("Sending {} {}", mimeType, path);
+    A8_TRACE("Sending {} {} (origin: {})", mimeType, path, origin);
     auto *res = webkit_uri_scheme_response_new(stream, -1);
     auto *headers = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
-    // if (origin.starts_with("a8://app")) {
+    if (origin.starts_with("a8://app")) {
       soup_message_headers_append(headers, "Access-Control-Allow-Origin",
                                   "a8://app");
-    // }
+    } else if (origin.starts_with("a8://res")) {
+      soup_message_headers_append(headers, "Access-Control-Allow-Origin",
+                                  "a8://res");
+    }
     webkit_uri_scheme_response_set_content_type(res, mimeType);
     webkit_uri_scheme_response_set_http_headers(res, headers);
     webkit_uri_scheme_request_finish_with_response(req, res);
@@ -93,13 +96,17 @@ namespace {
 
 void WebViewResponse::sendFile(cstring_view path) {
   auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
-  webViewSendFile(req, path, _contentType, "");
+  auto *view = webkit_uri_scheme_request_get_web_view(req);
+  auto *uri = webkit_web_view_get_uri(view);
+  webViewSendFile(req, path, _contentType, uri);
   _state = WroteAllClosed;
 }
 
 void WebViewResponse::sendResFile(cstring_view path) {
   auto req = static_cast<WebKitURISchemeRequest *>(_platformData);
-  webViewSendResFile(req, path, _contentType, "");
+  auto *view = webkit_uri_scheme_request_get_web_view(req);
+  auto *uri = webkit_web_view_get_uri(view);
+  webViewSendResFile(req, path, _contentType, uri);
   _state = WroteAllClosed;
 }
 
@@ -118,10 +125,26 @@ void WebViewResponse::platformFinish() noexcept {
 #endif
   auto stream = g_memory_input_stream_new_from_data(
     content.data(), static_cast<gssize>(content.size()), nullptr);
+
+  auto *res = webkit_uri_scheme_response_new(stream, static_cast<gint64>(content.size()));
+  webkit_uri_scheme_response_set_content_type(res, _contentType.c_str());
+  auto *headers = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
+  size_t pos = 0, cpos, nlpos;
+  while ((cpos = _headers.find(": ", pos)) != std::string::npos) {
+    if ((nlpos = _headers.find("\r\n", cpos + 2)) == std::string::npos) {
+      break;
+    }
+    std::string name, value;
+    name = _headers.substr(pos, cpos - pos);
+    value = _headers.substr(cpos + 2, nlpos - cpos - 2);
+    A8_TRACE("Response header '{}' : '{}'", name, value);
+    soup_message_headers_append(headers, name.c_str(), value.c_str());
+    pos = nlpos + 2;
+  }
+  webkit_uri_scheme_response_set_http_headers(res, headers);
+  webkit_uri_scheme_request_finish_with_response(req, res);
   A8_TRACE("webkit_uri_scheme_request_finish: size = {}, contentType = {}",
            content.size(), _contentType);
-  webkit_uri_scheme_request_finish(
-    req, stream, static_cast<gint64>(content.size()), _contentType.c_str());
 }
 
 WebView::WebView(View *parent)
@@ -228,7 +251,12 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
   auto hdr = webkit_uri_scheme_request_get_http_headers(req);
   auto origin = soup_message_headers_get_one(hdr, "Origin");
 
-  A8_DEBUG("{} from {} -> {}", mtd, origin ? origin : "??", uri.host());
+  if (!origin) {
+    auto view = webkit_uri_scheme_request_get_web_view(req);
+    origin = webkit_web_view_get_uri(view);
+  }
+
+  A8_DEBUG("{} from {} -> {}", mtd, origin, uri.host());
   /*auto res = webkit_uri_scheme_response_new(nullptr, 0);
   auto reshdr = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
   webkit_uri_scheme_response_set_content_type(res, "text/plain");
@@ -242,9 +270,9 @@ void WebView::onUriSchemeRequest(WebKitURISchemeRequest *req, gpointer data)
   } else if (uri.host() == "app") {
     WebViewRequest wvreq{webview, std::move(uri)};
     WebViewResponse wvres{req};
-    // if (a8::starts_with(origin, "a8://res")) {
+    if (a8::starts_with(origin, "a8://res")) {
       wvres.header("Access-Control-Allow-Origin", "a8://res");
-    // }
+    }
     if (!webview->callUserCallback(wvreq, wvres)) {
       auto err = g_error_new(webkit_network_error_quark(),
                              WEBKIT_NETWORK_ERROR_FAILED,

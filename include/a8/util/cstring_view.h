@@ -3,6 +3,8 @@
 
 #include <string>
 #include <string_view>
+#include <cassert>
+#include <stdexcept>
 
 namespace a8 {
 
@@ -39,12 +41,16 @@ public:
 
   constexpr basic_cstring_view(const CharT *s)
     : _data{s}, _length{npos}
-  {}
+  {
+    assert(s);
+  }
 
 private:
   constexpr basic_cstring_view(const CharT *s, size_type size) noexcept
     : _data{s}, _length{size}
-  {}
+  {
+    assert(s && s[size] == 0);
+  }
 
 public:
   constexpr static basic_cstring_view
@@ -98,6 +104,9 @@ public:
   }
 
   constexpr const_reference at(size_type pos) const {
+    if (pos > size()) {
+      throw std::out_of_range{"a8::cstring_view::at: pos > size"};
+    }
     return _data[pos];
   }
 
@@ -228,10 +237,7 @@ public:
 #endif
 
   constexpr bool starts_with(basic_cstring_view sv) const noexcept {
-    if (!_data) {
-      return false;
-    }
-    for (size_t i = 0; ; ++i) {
+    for (size_t i = 0; sv._data[i]; ++i) {
       if (_data[i] != sv._data[i]) {
         return false;
       }
@@ -240,7 +246,7 @@ public:
   }
 
   constexpr bool starts_with(CharT c) const noexcept {
-    return _data && _data[0] == c;
+    return _data[0] == c;
   }
 
   constexpr bool starts_with(const CharT* s) const {
