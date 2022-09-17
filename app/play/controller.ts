@@ -1,4 +1,4 @@
-import AsyncEventTarget from 'swoll/asynceventtarget';
+import AsyncEventTarget from './asynceventtarget';
 
 export default class Controller extends AsyncEventTarget {
 }

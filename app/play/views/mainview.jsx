@@ -1,4 +1,4 @@
-import View from 'swoll/view';
+import View from './view';
 import Toolbar from './toolbar';
 //import Keyboard from './keyboard';
 import MPK249 from './mpk249';

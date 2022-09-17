@@ -1,4 +1,4 @@
-import View from 'swoll/view';
+import View from './view';
 import {css} from '@emotion/css';
 
 // 6 bold lines, with 5 thin lines in between.

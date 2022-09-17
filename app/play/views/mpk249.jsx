@@ -1,7 +1,7 @@
-import View from 'swoll/view';
+import View from './view';
 import {css, cx} from '@emotion/css';
 
-import Menu from 'swoll/menu';
+import Menu from './menu';
 
 import Keyboard from './keyboard';
 import Wheel from './wheel';

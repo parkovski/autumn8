@@ -1,5 +1,5 @@
-import Menu from 'swoll/menu';
-import View from 'swoll/view';
+import Menu from './menu';
+import View from './view';
 
 import {css, cx} from '@emotion/css';
 

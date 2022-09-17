@@ -1,4 +1,4 @@
-import View from 'swoll/view';
+import View from './view';
 import {css, cx} from '@emotion/css';
 
 const LogClass = css({
