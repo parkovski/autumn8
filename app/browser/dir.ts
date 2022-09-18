@@ -28,6 +28,7 @@ export class DirView extends View {
 
   onChange(e: DirChangeEvent | DirPopEvent | DirPushEvent) {
     const clr = e.target as BrowserController;
+    e.entries.sort((a, b) => a.name.localeCompare(b.name));
     const children = e.entries.map(entry => {
       const li = document.createElement('li');
       const link = document.createElement('a');
