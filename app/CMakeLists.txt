@@ -21,6 +21,14 @@ a8_app(flsaw
   TARGETS FLP
 )
 
+a8_app(mapish
+  mapish/mapish.cpp
+  mapish/lex.cpp
+  mapish/parse.cpp
+  TARGETS CLI
+  DEPENDENCIES a8midi
+)
+
 a8_app(midictl
   midictl.cpp
   TARGETS CLI
