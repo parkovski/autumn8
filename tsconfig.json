@@ -1,5 +1,5 @@
 {
-  "include": ["app/**/*", "lib/swoll/**/*", "scripts/types/*"],
+  "include": ["app/**/*", "scripts/types/*"],
   "compilerOptions": {
     "pretty": true,
     "target": "ES2016",
@@ -12,9 +12,6 @@
     "moduleResolution": "node",
     "rootDir": ".",
     "baseUrl": ".",
-    "paths": {
-      "swoll/*": ["lib/swoll/*"]
-    },
 
     /* JavaScript */
     "allowJs": true,

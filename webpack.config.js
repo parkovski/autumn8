@@ -137,9 +137,6 @@ module.exports = (env, argv) => {
       ],
     },
     resolve: {
-      alias: {
-        swoll: path.resolve(__dirname, 'lib/swoll'),
-      },
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
     },
   };
