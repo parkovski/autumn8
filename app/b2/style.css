@@ -1,3 +1,18 @@
+@import "sanitize.css";
+@import "sanitize.css/forms.css";
+@import "sanitize.css/typography.css";
+@import "@fortawesome/fontawesome-free/css/all.css";
+
 :not(:defined) {
   visibility: hidden;
+}
+
+b2-toolbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  border-bottom: 1px solid #64748B;
+  padding: 0.5rem;
+  background-color: #2b3339;
 }

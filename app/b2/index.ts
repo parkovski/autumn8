@@ -1,9 +1,7 @@
-import 'sanitize.css';
-import 'sanitize.css/forms.css';
-import 'sanitize.css/typography.css';
 import './style.css';
 
 import MainElement from './components/main';
+import ToolbarElement from './components/toolbar';
 
 interface CustomElementClass extends CustomElementConstructor {
   elementName: string;
@@ -11,6 +9,7 @@ interface CustomElementClass extends CustomElementConstructor {
 
 const customElementClasses: CustomElementClass[] = [
   MainElement,
+  ToolbarElement,
 ];
 
 const customElementRegistry = window.customElements;

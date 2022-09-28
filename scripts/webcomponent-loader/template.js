@@ -1,23 +1,19 @@
 /**
- * @param {string} id Template element `id` attribute.
- * @return {{
- *  id: string,
- *  getElement(): HTMLTemplateElement,
- *  attach(element: HTMLElement): void,
- * }}
-*/
+ * @param {string} id Document element ID.
+ */
 export default function getTemplate(id) {
+  const attach = el => {
+    const node = document.getElementById(id).content.cloneNode(true);
+    el.appendChild(node);
+    return node;
+  };
+
   return {
-    id,
-    getElement() {
-      return document.getElementById(id);
+    get id() { return id; },
+    get element() { return document.getElementById(id); },
+    attach,
+    attachShadow(el, open) {
+      return attach(el.attachShadow({mode: open ? 'open' : 'closed'}));
     },
-    attach(element) {
-      element
-        .attachShadow({mode: 'open'})
-        .appendChild(
-          document.getElementById(id).content.cloneNode(true)
-        );
-    }
   };
 }
