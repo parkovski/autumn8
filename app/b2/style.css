@@ -15,4 +15,13 @@ b2-toolbar {
   border-bottom: 1px solid #64748B;
   padding: 0.5rem;
   background-color: #2b3339;
+  color: #f0f0f0;
+}
+
+b2-toolbar button {
+  border: none;
+}
+
+b2-toolbar button:hover {
+  background-color: #3e4a53;
 }

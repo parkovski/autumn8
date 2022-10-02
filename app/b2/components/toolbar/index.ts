@@ -8,4 +8,8 @@ export default class ToolbarElement extends HTMLElement {
     super();
     attach(this);
   }
+
+  set curdir(value: string) {
+    (this.querySelector('#curdir') as HTMLSpanElement).innerText = value;
+  }
 }

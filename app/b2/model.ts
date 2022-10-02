@@ -13,8 +13,3 @@ export interface NavState {
   canGoForward: boolean;
   canGoUp: boolean;
 };
-
-export interface Browser {
-  nav: NavState;
-  curdir: DirList;
-};

@@ -52,8 +52,9 @@ cmake_path(ABSOLUTE_PATH A8_WEB_ASSET_PATH NORMALIZE)
 
 include(cmake/app.cmake)
 
-add_subdirectory(lib/main main)
+# add_subdirectory(lib/main main)
 add_subdirectory(lib/midi midi)
+add_subdirectory(lib/platform platform)
 add_subdirectory(lib/util util)
 
 if(A8_BUILD_GUI)

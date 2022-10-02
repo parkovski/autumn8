@@ -16,6 +16,7 @@ Routes::Routes(Router<Request> &r, Browser &browser)
 #define ROUTE(Path, Fn) r[Path] = std::bind(&Routes::Fn, this, _1, _2)
 
   ROUTE("/view/:name", viewFile);
+  ROUTE("/pwd", pwd);
   ROUTE("/go/back", goBack);
   ROUTE("/go/back/:count", goBack);
   ROUTE("/go/forward", goForward);
@@ -42,6 +43,10 @@ void Routes::viewFile(const Request &req, Response &res) {
     return;
   }
   res.sendFile(path.string());
+}
+
+void Routes::pwd(const Request &req, Response &res) {
+  res.contentType("text/plain") << browser.curdir().string();
 }
 
 void Routes::goBack(const Request &req, Response &res) {

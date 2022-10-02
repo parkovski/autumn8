@@ -14,6 +14,7 @@ struct Routes {
   explicit Routes(Router<Request> &r, Browser &browser);
 
   void viewFile(const Request &req, Response &res);
+  void pwd(const Request &req, Response &res);
   void goBack(const Request &req, Response &res);
   void goForward(const Request &req, Response &res);
   void goUp(const Request &req, Response &res);
