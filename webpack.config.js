@@ -100,21 +100,13 @@ module.exports = (env, argv) => {
               options: {
                 postcssOptions: {
                   plugins: [
-                    [
-                      'postcss-preset-env',
-                      {
-                        stage: 3,
-                        minimumVendorImplementations: 2,
-                        preserve: false,
-                      },
-                    ],
-                  ].concat(isDevMode ? [] : [
-                    [
-                      'cssnano',
-                      {
-                      }
-                    ]
-                  ]),
+                    ['postcss-preset-env', {
+                      stage: 3,
+                      minimumVendorImplementations: 2,
+                      preserve: false,
+                    }],
+                    'postcss-nested',
+                  ].concat(isDevMode ? [] : ['cssnano']),
                 },
               },
             },

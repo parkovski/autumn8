@@ -44,6 +44,7 @@
     "mini-css-extract-plugin": "^2.6.1",
     "postcss": "^8.4.16",
     "postcss-loader": "^7.0.1",
+    "postcss-nested": "^5.0.6",
     "postcss-preset-env": "^7.8.2",
     "style-loader": "^3.3.1",
     "ts-loader": "^9.4.1",
