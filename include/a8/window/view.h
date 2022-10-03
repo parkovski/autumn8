@@ -1,10 +1,10 @@
-#ifndef A8_GFX_VIEWS_VIEW_H_
-#define A8_GFX_VIEWS_VIEW_H_
+#ifndef A8_WINDOW_VIEWS_VIEW_H_
+#define A8_WINDOW_VIEWS_VIEW_H_
 
 #include "a8/a8.h"
-#include "../events.h"
+#include "events.h"
 
-namespace a8::gfx {
+namespace a8::window {
 
 struct native_handle_t {
   using type =
@@ -58,10 +58,10 @@ constexpr bool operator!=(native_handle_t a, native_handle_t b) noexcept {
 class View {
 public:
   template<class E>
-  using Signal = ::a8::gfx::Signal<View, E>;
+  using Signal = ::a8::window::Signal<View, E>;
 
   template<class E>
-  using Slot = ::a8::gfx::Slot<View, E>;
+  using Slot = ::a8::window::Slot<View, E>;
 
   explicit View(View *parent) noexcept
     : _parent{parent}
@@ -103,6 +103,6 @@ private:
   View *_parent;
 };
 
-} // namespace a8::gfx
+} // namespace a8::window
 
-#endif // A8_GFX_VIEWS_VIEW_H_
+#endif // A8_WINDOW_VIEWS_VIEW_H_

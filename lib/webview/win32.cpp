@@ -1,7 +1,6 @@
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
-#include "a8/gfx/views/webview.h"
-#include "a8/gfx/window.h"
+#include "a8/webview/webview.h"
 #include "a8/util/utfconv.h"
 
 #include <Shlwapi.h>
@@ -10,7 +9,7 @@
 #include <wrl.h>
 #include <wil/com.h>
 
-using namespace a8::gfx;
+using namespace a8::webview;
 using namespace Microsoft::WRL;
 
 WebView::WebView(std::string_view url)

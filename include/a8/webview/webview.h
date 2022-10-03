@@ -1,7 +1,7 @@
-#ifndef A8_GFX_VIEWS_WEBVIEW_H_
-#define A8_GFX_VIEWS_WEBVIEW_H_
+#ifndef A8_WEBVIEW_WEBVIEW_H_
+#define A8_WEBVIEW_WEBVIEW_H_
 
-#include "view.h"
+#include "a8/window/view.h"
 
 #include "a8/util/cstring_view.h"
 #include "a8/util/http.h"
@@ -21,7 +21,7 @@
 # include <webkit2/webkit2.h>
 #endif
 
-namespace a8::gfx {
+namespace a8::webview {
 
 class WebView;
 
@@ -210,7 +210,7 @@ private:
   void platformFinish() noexcept;
 };
 
-class WebView : public View {
+class WebView : public window::View {
 public:
   constexpr static cstring_view CustomScheme = "a8";
   constexpr static cstring_view ResourceRoot = "a8://res";
@@ -260,38 +260,40 @@ private:
 #endif
 };
 
-} // namespace a8::gfx
+} // namespace a8::webview
 
 namespace a8 {
 
 template<>
-struct RouterTraits<gfx::WebViewRouterRequest> {
-  using callback_type = std::function<void(const gfx::WebViewRouterRequest &,
-                                           gfx::WebViewResponse &)>;
+struct RouterTraits<webview::WebViewRouterRequest> {
+  using callback_type
+    = std::function<void(const webview::WebViewRouterRequest &,
+                         webview::WebViewResponse &)>;
 
   static void call(const callback_type &callback,
-                   const gfx::WebViewRouterRequest &req,
-                   const gfx::WebViewRequest &,
-                   gfx::WebViewResponse &res) {
+                   const webview::WebViewRouterRequest &req,
+                   const webview::WebViewRequest &,
+                   webview::WebViewResponse &res) {
     callback(req, res);
   }
 
-  static gfx::WebViewRouterRequest get_request(const gfx::WebViewRequest &req,
-                                               gfx::WebViewResponse &) {
-    return gfx::WebViewRouterRequest{&req};
+  static webview::WebViewRouterRequest
+  get_request(const webview::WebViewRequest &req,
+              webview::WebViewResponse &) {
+    return webview::WebViewRouterRequest{&req};
   }
 
   static std::string_view
-  get_route_path(const gfx::WebViewRouterRequest &req) {
+  get_route_path(const webview::WebViewRouterRequest &req) {
     return req.uri().path();
   }
 
   static RouterBase::RouteParams
-  &get_route_params(gfx::WebViewRouterRequest &req) {
+  &get_route_params(webview::WebViewRouterRequest &req) {
     return req;
   }
 };
 
 }
 
-#endif // A8_GFX_VIEWS_WEBVIEW_H_
+#endif // A8_WEBVIEW_WEBVIEW_H_

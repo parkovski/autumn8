@@ -1,9 +1,9 @@
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 
-#include "a8/gfx/window.h"
+#include "a8/window/window.h"
 
-using namespace a8::gfx;
+using namespace a8::window;
 
 void Window::initialize(native_handle_t nativeHandle) noexcept {
   _scale = (float)gtk_widget_get_scale_factor(nativeHandle);

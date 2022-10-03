@@ -1,5 +1,5 @@
-#ifndef A8_GFX_EVENTS_H_
-#define A8_GFX_EVENTS_H_
+#ifndef A8_WINDOW_EVENTS_H_
+#define A8_WINDOW_EVENTS_H_
 
 #include "geometry.h"
 
@@ -9,7 +9,7 @@
 #include <ostream>
 #include <boost/signals2.hpp>
 
-namespace a8::gfx {
+namespace a8::window {
 
 enum class PointerKind {
   Unknown = 0,
@@ -529,6 +529,6 @@ using Signal = typename detail::signal<O, E, Cmb>::type;
 template<class O, class E, class Cmb = detail::ShortCircuit>
 using Slot = typename detail::signal<O, E, Cmb>::slot_type;
 
-} // namespace a8::gfx
+} // namespace a8::window
 
-#endif // A8_GFX_EVENTS_H_
+#endif // A8_WINDOW_EVENTS_H_

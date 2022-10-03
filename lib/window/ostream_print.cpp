@@ -1,9 +1,9 @@
-#include "a8/gfx/geometry.h"
-#include "a8/gfx/events.h"
+#include "a8/window/geometry.h"
+#include "a8/window/events.h"
 
 #include <ostream>
 
-namespace a8::gfx {
+namespace a8::window {
 
 template<typename Coord>
 std::ostream &
@@ -102,4 +102,4 @@ std::ostream &operator<<(std::ostream &os, SystemEvent e) {
   return os;
 }
 
-} // namespace a8::gfx
+} // namespace a8::window

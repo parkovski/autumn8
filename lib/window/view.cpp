@@ -1,6 +1,6 @@
-#include "a8/gfx/views/view.h"
+#include "a8/window/view.h"
 
-using namespace a8::gfx;
+using namespace a8::window;
 
 View::~View() = default;
 

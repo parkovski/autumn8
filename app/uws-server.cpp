@@ -1,7 +1,7 @@
 #include "a8/a8.h"
-#include "a8/gfx/msgloop.h"
-#include "a8/gfx/window.h"
-#include "a8/gfx/views/webview.h"
+#include "a8/window/window.h"
+#include "a8/window/msgloop.h"
+#include "a8/webview/webview.h"
 
 A8_PRAGMA_MS(warning(push))
 A8_PRAGMA_MS(warning(disable: 4244))
@@ -17,7 +17,8 @@ A8_PRAGMA_MS(warning(pop))
 
 A8_PRAGMA_MS(comment(lib, "Psapi.lib"))
 
-using namespace a8::gfx;
+using namespace a8::window;
+using namespace a8::webview;
 
 const char *const docHead = R"(
 <!doctype html>

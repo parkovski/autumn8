@@ -1,28 +1,27 @@
-#ifndef A8_GFX_WINDOW_H_
-#define A8_GFX_WINDOW_H_
+#ifndef A8_WINDOW_WINDOW_H_
+#define A8_WINDOW_WINDOW_H_
 
-#include "views/view.h"
+#include "view.h"
 #include "events.h"
 #include "a8/util/cstring_view.h"
 
 #if A8_IS_GFX_IMPL(Win32)
-// Message types for WM_USER.
-
-constexpr WPARAM A8M_ASYNCDESTROY = 0;
-constexpr WPARAM A8M_EXECONMSGTHREAD = 1;
+  // Message types for WM_USER.
+  constexpr WPARAM A8M_ASYNCDESTROY = 0;
+  constexpr WPARAM A8M_EXECONMSGTHREAD = 1;
 #endif
 
-namespace a8::gfx {
+namespace a8::window {
 
 class Window : public View {
   void initialize(native_handle_t nativeHandle) noexcept;
 
 public:
   template<class E>
-  using Signal = ::a8::gfx::Signal<Window, E>;
+  using Signal = ::a8::window::Signal<Window, E>;
 
   template<class E>
-  using Slot = ::a8::gfx::Slot<Window, E>;
+  using Slot = ::a8::window::Slot<Window, E>;
 
   explicit Window(native_handle_t nativeHandle) noexcept;
 
@@ -86,6 +85,6 @@ public:
   Signal<ResizeEvent> eresize;
 };
 
-} // namespace a8::gfx
+} // namespace a8::window
 
-#endif // A8_GFX_WINDOW_H_
+#endif // A8_WINDOW_WINDOW_H_

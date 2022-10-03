@@ -1,14 +1,13 @@
-#include "a8/util/inline.h"
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
-#include "a8/gfx/views/webview.h"
-#include "a8/gfx/window.h"
+#include "a8/webview/webview.h"
+#include "a8/util/inline.h"
 #include "a8/util/uri.h"
 #include "a8/util/mime.types.h"
 
 #define WKWV(o) WEBKIT_WEB_VIEW(*o->nativeHandle())
 
-using namespace a8::gfx;
+using namespace a8::webview;
 
 namespace {
   a8::cstring_view

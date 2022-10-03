@@ -1,11 +1,11 @@
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
-#include "a8/gfx/msgloop.h"
+#include "a8/window/msgloop.h"
 
 using a8::Log;
 using namespace a8::platform::Windows;
 
-int a8::gfx::runMessageLoop() {
+int a8::window::runMessageLoop() {
   if (g_platformState.dwMainThreadId != GetCurrentThreadId()) {
     A8_WARN("Expected runMessageLoop() on thread {}",
             g_platformState.dwMainThreadId);
@@ -20,7 +20,7 @@ int a8::gfx::runMessageLoop() {
   return (int)msg.wParam;
 }
 
-int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
+int a8::window::runConstantFPSMessageLoop(void (*callback)(), int fps) {
   if (g_platformState.dwMainThreadId != GetCurrentThreadId()) {
     A8_WARN("Expected runConstantFPSMessageLoop() on thread {}",
             g_platformState.dwMainThreadId);
@@ -57,6 +57,6 @@ int a8::gfx::runConstantFPSMessageLoop(void (*callback)(), int fps) {
   return (int)msg.wParam;
 }
 
-void a8::gfx::postQuitMessage(int exitCode) {
+void a8::window::postQuitMessage(int exitCode) {
   PostQuitMessage(exitCode);
 }

@@ -59,7 +59,8 @@ add_subdirectory(lib/util util)
 
 if(A8_BUILD_GUI)
   message(STATUS "GUI targets are enabled")
-  add_subdirectory(lib/gfx gfx)
+  add_subdirectory(lib/window window)
+  add_subdirectory(lib/webview webview)
 
   if(fpsdk_FOUND)
     message(STATUS "FL Studio plugin target is enabled")

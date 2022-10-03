@@ -36,4 +36,4 @@ endif()
 
 target_compile_definitions(a8gfxmain PRIVATE A8_MODULE_NAME="a8-main")
 target_compile_definitions(a8gfxmain PUBLIC A8_HAS_GUI)
-target_link_libraries(a8gfxmain PUBLIC a8util a8gfx)
+target_link_libraries(a8gfxmain PUBLIC a8util a8window)

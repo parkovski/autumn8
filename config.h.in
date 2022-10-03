@@ -12,7 +12,7 @@
 
 #ifdef A8_HAS_GUI
 # define A8_GFX_BACKEND A8_GFX_BACKEND_@A8_GFXBACKEND@
-# define A8_GFX_BACKEND_HEADER "a8/gfx/backend/@A8_GFXBACKEND@.h"
+# define A8_GFX_BACKEND_HEADER "a8/window/backend/@A8_GFXBACKEND@.h"
 #else
 # define A8_GFX_BACKEND A8_GFX_BACKEND_NULL
 #endif

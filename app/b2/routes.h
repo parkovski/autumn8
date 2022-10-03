@@ -1,15 +1,15 @@
 #pragma once
 
 #include "a8/util/router.h"
-#include "a8/gfx/views/webview.h"
+#include "a8/webview/webview.h"
 
 namespace a8::tools::browser {
 
 class Browser;
 
 struct Routes {
-  using Request = gfx::WebViewRouterRequest;
-  using Response = gfx::WebViewResponse;
+  using Request = webview::WebViewRouterRequest;
+  using Response = webview::WebViewResponse;
 
   explicit Routes(Router<Request> &r, Browser &browser);
 

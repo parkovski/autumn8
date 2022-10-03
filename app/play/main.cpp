@@ -1,6 +1,6 @@
-#include "a8/gfx/window.h"
-#include "a8/gfx/views/webview.h"
-#include "a8/gfx/msgloop.h"
+#include "a8/window/window.h"
+#include "a8/window/msgloop.h"
+#include "a8/webview/webview.h"
 #include "a8/util/router.h"
 
 #include <string_view>
@@ -10,7 +10,8 @@ using namespace std::string_view_literals;
 //namespace stdfs = std::filesystem;
 
 using namespace a8;
-using namespace a8::gfx;
+using namespace a8::window;
+using namespace a8::webview;
 
 namespace {
 

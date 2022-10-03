@@ -1,10 +1,10 @@
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
-#include "a8/gfx/msgloop.h"
+#include "a8/window/msgloop.h"
 
 using namespace a8::platform::Linux;
 
-namespace a8::gfx {
+namespace a8::window {
 
 static int s_messageLoopExitCode = 0;
 

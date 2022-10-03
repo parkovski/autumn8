@@ -1,10 +1,10 @@
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 
-#include "a8/gfx/window.h"
+#include "a8/window/window.h"
 #include "a8/util/utfconv.h"
 
-using namespace a8::gfx;
+using namespace a8::window;
 using namespace a8::platform::Windows;
 
 //namespace {

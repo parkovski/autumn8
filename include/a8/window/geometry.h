@@ -1,11 +1,11 @@
-#ifndef A8_GFX_GEOMETRY_H_
-#define A8_GFX_GEOMETRY_H_
+#ifndef A8_WINDOW_GEOMETRY_H_
+#define A8_WINDOW_GEOMETRY_H_
 
 #include <cstdint>
 #include <type_traits>
 #include <iosfwd>
 
-namespace a8::gfx {
+namespace a8::window {
 
 // Anchor {{{
 
@@ -380,6 +380,6 @@ using Rect = RectS<true>;
 
 // }}}
 
-} // namespace a8::gfx
+} // namespace a8::window
 
-#endif /* A8_GFX_GEOMETRY_H_ */
+#endif /* A8_WINDOW_GEOMETRY_H_ */

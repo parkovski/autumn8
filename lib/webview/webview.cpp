@@ -1,8 +1,8 @@
-#include "a8/gfx/views/webview.h"
+#include "a8/webview/webview.h"
 
 #include <boost/algorithm/string.hpp>
 
-using namespace a8::gfx;
+using namespace a8::webview;
 
 const char *ResponseStateException::kindToString(Kind kind) noexcept {
   switch (kind) {

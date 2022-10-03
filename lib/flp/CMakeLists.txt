@@ -8,7 +8,7 @@ add_library(a8flp STATIC ${SOURCES})
 target_compile_definitions(a8flp PRIVATE A8_MODULE_NAME="a8-flp")
 target_link_libraries(a8flp PRIVATE fpsdk)
 target_link_libraries(a8flp PUBLIC
-  a8gfx
+  a8window
 )
 
 # Temporary:
