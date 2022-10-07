@@ -3,7 +3,7 @@
 
 #include <ostream>
 
-namespace a8::window {
+namespace a8::win {
 
 template<typename Coord>
 std::ostream &
@@ -102,4 +102,4 @@ std::ostream &operator<<(std::ostream &os, SystemEvent e) {
   return os;
 }
 
-} // namespace a8::window
+} // namespace a8::win

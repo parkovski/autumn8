@@ -1,6 +1,6 @@
 #include "a8/window/view.h"
 
-using namespace a8::window;
+using namespace a8::win;
 
 View::~View() = default;
 

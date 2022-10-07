@@ -10,7 +10,7 @@ using namespace std::string_view_literals;
 //namespace stdfs = std::filesystem;
 
 using namespace a8;
-using namespace a8::window;
+using namespace a8::win;
 using namespace a8::webview;
 
 namespace {

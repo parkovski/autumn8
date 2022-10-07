@@ -9,7 +9,7 @@
 #include <ostream>
 #include <boost/signals2.hpp>
 
-namespace a8::window {
+namespace a8::win {
 
 enum class PointerKind {
   Unknown = 0,
@@ -529,6 +529,6 @@ using Signal = typename detail::signal<O, E, Cmb>::type;
 template<class O, class E, class Cmb = detail::ShortCircuit>
 using Slot = typename detail::signal<O, E, Cmb>::slot_type;
 
-} // namespace a8::window
+} // namespace a8::win
 
 #endif // A8_WINDOW_EVENTS_H_

@@ -5,7 +5,7 @@
 using a8::Log;
 using namespace a8::platform::Windows;
 
-int a8::window::runMessageLoop() {
+int a8::win::runMessageLoop() {
   if (g_platformState.dwMainThreadId != GetCurrentThreadId()) {
     A8_WARN("Expected runMessageLoop() on thread {}",
             g_platformState.dwMainThreadId);
@@ -20,7 +20,7 @@ int a8::window::runMessageLoop() {
   return (int)msg.wParam;
 }
 
-int a8::window::runConstantFPSMessageLoop(void (*callback)(), int fps) {
+int a8::win::runConstantFPSMessageLoop(void (*callback)(), int fps) {
   if (g_platformState.dwMainThreadId != GetCurrentThreadId()) {
     A8_WARN("Expected runConstantFPSMessageLoop() on thread {}",
             g_platformState.dwMainThreadId);
@@ -57,6 +57,6 @@ int a8::window::runConstantFPSMessageLoop(void (*callback)(), int fps) {
   return (int)msg.wParam;
 }
 
-void a8::window::postQuitMessage(int exitCode) {
+void a8::win::postQuitMessage(int exitCode) {
   PostQuitMessage(exitCode);
 }

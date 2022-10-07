@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <iosfwd>
 
-namespace a8::window {
+namespace a8::win {
 
 // Anchor {{{
 
@@ -380,6 +380,6 @@ using Rect = RectS<true>;
 
 // }}}
 
-} // namespace a8::window
+} // namespace a8::win
 
 #endif /* A8_WINDOW_GEOMETRY_H_ */

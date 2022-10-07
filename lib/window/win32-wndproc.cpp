@@ -2,9 +2,9 @@
 #include "a8/a8.h"
 
 #include "a8/window/window.h"
-#include "a8/window/views/view.h"
+#include "a8/window/view.h"
 
-using namespace a8::window;
+using namespace a8::win;
 
 namespace {
   static RawSize toSize(LPRECT rect) {

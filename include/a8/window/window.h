@@ -11,17 +11,17 @@
   constexpr WPARAM A8M_EXECONMSGTHREAD = 1;
 #endif
 
-namespace a8::window {
+namespace a8::win {
 
 class Window : public View {
   void initialize(native_handle_t nativeHandle) noexcept;
 
 public:
   template<class E>
-  using Signal = ::a8::window::Signal<Window, E>;
+  using Signal = ::a8::win::Signal<Window, E>;
 
   template<class E>
-  using Slot = ::a8::window::Slot<Window, E>;
+  using Slot = ::a8::win::Slot<Window, E>;
 
   explicit Window(native_handle_t nativeHandle) noexcept;
 
@@ -65,7 +65,7 @@ protected:
 
 private:
 #if A8_IS_GFX_IMPL(Win32)
-  friend LRESULT CALLBACK ::a8::platform::Windows::mainWndProc(
+  friend LRESULT CALLBACK ::a8::platform::Wins::mainWndProc(
     HWND, UINT, WPARAM, LPARAM
   );
 #endif
@@ -85,6 +85,6 @@ public:
   Signal<ResizeEvent> eresize;
 };
 
-} // namespace a8::window
+} // namespace a8::win
 
 #endif // A8_WINDOW_WINDOW_H_

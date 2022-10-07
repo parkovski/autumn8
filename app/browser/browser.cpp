@@ -10,7 +10,7 @@
 #include <vector>
 
 using namespace a8;
-using namespace a8::window;
+using namespace a8::win;
 using namespace a8::webview;
 
 using nlohmann::json;

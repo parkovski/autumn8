@@ -4,7 +4,7 @@
 #include "a8/window/window.h"
 #include "a8/util/utfconv.h"
 
-using namespace a8::window;
+using namespace a8::win;
 using namespace a8::platform::Windows;
 
 //namespace {

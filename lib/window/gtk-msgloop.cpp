@@ -4,7 +4,7 @@
 
 using namespace a8::platform::Linux;
 
-namespace a8::window {
+namespace a8::win {
 
 static int s_messageLoopExitCode = 0;
 
@@ -24,4 +24,4 @@ void postQuitMessage(int exitCode) {
   gtk_main_quit();
 }
 
-} // namespace a8::gfx
+} // namespace a8::win

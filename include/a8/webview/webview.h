@@ -210,7 +210,7 @@ private:
   void platformFinish() noexcept;
 };
 
-class WebView : public window::View {
+class WebView : public win::View {
 public:
   constexpr static cstring_view CustomScheme = "a8";
   constexpr static cstring_view ResourceRoot = "a8://res";

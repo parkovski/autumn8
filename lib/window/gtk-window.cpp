@@ -3,7 +3,7 @@
 
 #include "a8/window/window.h"
 
-using namespace a8::window;
+using namespace a8::win;
 
 void Window::initialize(native_handle_t nativeHandle) noexcept {
   _scale = (float)gtk_widget_get_scale_factor(nativeHandle);
