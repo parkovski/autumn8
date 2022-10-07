@@ -8,8 +8,8 @@ namespace a8::tools::browser {
 class Browser;
 
 struct Routes {
-  using Request = webview::WebViewRouterRequest;
-  using Response = webview::WebViewResponse;
+  using Request = wv::WebViewRouterRequest;
+  using Response = wv::WebViewResponse;
 
   explicit Routes(Router<Request> &r, Browser &browser);
 

@@ -21,7 +21,7 @@
 # include <webkit2/webkit2.h>
 #endif
 
-namespace a8::webview {
+namespace a8::wv {
 
 class WebView;
 
@@ -260,36 +260,36 @@ private:
 #endif
 };
 
-} // namespace a8::webview
+} // namespace a8::wv
 
 namespace a8 {
 
 template<>
-struct RouterTraits<webview::WebViewRouterRequest> {
+struct RouterTraits<wv::WebViewRouterRequest> {
   using callback_type
-    = std::function<void(const webview::WebViewRouterRequest &,
-                         webview::WebViewResponse &)>;
+    = std::function<void(const wv::WebViewRouterRequest &,
+                         wv::WebViewResponse &)>;
 
   static void call(const callback_type &callback,
-                   const webview::WebViewRouterRequest &req,
-                   const webview::WebViewRequest &,
-                   webview::WebViewResponse &res) {
+                   const wv::WebViewRouterRequest &req,
+                   const wv::WebViewRequest &,
+                   wv::WebViewResponse &res) {
     callback(req, res);
   }
 
-  static webview::WebViewRouterRequest
-  get_request(const webview::WebViewRequest &req,
-              webview::WebViewResponse &) {
-    return webview::WebViewRouterRequest{&req};
+  static wv::WebViewRouterRequest
+  get_request(const wv::WebViewRequest &req,
+              wv::WebViewResponse &) {
+    return wv::WebViewRouterRequest{&req};
   }
 
   static std::string_view
-  get_route_path(const webview::WebViewRouterRequest &req) {
+  get_route_path(const wv::WebViewRouterRequest &req) {
     return req.uri().path();
   }
 
   static RouterBase::RouteParams
-  &get_route_params(webview::WebViewRouterRequest &req) {
+  &get_route_params(wv::WebViewRouterRequest &req) {
     return req;
   }
 };

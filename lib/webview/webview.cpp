@@ -2,7 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-using namespace a8::webview;
+using namespace a8::wv;
 
 const char *ResponseStateException::kindToString(Kind kind) noexcept {
   switch (kind) {

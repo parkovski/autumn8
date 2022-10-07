@@ -7,7 +7,7 @@
 
 #define WKWV(o) WEBKIT_WEB_VIEW(*o->nativeHandle())
 
-using namespace a8::webview;
+using namespace a8::wv;
 
 namespace {
   a8::cstring_view

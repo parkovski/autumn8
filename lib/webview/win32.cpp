@@ -9,7 +9,7 @@
 #include <wrl.h>
 #include <wil/com.h>
 
-using namespace a8::webview;
+using namespace a8::wv;
 using namespace Microsoft::WRL;
 
 WebView::WebView(std::string_view url)

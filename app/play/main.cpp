@@ -11,7 +11,7 @@ using namespace std::string_view_literals;
 
 using namespace a8;
 using namespace a8::win;
-using namespace a8::webview;
+using namespace a8::wv;
 
 namespace {
 

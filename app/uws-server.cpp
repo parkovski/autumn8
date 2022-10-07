@@ -18,7 +18,7 @@ A8_PRAGMA_MS(warning(pop))
 A8_PRAGMA_MS(comment(lib, "Psapi.lib"))
 
 using namespace a8::win;
-using namespace a8::webview;
+using namespace a8::wv;
 
 const char *const docHead = R"(
 <!doctype html>
