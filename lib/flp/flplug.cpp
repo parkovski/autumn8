@@ -36,7 +36,7 @@ CreatePlugInstance(TFruityPlugHost *Host, int Tag) {
   spdlog::set_pattern(Logger::pattern_no_color_explicit);
   spdlog::flush_on(spdlog::level::trace);
 
-  a8::platform::g_platformState.init(HInstance);
+  a8::plat::g_platformState.init(HInstance);
 
   gs_PlugInfo.host = Host;
   gs_PlugInfo.hostTag = Tag;
@@ -54,7 +54,7 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID) {
       break;
 
     case DLL_PROCESS_DETACH:
-      a8::platform::g_platformInit.deinit();
+      a8::plat::g_platformInit.deinit();
       break;
   }
 
@@ -108,7 +108,7 @@ bool A8FLPlugInfo::loadModulePath() noexcept {
   }
 
   if (!gs_PlugInfo.modulePath[0]) {
-    a8::platform::CallSite<DWORD (*)(DWORD, LPSTR)> call_GetTempPath2A{
+    a8::plat::CallSite<DWORD (*)(DWORD, LPSTR)> call_GetTempPath2A{
       L"kernel32.dll", "GetTempPath2A"
     };
     if (call_GetTempPath2A) {

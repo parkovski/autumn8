@@ -5,7 +5,7 @@
 #include "a8/util/utfconv.h"
 
 using namespace a8::win;
-using namespace a8::platform::Windows;
+using namespace a8::plat::Windows;
 
 //namespace {
   // To not lose precision by storing coordinates as int.

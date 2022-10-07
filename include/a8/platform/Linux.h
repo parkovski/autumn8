@@ -5,7 +5,7 @@
 #include "common.h"
 #include <string>
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace Linux {
 
 std::string getExePath();
@@ -33,4 +33,4 @@ private:
 } g_platformState;
 
 } // inline namespace Linux
-} // namespace a8::platform
+} // namespace a8::plat

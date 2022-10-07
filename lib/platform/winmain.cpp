@@ -9,7 +9,7 @@
 #pragma comment(lib, "mincore.lib")
 
 using a8::Logger;
-using namespace a8::platform::Windows;
+using namespace a8::plat::Windows;
 using a8::to_utf8;
 
 extern "C"

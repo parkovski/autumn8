@@ -1,7 +1,7 @@
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace Windows {
 
 const wchar_t *const A8WindowClass = L"Autumn8WndClass";
@@ -51,4 +51,4 @@ void PlatformState::gfxdeinit() const noexcept {
 }
 
 } // inline namespace Windows
-} // namespace a8::platform
+} // namespace a8::plat

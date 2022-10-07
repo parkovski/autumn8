@@ -65,7 +65,7 @@ protected:
 
 private:
 #if A8_IS_GFX_IMPL(Win32)
-  friend LRESULT CALLBACK ::a8::platform::Wins::mainWndProc(
+  friend LRESULT CALLBACK ::a8::plat::Windows::mainWndProc(
     HWND, UINT, WPARAM, LPARAM
   );
 #endif

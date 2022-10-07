@@ -1,7 +1,7 @@
 #define A8_INCLUDE_PLATFORM
 #include "a8/a8.h"
 
-using namespace a8::platform;
+using namespace a8::plat;
 
 #if defined(_WIN32)
 

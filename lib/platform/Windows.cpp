@@ -2,7 +2,7 @@
 #include "a8/a8.h"
 #include "a8/util/utfconv.h"
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace Windows {
 
 bool setThreadName(const wchar_t *name) {
@@ -43,4 +43,4 @@ void PlatformState::deinit() const noexcept {
 PlatformState g_platformState;
 
 } // inline namespace Windows
-} // namespace a8::platform
+} // namespace a8::plat

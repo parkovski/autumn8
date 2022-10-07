@@ -25,7 +25,7 @@
 #endif
 #include <Windows.h>
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace Windows {
 
 bool setThreadName(const wchar_t *name);
@@ -87,4 +87,4 @@ private:
 } g_platformState;
 
 } // inline namespace Windows
-} // namespace a8::platform
+} // namespace a8::plat

@@ -4,7 +4,7 @@
 
 #include "common.h"
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace Android {
 
 bool setThreadName(const char *name);
@@ -24,4 +24,4 @@ private:
 } g_platformState;
 
 } // inline namespace Android
-} // namespace a8::platform
+} // namespace a8::plat

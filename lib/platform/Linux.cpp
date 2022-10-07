@@ -6,7 +6,7 @@
 #include <linux/limits.h>
 #include <libgen.h>
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace Linux {
 
 std::string getExePath() {
@@ -59,4 +59,4 @@ void PlatformState::deinit() const noexcept {
 PlatformState g_platformState;
 
 } // inline namespace Linux
-} // namespace a8::platform
+} // namespace a8::plat

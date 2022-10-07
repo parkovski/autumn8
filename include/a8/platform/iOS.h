@@ -4,7 +4,7 @@
 
 #include "common.h"
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace iOS {
 
 bool setThreadName(const char *name);
@@ -19,4 +19,4 @@ private:
 } g_platformState;
 
 } // inline namespace iOS
-} // namespace a8::platform
+} // namespace a8::plat

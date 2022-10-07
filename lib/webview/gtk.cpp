@@ -85,7 +85,7 @@ namespace {
                                  a8::cstring_view mimeType,
                                  a8::cstring_view origin) {
     // TODO Web asset path is app specific.
-    auto exeName = a8::platform::getExeName();
+    auto exeName = a8::plat::getExeName();
     auto fullPath = g_build_filename(A8_WEB_ASSET_PATH, exeName.c_str(),
                                      path.c_str(), nullptr);
     webViewSendFile(req, fullPath, mimeType, origin);

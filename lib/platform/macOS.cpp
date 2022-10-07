@@ -1,7 +1,7 @@
 #define A8_INCLUDE_PLATFORM
 #include "a8/a8.h"
 
-namespace a8::platform {
+namespace a8::plat {
 inline namespace macOS {
 
 bool setThreadName(const char *name) {
@@ -18,4 +18,4 @@ void PlatformState::deinit() const noexcept {
 }
 
 } // inline namespace macOS
-} // namespace a8::platform
+} // namespace a8::plat

@@ -2,7 +2,7 @@
 #include "a8/a8.h"
 #include "a8/window/msgloop.h"
 
-using namespace a8::platform::Linux;
+using namespace a8::plat::Linux;
 
 namespace a8::win {
 
