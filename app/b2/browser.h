@@ -1,10 +1,10 @@
-#ifndef A8_TOOLS_BROWSER_BROWSER_H_
-#define A8_TOOLS_BROWSER_BROWSER_H_
+#ifndef A8_APP_BROWSER_BROWSER_H_
+#define A8_APP_BROWSER_BROWSER_H_
 
 #include <vector>
 #include <filesystem>
 
-namespace a8::tools::browser {
+namespace a8::app::browser {
 
 class Browser {
   std::vector<std::filesystem::path> _stack;
@@ -43,6 +43,6 @@ public:
   //DirList list() const;
 };
 
-} // namespace a8::tools::browser
+} // namespace a8::app::browser
 
-#endif /* A8_TOOLS_BROWSER_BROWSER_H_ */
+#endif /* A8_APP_BROWSER_BROWSER_H_ */

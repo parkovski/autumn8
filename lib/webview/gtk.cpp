@@ -1,3 +1,4 @@
+#include <spdlog/common.h>
 #define A8_INCLUDE_GFX_BACKEND
 #include "a8/a8.h"
 #include "a8/webview/webview.h"
@@ -157,7 +158,24 @@ WebView::WebView(View *parent)
   webkit_web_context_register_uri_scheme(ctx, CustomScheme.c_str(),
                                          &WebView::onUriSchemeRequest, this,
                                          nullptr);
-  auto wkwv = webkit_web_view_new_with_context(ctx);
+
+  const gchar *const allow_list[] = { "a8://app/*", "a8://res/*", NULL };
+  auto script = webkit_user_script_new(
+#include "jslog.inc"
+    ,
+    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+    WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
+    allow_list,
+    /* block_list */ NULL
+  );
+  auto ucm = webkit_user_content_manager_new();
+  webkit_user_content_manager_add_script(ucm, script);
+
+  //auto wkwv = webkit_web_view_new_with_context(ctx);
+  auto wkwv = GTK_WIDGET(g_object_new(WEBKIT_TYPE_WEB_VIEW,
+    "user-content-manager", ucm,
+    "web-context", ctx,
+    nullptr));
 
   initializationFinished(wkwv);
 }

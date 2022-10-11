@@ -1,7 +1,20 @@
+if(A8_USE_STD_FORMAT)
+  set(SPDLOG_USE_STD_FORMAT ON)
+else()
+  set(SPDLOG_FMT_EXTERNAL ON)
+  find_package(fmt REQUIRED)
+endif()
+
+if(WIN32)
+  set(SPDLOG_WCHAR_SUPPORT ON)
+  set(SPDLOG_WCHAR_FILENAMES ON)
+endif()
 find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
+
 find_package(SndFile REQUIRED) # SndFile::sndfile
+
 find_package(Boost REQUIRED) # signals2
+
 find_package(nlohmann_json 3.10.5 REQUIRED)
 
 if(WIN32)

@@ -20,5 +20,5 @@
 #define A8_WEB_ASSET_PATH "@A8_WEB_ASSET_PATH@"
 
 #cmakedefine A8_GTK_VERSION @A8_GTK_VERSION@
-
 #cmakedefine A8_HAS_JACK
+#cmakedefine A8_USE_STD_FORMAT

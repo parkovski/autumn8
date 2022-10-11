@@ -1,15 +1,27 @@
+export type FileKind =
+  | 'file'
+  | 'directory'
+  | 'symlink'
+  | 'fifo'
+  | 'socket'
+  | 'reparse'
+  | null;
+
 export interface DirEntry {
+  kind: FileKind;
   name: string;
-  isDir: boolean;
 };
 
-export interface DirList {
+export interface File extends DirEntry {
+  kind: 'file';
   name: string;
-  entries: DirEntry[];
+  mimeType: string;
+  data?: Buffer;
 };
 
-export interface NavState {
-  canGoBack: boolean;
-  canGoForward: boolean;
-  canGoUp: boolean;
+export interface Directory extends DirEntry {
+  kind: 'directory';
+  name: string;
+  parent: Directory | null;
+  entries: DirEntry[] | null;
 };

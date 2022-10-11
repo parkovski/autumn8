@@ -17,13 +17,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  set(A8_BUILD_TESTS_DEFAULT ON)
-else()
-  set(A8_BUILD_TESTS_DEFAULT OFF)
+  set(A8_BUILD_TESTS ON)
 endif()
-option(A8_BUILD_TESTS "Build tests" ${A8_BUILD_TESTS_DEFAULT})
+option(A8_BUILD_TESTS "Build tests" OFF)
 option(A8_BUILD_APPS "Build apps" ON)
 option(A8_BUILD_GUI "Build GUI targets" ON)
+option(A8_USE_STD_FORMAT "Use std::format instead of fmtlib" OFF)
 
 include(cmake/platform.cmake)
 

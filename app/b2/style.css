@@ -3,6 +3,21 @@
 @import "sanitize.css/typography.css";
 @import "@fortawesome/fontawesome-free/css/all.css";
 
+/* @media(prefers-theme: dark) { */
+  html, body {
+    background-color: #2b3339;
+    color: #f0f0f0;
+  }
+/* } */
+
+b2-main {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
 :not(:defined) {
   visibility: hidden;
 }
@@ -12,16 +27,37 @@ b2-toolbar {
   top: 0;
   right: 0;
   left: 0;
-  border-bottom: 1px solid #64748B;
   padding: 0.5rem;
-  background-color: #2b3339;
+  background-color: #222;
   color: #f0f0f0;
 }
 
 b2-toolbar button {
   border: none;
+  border-radius: 2.5px;
 }
 
 b2-toolbar button:hover {
-  background-color: #3e4a53;
+  background-color: #444;
+}
+
+b2-toolbar>span {
+  border: 1px solid #555;
+  border-radius: 2.5px;
+  padding: .375rem 0;
+}
+
+b2-toolbar span a {
+  padding: .375rem 2px;
+  text-decoration: none;
+  &:hover {
+    background-color: #444;
+  }
+  & i {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  &:last-child {
+    padding-right: 4px;
+  }
 }

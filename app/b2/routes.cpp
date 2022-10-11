@@ -5,7 +5,7 @@
 
 #include <functional>
 
-using namespace a8::tools::browser;
+using namespace a8::app::browser;
 using namespace nlohmann;
 
 Routes::Routes(Router<Request> &r, Browser &browser)
@@ -16,7 +16,7 @@ Routes::Routes(Router<Request> &r, Browser &browser)
 #define ROUTE(Path, Fn) r[Path] = std::bind(&Routes::Fn, this, _1, _2)
 
   ROUTE("/view/:name", viewFile);
-  ROUTE("/pwd", pwd);
+  ROUTE("/cwd", cwd);
   ROUTE("/go/back", goBack);
   ROUTE("/go/back/:count", goBack);
   ROUTE("/go/forward", goForward);
@@ -45,7 +45,7 @@ void Routes::viewFile(const Request &req, Response &res) {
   res.sendFile(path.string());
 }
 
-void Routes::pwd(const Request &req, Response &res) {
+void Routes::cwd(const Request &req, Response &res) {
   res.contentType("text/plain") << browser.curdir().string();
 }
 
@@ -153,7 +153,7 @@ void Routes::devShow(const Request &req, Response &res) {
   }
 
   if (req.webview()->devToolsSetVisible(show)) {
-    res.status(http::HTTP_200_OK) << (show ? "show" : "hide");
+    res.status(http::HTTP_200_OK) << (show ? "true" : "false");
   } else {
     res.status(http::HTTP_403_Forbidden);
   }

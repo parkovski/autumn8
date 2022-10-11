@@ -3,7 +3,7 @@
 #include "a8/util/router.h"
 #include "a8/webview/webview.h"
 
-namespace a8::tools::browser {
+namespace a8::app::browser {
 
 class Browser;
 
@@ -14,7 +14,7 @@ struct Routes {
   explicit Routes(Router<Request> &r, Browser &browser);
 
   void viewFile(const Request &req, Response &res);
-  void pwd(const Request &req, Response &res);
+  void cwd(const Request &req, Response &res);
   void goBack(const Request &req, Response &res);
   void goForward(const Request &req, Response &res);
   void goUp(const Request &req, Response &res);
@@ -32,4 +32,4 @@ private:
   Browser &browser;
 };
 
-} // namespace a8::tools::browser
+} // namespace a8::app::browser

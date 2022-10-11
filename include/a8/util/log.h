@@ -2,23 +2,21 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-
-#ifndef SPDLOG_FMT_EXTERNAL
-# define SPDLOG_FMT_EXTERNAL
-#endif
 #include <spdlog/spdlog.h>
-#if defined(_WIN32) && !defined(SPDLOG_WCHAR_TO_UTF8_SUPPORT)
-# error "Windows needs SPDLOG_WCHAR_TO_UTF8_SUPPORT"
-#endif
 
 #if __has_include(<source_location>)
 # include <source_location>
 #endif
+
 #ifndef __cpp_lib_source_location
-# include <experimental/source_location>
-namespace std {
-  using experimental::source_location;
-}
+# if __has_include(<experimental/source_location>)
+#   include <experimental/source_location>
+    namespace std {
+      using experimental::source_location;
+    }
+# else
+#   error "Missing std::source_location"
+# endif
 #endif
 
 #ifndef A8_LOGGER

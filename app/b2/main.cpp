@@ -11,7 +11,7 @@
 using namespace a8;
 using namespace a8::win;
 using namespace a8::wv;
-using namespace a8::tools::browser;
+using namespace a8::app::browser;
 
 int a8main(int argc, char *argv[]) {
   auto win = new Window("Browser");
@@ -32,14 +32,10 @@ int a8main(int argc, char *argv[]) {
 
   win->show();
 
-#ifndef NDEBUG
-  wv->devToolsSetVisible(true);
-#else
   using std::string_view_literals::operator""sv;
   if (argc > 1 && argv[1] == "-dev"sv) {
     wv->devToolsSetVisible(true);
   }
-#endif
 
   return runMessageLoop();
 }

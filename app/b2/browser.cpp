@@ -1,6 +1,6 @@
 #include "browser.h"
 
-using namespace a8::tools::browser;
+using namespace a8::app::browser;
 
 Browser::Browser()
   : _stack{std::filesystem::current_path()},

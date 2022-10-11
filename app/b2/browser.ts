@@ -1,32 +1,48 @@
 //import {ControllerBase} from './lib';
+import {Directory, File} from './model';
 import {Subject} from 'rxjs';
 
 export class Browser {
-  readonly curdir: Subject<string>;
+  _cwd: Directory;
+  _backList: Directory[];
+  _forwardList: Directory[];
+
+  readonly cwd: Subject<Directory>;
+  readonly file: Subject<File>
 
   constructor() {
-    this.curdir = new Subject;
+    this._cwd = {
+      kind: 'directory',
+      name: '',
+      parent: null,
+      entries: null,
+    };
+    this._backList = [];
+    this._forwardList = [];
+
+    this.cwd = new Subject;
+    this.file = new Subject;
   }
 
-  async getCurdir() {
-    return await (await fetch('//app/pwd')).text();
+  async reset() {
+    const cwd = await (await fetch('//app/cwd')).text();
+    const parts = cwd.split('/');
+    A8_DEBUG('cwd parts', parts);
+    let dir = parts.reduce<Directory>((parent, name) => ({
+      kind: 'directory',
+      name,
+      parent,
+      entries: null,
+    }), null!);
+    this._cwd = dir;
+    this.cwd.next(this._cwd);
   }
 
-  async goBack() {
-    this.curdir.next(await (await fetch('//app/go/back')).text());
-  }
-
-  async goForward() {
-    this.curdir.next(await (await fetch('//app/go/forward')).text());
-  }
-
-  async goUp() {
-    this.curdir.next(await (await fetch('//app/go/up')).text());
-  }
-
-  async enter(path: string) {
-    this.curdir.next(await (await fetch(`//app/go/in/${path}`)).text());
+  async toggleDevTools() {
+    const mode = await (await fetch('//app/dev/toggle')).text();
+    if (mode === 'true') return true;
+    return false;
   }
 };
 
-export const browser = new Browser;
+export default new Browser;
