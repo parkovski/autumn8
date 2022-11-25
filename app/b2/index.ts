@@ -10,11 +10,11 @@ interface CustomElementClass extends CustomElementConstructor {
 }
 
 const customElementClasses: CustomElementClass[] = [
-  MainElement,
   ToolbarElement,
+  MainElement,
 ];
 
-customElementClasses.forEach(Class => customElements.define(Class.elementName, Class));
+customElementClasses.forEach(C => customElements.define(C.elementName, C));
 
 document.addEventListener('DOMContentLoaded', async () => {
   A8_DEBUG('DOMContentLoaded');

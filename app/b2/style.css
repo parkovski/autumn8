@@ -3,6 +3,10 @@
 @import "sanitize.css/typography.css";
 @import "@fortawesome/fontawesome-free/css/all.css";
 
+:not(:defined) {
+  visibility: hidden;
+}
+
 /* @media(prefers-theme: dark) { */
   html, body {
     background-color: #2b3339;
@@ -18,10 +22,6 @@ b2-main {
   left: 0;
 }
 
-:not(:defined) {
-  visibility: hidden;
-}
-
 b2-toolbar {
   position: fixed;
   top: 0;
@@ -32,13 +32,16 @@ b2-toolbar {
   color: #f0f0f0;
 }
 
-b2-toolbar button {
+b2-toolbar button,b2-toggle {
   border: none;
   border-radius: 2.5px;
-}
-
-b2-toolbar button:hover {
-  background-color: #444;
+  &:hover {
+    background-color: #444;
+  }
+  &.dev-on {
+    color: #333;
+    background-color: #FFBB3D;
+  }
 }
 
 b2-toolbar>span {
@@ -47,7 +50,7 @@ b2-toolbar>span {
   padding: .375rem 0;
 }
 
-b2-toolbar span a {
+b2-toolbar>span a {
   padding: .375rem 2px;
   text-decoration: none;
   &:hover {
