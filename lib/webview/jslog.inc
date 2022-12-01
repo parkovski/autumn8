@@ -1,6 +1,5 @@
-// vim: set ft=javascript
 R"=(
-(window.A8_LOGGER = {
+(window.__a8_logger = {
   __level: 0,
   __levels: ['trace', 'debug', 'info', 'warn', 'error', 'critical'],
   __loggers: {
@@ -18,9 +17,9 @@ R"=(
       } else {
         level = this.__levels[level];
       }
-      fetch(`//app/log/${level}`, {
-        method: 'POST',
-        body: JSON.stringify(args),
+      fetch(`//app/log/${level}/${encodeURIComponent(args)}`, {
+        method: 'GET',
+        //body: JSON.stringify(args),
       }).then(res => {
         if (!res.ok) {
           console.error(`Log ${this.__levels[level]} HTTP ${res.status}`);
@@ -42,9 +41,9 @@ R"=(
     }
     this.__level = level;
   },
-}).setLogger('console');
+}).setLogger('spdlog');
 ['EPRINT', 'PRINT', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']
 .forEach((m,i) => window['A8_'+m] = function() {
-  window.A8_LOGGER.__logger(i-2, Array.prototype.slice.call(arguments))
+  window.__a8_logger.__logger(i-2, Array.prototype.slice.call(arguments))
 });
 )="

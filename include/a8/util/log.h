@@ -98,6 +98,64 @@ public:
     return _logger;
   }
 
+  template<class... Args>
+  void log(std::source_location loc,
+           spdlog::level::level_enum level,
+           spdlog::format_string_t<Args...> format,
+           Args &&...args) {
+    get()->log(spdlog_loc(loc), level, format, std::forward<Args>(args)...);
+  }
+
+  template<class... Args>
+  void log(spdlog::level::level_enum level,
+           spdlog::format_string_t<Args...> format,
+           Args &&...args) {
+    get()->log(level, format, std::forward<Args>(args)...);
+  }
+
+  template<class... Args>
+  void log(std::source_location loc,
+           spdlog::level::level_enum level,
+           std::string_view msg) {
+    get()->log(spdlog_loc(loc), level, msg);
+  }
+
+  template<class... Args>
+  void log(spdlog::level::level_enum level,
+           std::string_view msg) {
+    get()->log(level, msg);
+  }
+
+#ifdef SPDLOG_WCHAR_TO_UTF8_SUPPORT
+  template<class... Args>
+  void log(std::source_location loc,
+           spdlog::level::level_enum level,
+           spdlog::wformat_string_t<Args...> format,
+           Args &&...args) {
+    get()->log(spdlog_loc(loc), level, format, std::forward<Args>(args)...);
+  }
+
+  template<class... Args>
+  void log(spdlog::level::level_enum level,
+           spdlog::wformat_string_t<Args...> format,
+           Args &&...args) {
+    get()->log(level, format, std::forward<Args>(args)...);
+  }
+
+  template<class... Args>
+  void log(std::source_location loc,
+           spdlog::level::level_enum level,
+           std::wstring_view msg) {
+    get()->log(spdlog_loc(loc), level, msg);
+  }
+
+  template<class... Args>
+  void log(spdlog::level::level_enum level,
+           std::wstring_view msg) {
+    get()->log(level, msg);
+  }
+#endif
+
 #define A8_LOG_METHODS(Name, Level, FmtPrefix)                       \
   template<class... Args>                                            \
   void Name(std::source_location loc,                                \
@@ -121,11 +179,6 @@ public:
                                                                      \
   void Name(std::FmtPrefix##string_view msg) noexcept {              \
     get()->log(spdlog::level::Level, msg);                           \
-  }
-
-  template<class... Args>
-  void foobar(Args &&...args, std::source_location loc = std::source_location::current()) {
-    get()->log(spdlog_loc(loc), spdlog::level::info, std::forward<Args>(args)...);
   }
 
   A8_LOG_METHODS(trace, trace,)
