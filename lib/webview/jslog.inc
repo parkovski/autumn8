@@ -1,5 +1,5 @@
 R"=(
-(window.__a8_logger = {
+(window.A8_LOGGER = {
   __level: 0,
   __levels: ['trace', 'debug', 'info', 'warn', 'error', 'critical'],
   __loggers: {
@@ -30,10 +30,17 @@ R"=(
     }
   },
   __logger: null,
+  rebind() {
+    [
+      'EPRINT', 'PRINT',
+      'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'
+    ].forEach((m,i) =>
+              window['A8_'+m] = A8_LOGGER.__logger.bind(A8_LOGGER, i - 2));
+  },
   setLogger(name) {
-    const logger = this.__loggers[name];
-    if (!logger) throw new Error(`Logger ${name} not defined`);
-    this.__logger = logger.bind(this);
+    if (!(name in this.__loggers)) throw new Error(`Logger ${name} not defined`);
+    this.__logger = this.__loggers[name];
+    this.rebind();
   },
   setLevel(level) {
     if (level < 0 || level >= this.__levels.length) {
@@ -41,9 +48,5 @@ R"=(
     }
     this.__level = level;
   },
-}).setLogger('spdlog');
-['EPRINT', 'PRINT', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']
-.forEach((m,i) => window['A8_'+m] = function() {
-  window.__a8_logger.__logger(i-2, Array.prototype.slice.call(arguments))
-});
+}).setLogger('console');
 )="

@@ -1,3 +1,5 @@
+if ('A8_LOGGER' in window) A8_LOGGER.setLogger('spdlog');
+
 import './style.css';
 
 import browser from './browser';

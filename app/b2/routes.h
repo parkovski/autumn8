@@ -27,6 +27,7 @@ struct Routes {
   void devEnabled(const Request &req, Response &res);
   void devVisible(const Request &req, Response &res);
   void devShow(const Request &req, Response &res);
+  void log(const Request &req, Response &res);
 
 private:
   Browser &browser;

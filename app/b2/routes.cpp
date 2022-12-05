@@ -31,6 +31,7 @@ Routes::Routes(Router<Request> &r, Browser &browser)
   ROUTE("/dev/enabled", devEnabled);
   ROUTE("/dev/visible", devVisible);
   ROUTE("/dev/:show", devShow);
+  ROUTE("/log/:level/:message", log);
 
 #undef ROUTE
 }
@@ -157,4 +158,23 @@ void Routes::devShow(const Request &req, Response &res) {
   } else {
     res.status(http::HTTP_403_Forbidden);
   }
+}
+
+void Routes::log(const Request &req, Response &res) {
+  spdlog::level::level_enum level = spdlog::level::off;
+  auto level_str = req[0];
+  if (level_str == "critical") {
+  } else if (level_str == "error") {
+  } else if (level_str == "warn") {
+  } else if (level_str == "info") {
+  } else if (level_str == "debug") {
+  } else if (level_str == "trace") {
+  } else if (level_str == "print") {
+    A8_PRINT("{}", req[1]);
+    return;
+  } else if (level_str == "eprint") {
+    A8_EPRINT("{}", req[1]);
+    return;
+  }
+  A8_LOGGER.log(level, req[1]);
 }
