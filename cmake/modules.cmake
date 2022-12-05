@@ -2,27 +2,29 @@ if(A8_USE_STD_FORMAT)
   set(SPDLOG_USE_STD_FORMAT ON)
 else()
   set(SPDLOG_FMT_EXTERNAL ON)
-  find_package(fmt REQUIRED)
+  find_package(fmt CONFIG REQUIRED)
 endif()
 
 if(WIN32)
   set(SPDLOG_WCHAR_SUPPORT ON)
   set(SPDLOG_WCHAR_FILENAMES ON)
 endif()
-find_package(spdlog REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
-find_package(SndFile REQUIRED) # SndFile::sndfile
+find_package(SndFile CONFIG REQUIRED) # SndFile::sndfile
 
-find_package(Boost REQUIRED) # signals2
+find_package(Boost CONFIG REQUIRED) # signals2
 
-find_package(nlohmann_json 3.10.5 REQUIRED)
+find_package(Notcurses CONFIG REQUIRED)
+
+find_package(nlohmann_json 3.10.5 CONFIG REQUIRED)
 
 if(WIN32)
   set(uriparser_COMPONENTS char wchar_t)
 else()
   set(uriparser_COMPONENTS char)
 endif()
-find_package(uriparser 0.9.2 REQUIRED COMPONENTS ${uriparser_COMPONENTS})
+find_package(uriparser 0.9.2 CONFIG REQUIRED COMPONENTS ${uriparser_COMPONENTS})
 
 find_package(uWebSockets)
 
@@ -30,7 +32,7 @@ if(A8_BUILD_GUI)
   if(A8_GFXBACKEND STREQUAL "Win32")
     find_package(wil REQUIRED)
   elseif(A8_GFXBACKEND STREQUAL "Gtk")
-    find_package(PkgConfig REQUIRED)
+    include(FindPkgConfig)
     if(A8_GTK_VERSION STREQUAL 3)
       pkg_check_modules(GTK REQUIRED IMPORTED_TARGET GLOBAL gtk+-3.0)
       pkg_check_modules(WebKitGTK IMPORTED_TARGET GLOBAL webkit2gtk-4.1)
