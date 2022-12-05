@@ -73,38 +73,4 @@ private:
 
 } // namespace a8::wv
 
-namespace a8 {
-
-template<>
-struct RouterTraits<wv::WebViewRouterRequest> {
-  using callback_type
-    = std::function<void(const wv::WebViewRouterRequest &,
-                         wv::WebViewResponse &)>;
-
-  static void call(const callback_type &callback,
-                   const wv::WebViewRouterRequest &req,
-                   const wv::WebViewRequest &,
-                   wv::WebViewResponse &res) {
-    callback(req, res);
-  }
-
-  static wv::WebViewRouterRequest
-  get_request(const wv::WebViewRequest &req,
-              wv::WebViewResponse &) {
-    return wv::WebViewRouterRequest{&req};
-  }
-
-  static std::string_view
-  get_route_path(const wv::WebViewRouterRequest &req) {
-    return req.uri().path();
-  }
-
-  static RouterBase::RouteParams
-  &get_route_params(wv::WebViewRouterRequest &req) {
-    return req;
-  }
-};
-
-} // namespace a8
-
 #endif // A8_WEBVIEW_WEBVIEW_H_
