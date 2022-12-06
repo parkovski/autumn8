@@ -11,7 +11,7 @@ enum class FileKind {
   Unknown,
   File,
   Directory,
-  SymLink,
+  Symlink,
   Fifo,
   Socket,
   Reparse,
@@ -21,50 +21,45 @@ NLOHMANN_JSON_SERIALIZE_ENUM(FileKind, {
   { FileKind::Unknown, nullptr },
   { FileKind::File, "file" },
   { FileKind::Directory, "directory" },
-  { FileKind::SymLink, "symlink" },
+  { FileKind::Symlink, "symlink" },
   { FileKind::Fifo, "fifo" },
   { FileKind::Socket, "socket" },
   { FileKind::Reparse, "reparse" },
 });
 
 struct DirEntry {
-  FileKind kind;
-  std::string name;
-
-  explicit DirEntry(FileKind kind = FileKind::Unknown) noexcept
-    : kind{kind}
-  {}
+  FileKind kind{FileKind::Unknown};
+  std::string name{};
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(DirEntry, kind, name)
 };
 
 struct File : DirEntry {
-  std::string mime_type;
+  File() : DirEntry{FileKind::File} {}
 
-  explicit File() noexcept
-    : DirEntry(FileKind::File)
-  {}
+  std::string mimeType{};
+  std::vector<char> data{};
 };
 
-struct DirList {
-  std::string name;
-  std::vector<DirEntry> entries;
+struct Directory : DirEntry {
+  Directory() : DirEntry{FileKind::Directory} {}
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(DirList, name, entries)
+  std::vector<DirEntry> entries{};
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Directory, kind, name, entries)
 };
 
-struct NavState {
-  bool canGoBack;
-  bool canGoForward;
-  bool canGoUp;
+struct Symlink : DirEntry {
+  Symlink() : DirEntry{FileKind::Symlink} {}
 
-  /*explicit NavState(const Browser &browser) noexcept
-    : canGoBack{browser.can_go_back()},
-      canGoForward{browser.can_go_forward()},
-      canGoUp{browser.can_go_up()}
-  {}*/
+  std::string target{};
+};
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NavState, canGoBack, canGoForward, canGoUp)
+struct Reparse : DirEntry {
+  Reparse() : DirEntry{FileKind::Reparse} {}
+
+  std::string tag{};
+  std::string wellKnownTag{};
 };
 
 } // namespace a8::app::browser

@@ -28,24 +28,28 @@ export default class ToolbarElement extends HTMLElement {
 
   setCurdir(cwd: Directory) {
     let children: HTMLElement[] = [];
-    function add(dir: Directory, depth: number) {
+    let path = cwd.name.split('/');
+    if (path[0] === '') path = path.slice(1);
+
+    const link = document.createElement('a');
+    const icon = document.createElement('i');
+    icon.classList.add('fas', 'fa-desktop');
+    link.appendChild(icon);
+    children.push(link);
+
+    let fullpath = '';
+    for (const p of path) {
+      const slash = document.createElement('span');
+      slash.innerText = '/';
+      children.push(slash);
+
       const link = document.createElement('a');
-      if (dir.parent) {
-        add(dir.parent, depth + 1);
-        const slash = document.createElement('span');
-        slash.innerText = '/';
-        children.push(slash);
-        link.innerText = dir.name;
-      } else {
-        const icon = document.createElement('i');
-        icon.classList.add('fas', 'fa-desktop');
-        link.appendChild(icon);
-      }
-      link.dataset.depth = depth.toString();
-      link.onclick = () => false;
+      link.innerText = p;
+      fullpath += '/' + p;
+      link.onclick = (path => () => browser.go(path))(fullpath);
       children.push(link);
     }
-    add(cwd, 0);
+
     this.curdir.replaceChildren(...children);
   }
 }

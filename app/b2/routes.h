@@ -15,15 +15,8 @@ struct Routes {
 
   void viewFile(const Request &req, Response &res);
   void cwd(const Request &req, Response &res);
-  void goBack(const Request &req, Response &res);
-  void goForward(const Request &req, Response &res);
-  void goUp(const Request &req, Response &res);
-  void goTo(const Request &req, Response &res);
-  void goIn(const Request &req, Response &res);
   void ls(const Request &req, Response &res);
-  void historyBack(const Request &req, Response &res);
-  void historyForward(const Request &req, Response &res);
-  void navstate(const Request &req, Response &res);
+  void go(const Request &req, Response &res);
   void devEnabled(const Request &req, Response &res);
   void devVisible(const Request &req, Response &res);
   void devShow(const Request &req, Response &res);

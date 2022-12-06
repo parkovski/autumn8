@@ -3,86 +3,24 @@
 using namespace a8::app::browser;
 
 Browser::Browser()
-  : _stack{std::filesystem::current_path()},
-    _stackIndex{0}
+  : _curdir{std::filesystem::current_path()}
 {}
 
-const std::filesystem::path &
-Browser::curdir() const noexcept {
-  return _stack[_stackIndex];
+const std::filesystem::path &Browser::curdir() const noexcept {
+  return _curdir;
 }
 
-
-auto Browser::get_back_range() const noexcept
-  -> std::pair<const_reverse_iterator, const_reverse_iterator>
-{
-  return std::make_pair(
-    const_reverse_iterator{_stack.begin() + _stackIndex}, _stack.rend());
-}
-
-auto Browser::get_forward_range() const noexcept
-  -> std::pair<const_iterator, const_iterator>
-{
-  return std::make_pair(_stack.begin() + (_stackIndex + 1), _stack.end());
-}
-
-bool Browser::can_go_back(size_t count) const noexcept {
-  return _stackIndex + 1 > count;
-}
-
-bool Browser::can_go_forward(size_t count) const noexcept {
-  return _stackIndex + count < _stack.size();
-}
-
-bool Browser::go_back(size_t count) noexcept {
-  if (!can_go_back(count)) {
-    return false;
-  }
-  _stackIndex -= count;
-  return true;
-}
-
-bool Browser::go_forward(size_t count) noexcept {
-  if (!can_go_forward(count)) {
-    return false;
-  }
-  _stackIndex += count;
-  return true;
-}
-
-/// \param overwrite Replace the current history entry instead of appending.
-bool Browser::go_to(std::filesystem::path path, bool overwrite) {
+bool Browser::go_to(std::filesystem::path path) {
   std::error_code noone_cares;
   if (!std::filesystem::is_directory(path, noone_cares)) {
     return false;
   }
-  if (overwrite) {
-    _stack[_stackIndex] = std::move(path);
-    return true;
-  }
-  if (can_go_forward()) {
-    // Pushing a new path overwrites the forward history.
-    _stack.erase(_stack.cbegin() + _stackIndex + 1, _stack.cend());
-  }
-  _stack.emplace_back(std::move(path));
-  ++_stackIndex;
+  _curdir = path;
   return true;
 }
 
-bool Browser::can_go_up() const noexcept {
-  return curdir().has_parent_path();
-}
-
-bool Browser::go_up() {
-  if (!can_go_up()) {
-    return false;
-  }
-  return go_to(curdir().parent_path());
-}
-
-#if 0
-DirList Browser::list() const {
-  DirList dir;
+Directory Browser::list() const {
+  Directory dir;
   std::error_code err;
   std::filesystem::directory_iterator di(curdir(), err);
   if (err) {
@@ -92,14 +30,24 @@ DirList Browser::list() const {
   dir.name = curdir().string();
 
   while (di != end) {
-    bool isdir = di->is_directory(err);
+    FileKind kind = FileKind::Unknown;
+    if (di->is_directory(err)) {
+      kind = FileKind::Directory;
+    } else if (di->is_symlink(err)) {
+      kind = FileKind::Symlink;
+    } else if (di->is_fifo(err)) {
+      kind = FileKind::Fifo;
+    } else if (di->is_socket(err)) {
+      kind = FileKind::Socket;
+    } else if (di->is_regular_file(err)) {
+      kind = FileKind::File;
+    }
     if (err) {
       continue;
     }
-    dir.entries.emplace_back(DirEntry{di->path().filename().string(), isdir});
+    dir.entries.emplace_back(DirEntry{kind, di->path().filename().string()});
 
     di.increment(err);
   }
   return dir;
 }
-#endif

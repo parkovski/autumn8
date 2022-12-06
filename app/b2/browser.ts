@@ -8,14 +8,12 @@ export class Browser {
   _forwardList: Directory[];
 
   readonly cwd: Subject<Directory>;
-  readonly file: Subject<File>
+  readonly file: Subject<File>;
 
   constructor() {
     this._cwd = {
       kind: 'directory',
       name: '',
-      parent: null,
-      entries: null,
     };
     this._backList = [];
     this._forwardList = [];
@@ -25,16 +23,12 @@ export class Browser {
   }
 
   async reset() {
-    const cwd = await (await fetch('//app/cwd')).text();
-    const parts = cwd.split('/');
-    A8_DEBUG('cwd parts', parts);
-    let dir = parts.reduce<Directory>((parent, name) => ({
-      kind: 'directory',
-      name,
-      parent,
-      entries: null,
-    }), null!);
-    this._cwd = dir;
+    this._cwd = await (await fetch('//app/ls')).json();
+    this.cwd.next(this._cwd);
+  }
+
+  async go(path: string) {
+    this._cwd = await (await fetch('//app/go' + path)).json();
     this.cwd.next(this._cwd);
   }
 
