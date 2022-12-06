@@ -71,8 +71,8 @@ struct RouterTraits<wv::WebViewRouterRequest> {
     return req.uri().path();
   }
 
-  static RouterBase::RouteParams
-  &get_route_params(wv::WebViewRouterRequest &req) {
+  static RouterBase::RouteParams &
+  get_route_params(wv::WebViewRouterRequest &req) {
     return req;
   }
 };

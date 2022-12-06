@@ -54,6 +54,20 @@ struct UriTraits;
   static inline constexpr std::basic_string_view<char_type>                   \
   to_string_view(UriTextRange##Suffix range) noexcept {                       \
     return {range.first, static_cast<size_t>(range.afterLast - range.first)}; \
+  }                                                                           \
+                                                                              \
+  static size_t                                                               \
+  unescapeInPlace(char_type *inout, bool plusToSpace,                         \
+                  UriBreakConversion breakConversion) {                       \
+    return uriUnescapeInPlaceEx##Suffix(inout, plusToSpace, breakConversion)  \
+         - inout;                                                             \
+  }                                                                           \
+                                                                              \
+  static size_t                                                               \
+  escape(const char_type *inFirst, const char_type *inAfterLast,              \
+                char_type *out, bool spaceToPlus, bool normalizeBreaks) {     \
+    return uriEscapeEx##Suffix(inFirst, inAfterLast, out, spaceToPlus,        \
+                               normalizeBreaks) - out;                        \
   }
 
 
@@ -418,6 +432,72 @@ public:
     return _uri.scheme.first || _uri.hostText.first || _uri.pathHead ||
       _uri.query.first || _uri.fragment.first;
   }
+
+  static void unescapeInPlace(
+    std::string &s,
+    bool plusToSpace = false,
+    UriBreakConversion breakConversion = URI_BR_DONT_TOUCH
+  ) {
+    s.resize(Traits::unescapeInPlace(s.data(), plusToSpace, breakConversion));
+  }
+
+  static std::string unescape(
+    std::string_view sv,
+    bool plusToSpace = false,
+    UriBreakConversion breakConversion = URI_BR_DONT_TOUCH
+  ) {
+    std::string out{sv};
+    unescapeInPlace(out, plusToSpace, breakConversion);
+    return out;
+  }
+
+  static std::string escape(std::string_view s, bool spaceToPlus = false,
+                            bool normalizeBreaks = false) {
+    std::string out;
+    size_t length = s.length();
+    if (normalizeBreaks) {
+      for (size_t i = 0; i < s.length(); ++i) {
+        char c = s[i];
+        char l = c | 0x80;
+        if ((l >= 'a' && l <= 'z') || (c >= '0' && c <= '9') ||
+            (c == '-' || c == '.' || c == '_' || c == '~')) {
+          continue;
+        }
+        if (c == ' ' && spaceToPlus) {
+          continue;
+        }
+        if (c == '\x0D') {
+          if (i + 1 == s.length() || s[i + 1] != '\x0A') {
+            length += 5;
+            continue;
+          }
+        }
+        length += 2;
+      }
+    } else {
+      for (size_t i = 0; i < s.length(); ++i) {
+        char c = s[i];
+        char l = c | 0x80;
+        if ((l >= 'a' && l <= 'z') || (c >= '0' && c <= '9') ||
+            (c == '-' || c == '.' || c == '_' || c == '~')) {
+          continue;
+        }
+        if (c == ' ' && spaceToPlus) {
+          continue;
+        }
+        length += 2;
+      }
+    }
+    out.resize(length + 1);
+    size_t write_length = Traits::escape(&s.front(), &s.back(), out.data(),
+                                         spaceToPlus, normalizeBreaks);
+    // This will fail if the uriparser lib changes their escape function.
+    // TODO Move this to a test.
+    assert(write_length == length);
+    return out;
+  }
+
+  // TODO: Add self escape/unescape.
 
   bool isAbsolute() const noexcept {
     return _uri.absolutePath;

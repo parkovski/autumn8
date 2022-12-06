@@ -164,11 +164,17 @@ void Routes::log(const Request &req, Response &res) {
   spdlog::level::level_enum level = spdlog::level::off;
   auto level_str = req[0];
   if (level_str == "critical") {
+    level = spdlog::level::critical;
   } else if (level_str == "error") {
+    level = spdlog::level::err;
   } else if (level_str == "warn") {
+    level = spdlog::level::warn;
   } else if (level_str == "info") {
+    level = spdlog::level::info;
   } else if (level_str == "debug") {
+    level = spdlog::level::debug;
   } else if (level_str == "trace") {
+    level = spdlog::level::trace;
   } else if (level_str == "print") {
     A8_PRINT("{}", req[1]);
     return;
@@ -176,5 +182,8 @@ void Routes::log(const Request &req, Response &res) {
     A8_EPRINT("{}", req[1]);
     return;
   }
-  A8_LOGGER.log(level, req[1]);
+
+  if (level != spdlog::level::off) {
+    A8_LOGGER.log(level, req[1]);
+  }
 }

@@ -1,4 +1,5 @@
 #include "a8/util/router.h"
+#include "a8/util/uri.h"
 
 #include <cassert>
 
@@ -85,7 +86,7 @@ auto RouterBase::routeStep(std::string_view path, const State &state,
   }
 
   if (auto const *nextState = getTransition(state.id, ParamString)) {
-    params.paramv.emplace_back(seg);
+    params.paramv.emplace_back(Uri::unescape(seg));
     return routeStep(path, *nextState, params);
   }
 

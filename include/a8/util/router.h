@@ -16,7 +16,7 @@ namespace a8 {
 class RouterBase {
 public:
   // All route parameter values in order.
-  using param_vec_type = std::vector<std::string_view>;
+  using param_vec_type = std::vector<std::string>;
   // Named route parameters mapped to value.
   using param_map_type =
     std::unordered_map<std::string_view, std::string_view>;
