@@ -35,6 +35,7 @@ export default class ToolbarElement extends HTMLElement {
     const icon = document.createElement('i');
     icon.classList.add('fas', 'fa-desktop');
     link.appendChild(icon);
+    link.onclick = () => browser.go('/');
     children.push(link);
 
     let fullpath = '';

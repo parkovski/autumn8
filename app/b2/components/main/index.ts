@@ -3,39 +3,56 @@ import './style.css';
 import browser from '../../browser';
 import {Directory} from 'app/b2/model';
 
+const icons = {
+  directory: 'fa-folder',
+  symlink: 'fa-up-right-from-square',
+  fifo: 'fa-layer-group',
+  socket: 'fa-network-wired',
+  file: 'fa-file',
+  reparse: 'fa-square-question',
+};
+
 export default class MainElement extends HTMLElement {
   static elementName = 'b2-main';
+
+  #main: HTMLDivElement;
   list?: HTMLUListElement;
 
   constructor() {
     super();
     attach(this);
+    this.#main = document.getElementById('main') as HTMLDivElement;
     A8_DEBUG('Main subscribe to cwd');
     browser.cwd.subscribe(this.setCurdir.bind(this));
   }
 
   setCurdir(cwd: Directory) {
-    A8_DEBUG("Main: setCurdir");
+    if (cwd.name.endsWith('/')) {
+      cwd.name = cwd.name.substring(0, cwd.name.length - 1);
+    }
+    A8_DEBUG("Main: setCurdir: " + cwd.name);
     if (!cwd.entries) return;
     if (this.list) {
-      this.removeChild(this.list);
+      this.#main.removeChild(this.list);
     }
 
     this.list = document.createElement('ul');
-    console.log('cwd:',cwd);
     for (let i = 0; i < cwd.entries.length; ++i) {
       const e = cwd.entries[i];
       const li = document.createElement('li');
+      const a = document.createElement('a');
+      const icon = document.createElement('i');
+      li.appendChild(a);
+      a.appendChild(icon);
+      icon.classList.add('fas', icons[e.kind!]);
       if (e.kind === 'directory') {
-        const a = document.createElement('a');
-        a.innerText = e.name;
         a.onclick = () => browser.go(cwd.name + '/' + e.name);
-        li.appendChild(a);
       } else {
-        li.innerText = e.name;
+        a.onclick = () => false;
       }
+      a.appendChild(document.createTextNode(e.name));
       this.list.appendChild(li);
     }
-    this.appendChild(this.list);
+    this.#main.appendChild(this.list);
   }
 };
