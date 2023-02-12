@@ -282,7 +282,7 @@ std::ostream &operator<<(std::ostream &os, ChannelMode mode) {
   return os << ControlNames[(uint8_t)mode];
 }
 
-std::ostream &operator<<(std::ostream &os, rpnvalue_t rpn) {
+std::ostream &operator<<(std::ostream &os, RPN rpn) {
   if (rpn.msb == 0) {
     switch (rpn.lsb) {
       case 0: return os << "Pitch bend sensitivity";

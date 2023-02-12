@@ -118,7 +118,7 @@ public:
     case Status::NoteOn:               return 3;
     case Status::PolyphonicAftertouch: return 3;
     case Status::ControlChange:        return 3;
-    case Status::ProgramChange:        return 2; // or ProgramBank: 4
+    case Status::ProgramChange:        return 4; // PgmChg(2) or PgmBank(4)
     case Status::ChannelAftertouch:    return 2;
     case Status::PitchBend:            return 3;
     case Status::SysEx:                return 0;

@@ -270,7 +270,7 @@ static_assert((uint8_t)ChannelMode::PolyModeOn == 127,
 
 std::ostream &operator<<(std::ostream &os, ChannelMode mode);
 
-struct rpnvalue_t {
+struct RPN {
   constexpr uint16_t value() const {
     return (uint16_t)msb << 7 | lsb;
   }
@@ -286,50 +286,50 @@ struct rpnvalue_t {
   uint8_t lsb;
 };
 
-std::ostream &operator<<(std::ostream &os, rpnvalue_t rpn);
+std::ostream &operator<<(std::ostream &os, RPN rpn);
 
-struct RPN {
-  constexpr static rpnvalue_t PitchBendSensitivity = {0, 0};
-  constexpr static rpnvalue_t ChannelFineTuning    = {0, 1};
-  constexpr static rpnvalue_t ChannelCorseTuning   = {0, 2};
-  constexpr static rpnvalue_t TuningProgramChange  = {0, 3};
-  constexpr static rpnvalue_t TuningBankSelect     = {0, 4};
-  constexpr static rpnvalue_t ModDepthRange        = {0, 5};
-  constexpr static rpnvalue_t MPEConfig            = {0, 6};
+namespace rpn {
+  constexpr static RPN PitchBendSensitivity = {0, 0};
+  constexpr static RPN ChannelFineTuning    = {0, 1};
+  constexpr static RPN ChannelCorseTuning   = {0, 2};
+  constexpr static RPN TuningProgramChange  = {0, 3};
+  constexpr static RPN TuningBankSelect     = {0, 4};
+  constexpr static RPN ModDepthRange        = {0, 5};
+  constexpr static RPN MPEConfig            = {0, 6};
 
-  constexpr static rpnvalue_t AzimuthAngle      = {0x3D, 0};
-  constexpr static rpnvalue_t ElevationAngle    = {0x3D, 1};
-  constexpr static rpnvalue_t Gain              = {0x3D, 2};
-  constexpr static rpnvalue_t DistanceRatio     = {0x3D, 3};
-  constexpr static rpnvalue_t MaxDistance       = {0x3D, 4};
-  constexpr static rpnvalue_t GainAtMaxDistance = {0x3D, 5};
-  constexpr static rpnvalue_t RefDistanceRatio  = {0x3D, 6};
-  constexpr static rpnvalue_t PanSpreadAngle    = {0x3D, 7};
-  constexpr static rpnvalue_t RollAngle         = {0x3D, 8};
+  constexpr static RPN AzimuthAngle      = {0x3D, 0};
+  constexpr static RPN ElevationAngle    = {0x3D, 1};
+  constexpr static RPN Gain              = {0x3D, 2};
+  constexpr static RPN DistanceRatio     = {0x3D, 3};
+  constexpr static RPN MaxDistance       = {0x3D, 4};
+  constexpr static RPN GainAtMaxDistance = {0x3D, 5};
+  constexpr static RPN RefDistanceRatio  = {0x3D, 6};
+  constexpr static RPN PanSpreadAngle    = {0x3D, 7};
+  constexpr static RPN RollAngle         = {0x3D, 8};
 
-  constexpr static rpnvalue_t Null = {0x7F, 0x7F};
-};
+  constexpr static RPN Null = {0x7F, 0x7F};
+} // namespace rpn
 
-constexpr std::array<rpnvalue_t, 17> DefinedRPNs {
-  RPN::PitchBendSensitivity,
-  RPN::ChannelFineTuning,
-  RPN::ChannelCorseTuning,
-  RPN::TuningProgramChange,
-  RPN::TuningBankSelect,
-  RPN::ModDepthRange,
-  RPN::MPEConfig,
+constexpr std::array<RPN, 17> DefinedRPNs {
+  rpn::PitchBendSensitivity,
+  rpn::ChannelFineTuning,
+  rpn::ChannelCorseTuning,
+  rpn::TuningProgramChange,
+  rpn::TuningBankSelect,
+  rpn::ModDepthRange,
+  rpn::MPEConfig,
 
-  RPN::AzimuthAngle,
-  RPN::ElevationAngle,
-  RPN::Gain,
-  RPN::DistanceRatio,
-  RPN::MaxDistance,
-  RPN::GainAtMaxDistance,
-  RPN::RefDistanceRatio,
-  RPN::PanSpreadAngle,
-  RPN::RollAngle,
+  rpn::AzimuthAngle,
+  rpn::ElevationAngle,
+  rpn::Gain,
+  rpn::DistanceRatio,
+  rpn::MaxDistance,
+  rpn::GainAtMaxDistance,
+  rpn::RefDistanceRatio,
+  rpn::PanSpreadAngle,
+  rpn::RollAngle,
 
-  RPN::Null,
+  rpn::Null,
 };
 
 } // namespace a8::midi
@@ -337,7 +337,7 @@ constexpr std::array<rpnvalue_t, 17> DefinedRPNs {
 namespace fmt {
   template<> struct formatter<a8::midi::Control> : ostream_formatter {};
   template<> struct formatter<a8::midi::ChannelMode> : ostream_formatter {};
-  template<> struct formatter<a8::midi::rpnvalue_t> : ostream_formatter {};
+  template<> struct formatter<a8::midi::RPN> : ostream_formatter {};
 }
 
 #endif // A8_MIDI_CONTROL_H_
