@@ -2,12 +2,6 @@ project(Autumn8Apps)
 
 add_compile_definitions(A8_MODULE_NAME="app")
 
-a8_app(browser
-  browser/browser.cpp
-  TARGETS GUI
-  DEPENDENCIES a8webview nlohmann_json::nlohmann_json
-)
-
 a8_app(b2
   b2/main.cpp
   b2/browser.cpp
@@ -21,14 +15,6 @@ a8_app(flsaw
   NAME A8Saw
   TARGETS FLP
   DEPENDENCIES a8webview
-)
-
-a8_app(mapish
-  mapish/mapish.cpp
-  mapish/lex.cpp
-  mapish/parse.cpp
-  TARGETS CLI
-  DEPENDENCIES a8midi
 )
 
 a8_app(midictl
