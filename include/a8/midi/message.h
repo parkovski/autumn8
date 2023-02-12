@@ -55,8 +55,8 @@ constexpr inline uint8_t lsbi(int16_t i14) noexcept {
 }
 
 constexpr inline uint16_t make_u14(uint8_t msb, uint8_t lsb) noexcept {
-  assert((msb & 0xF0) == 0 && "Expected 7-bit msb");
-  assert((lsb & 0xF0) == 0 && "Expected 7-bit lsb");
+  assert((msb & 0x80) == 0 && "Expected 7-bit msb");
+  assert((lsb & 0x80) == 0 && "Expected 7-bit lsb");
   return (uint16_t)((uint16_t)(msb << 7) | lsb);
 }
 
