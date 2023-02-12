@@ -60,9 +60,19 @@ function sh(command) {
   }
 }
 
+/** @param {string} old */
+function rename(old, new_) {
+  const slash = os.platform() == 'win32' ? old.lastIndexOf(/\/\\/) : old.lastIndexOf('/');
+  if (~slash) {
+    return old.substring(0, slash + 1) + new_;
+  } else {
+    return new_;
+  }
+}
+
 function convert() {
   for (const size of sizes) {
-    const png = `${__dirname}/../res/size${size}.png`;
+    const png = rename(outfile, `size${size}.png`);
     if (existsSync(png)) {
       console.log(`skipping existing file ${png}`);
     } else {
@@ -79,8 +89,9 @@ if (/\.svg$/.test(infile)) {
   convert(convertExe, '$I', '-resize', '$X', '$O');
 }
 
-const names = sizes.map(s => `${__dirname}/../res/size${s}.png`);
-sh(convertExe, names, '-colors', 256, outfile);
+const names = sizes.map(s => rename(outfile, `size${s}.png`));
+//sh(convertExe, names, '-colors', 256, outfile); <- Messes up transparency
+sh(convertExe, names, outfile);
 if (!keepIntermediates) {
   console.log(colorstr('rm ', 32) + names.join(' '));
   names.map(rm);
