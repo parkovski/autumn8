@@ -50,10 +50,13 @@ if(A8_BUILD_GUI)
 endif()
 
 if(A8_BUILD_TESTS)
-  find_package(Catch2 3.0 REQUIRED)
+  find_package(Catch2 3.2 REQUIRED)
 endif()
 
 add_library(concurrentqueue INTERFACE IMPORTED)
 target_include_directories(concurrentqueue INTERFACE
   "${PROJECT_SOURCE_DIR}/contrib/moodycamel/include"
 )
+
+add_library(miniaudio OBJECT "${PROJECT_SOURCE_DIR}/contrib/miniaudio/miniaudio.c")
+target_include_directories(miniaudio INTERFACE "${PROJECT_SOURCE_DIR}/contrib/miniaudio")
